@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SugarSnapp — One ledger for every sale</title>
+<meta name="description" content="The point of sale for market vendors: type an amount, show a QR, get paid. Stripe, PayPal, Venmo, cash, and EBT in one clean daily ledger.">
+<style>
+:root{
+  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
+  --surface:#ffffff; --line:#dde4d6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+a{color:var(--accent)}
+.wrap{max-width:960px;margin:0 auto;padding:0 24px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:28px 0}
+.brand{font-weight:700;font-size:1.15rem;text-decoration:none;color:var(--ink)}
+.brand span{color:var(--accent)}
+nav .links a{margin-left:20px;font-size:.95rem;text-decoration:none;color:var(--muted)}
+nav .links a:hover{color:var(--accent)}
+header{padding:64px 0 40px;text-align:center}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.78rem;color:var(--accent);margin-bottom:18px}
+h1{font-size:clamp(2.1rem,5.5vw,3.4rem);line-height:1.15;font-weight:700}
+h1 em{font-style:italic;color:var(--accent)}
+.sub{margin:20px auto 0;max-width:34em;color:var(--muted);font-size:1.12rem}
+.cta{display:inline-block;margin-top:34px;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none}
+.cta.soon{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
+/* <a class="cta" href="APP_STORE_URL">Download on the App Store</a>  ← swap in after approval */
+.pager{max-width:520px;margin:64px auto 0;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.slides{display:flex;transition:transform .45s ease}
+.slide{min-width:100%;padding:40px 36px 28px;text-align:center}
+.slide svg{width:120px;height:120px;margin-bottom:18px}
+.slide h3{font-size:1.25rem;margin-bottom:8px}
+.slide p{color:var(--muted);font-size:.98rem;max-width:26em;margin:0 auto}
+.dots{display:flex;justify-content:center;gap:8px;padding:18px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);border:none;cursor:pointer}
+.dot.on{background:var(--accent)}
+section.features{padding:72px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:34px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
+.card h3{font-size:1.05rem;margin-bottom:8px}
+.card h3 .tick{color:var(--accent)}
+.card p{color:var(--muted);font-size:.95rem}
+h2{font-size:1.7rem;text-align:center}
+h2 em{font-style:italic;color:var(--accent)}
+.pricing{margin:80px auto;max-width:560px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:44px 36px}
+.price{font-size:2.6rem;font-weight:700;margin:10px 0 2px}
+.pricing p{color:var(--muted)}
+.pricing .fine{font-size:.88rem;margin-top:14px}
+footer{border-top:1px solid var(--line);margin-top:40px;padding:34px 0 50px;text-align:center;color:var(--muted);font-size:.9rem}
+footer a{margin:0 10px;color:var(--muted)}
+@media(max-width:600px){nav .links a{margin-left:12px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="index.html">🫛 Sugar<span>Snapp</span></a>
+    <div class="links">
+      <a href="support.html">Support</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+    </div>
+  </nav>
+
+  <header>
+    <div class="kicker">For market stalls, craft fairs &amp; pop-ups</div>
+    <h1>Type an amount.<br>Show a QR. <em>Get paid.</em></h1>
+    <p class="sub">SugarSnapp is a dead-simple register for market vendors. Customers scan the payment app they already use, and every sale — card, PayPal, Venmo, cash, or EBT — lands in one clean daily ledger.</p>
+    <span class="cta soon">Coming soon to the App&nbsp;Store</span>
+  </header>
+
+  <div class="pager" id="pager">
+    <div class="slides" id="slides">
+      <div class="slide">
+        <svg viewBox="0 0 120 120" fill="none"><rect x="18" y="8" width="84" height="104" rx="14" fill="#fff" stroke="#3e7a3a" stroke-width="3"/><text x="60" y="46" text-anchor="middle" font-family="Georgia" font-size="24" fill="#1f2a1d">$9.50</text><g fill="#eef3e8"><rect x="30" y="60" width="18" height="14" rx="4"/><rect x="51" y="60" width="18" height="14" rx="4"/><rect x="72" y="60" width="18" height="14" rx="4"/><rect x="30" y="78" width="18" height="14" rx="4"/><rect x="51" y="78" width="18" height="14" rx="4"/><rect x="72" y="78" width="18" height="14" rx="4"/></g></svg>
+        <h3>A register, not a system</h3>
+        <p>Big calculator keys, price × quantity, lines that add up. No inventory setup, no account needed to start.</p>
+      </div>
+      <div class="slide">
+        <svg viewBox="0 0 120 120" fill="none"><rect x="18" y="8" width="84" height="104" rx="14" fill="#1f2a1d"/><text x="60" y="38" text-anchor="middle" font-family="Georgia" font-size="20" fill="#fff">$9.50</text><rect x="38" y="50" width="44" height="44" rx="6" fill="#fff"/><g fill="#1f2a1d"><rect x="43" y="55" width="10" height="10"/><rect x="67" y="55" width="10" height="10"/><rect x="43" y="79" width="10" height="10"/><rect x="58" y="63" width="6" height="6"/><rect x="66" y="72" width="8" height="8"/><rect x="56" y="79" width="6" height="6"/></g></svg>
+        <h3>The charge flip</h3>
+        <p>Hit charge and the screen flips to face your customer — price locked, one QR per payment app, brightness boosted for sunlight.</p>
+      </div>
+      <div class="slide">
+        <svg viewBox="0 0 120 120" fill="none"><rect x="14" y="16" width="92" height="88" rx="12" fill="#fff" stroke="#3e7a3a" stroke-width="3"/><line x1="26" y1="40" x2="94" y2="40" stroke="#dde4d6" stroke-width="2"/><line x1="26" y1="58" x2="94" y2="58" stroke="#dde4d6" stroke-width="2"/><line x1="26" y1="76" x2="94" y2="76" stroke="#dde4d6" stroke-width="2"/><circle cx="32" cy="49" r="4" fill="#635bff"/><circle cx="32" cy="67" r="4" fill="#008cff"/><circle cx="32" cy="85" r="4" fill="#3e7a3a"/><text x="88" y="94" text-anchor="end" font-family="Georgia" font-size="13" fill="#1f2a1d">$412.50</text></svg>
+        <h3>One honest ledger</h3>
+        <p>Stripe, PayPal, Venmo, cash, and EBT collect in the same daily total, with CSV export for your records.</p>
+      </div>
+      <div class="slide">
+        <svg viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="44" fill="#fff" stroke="#3e7a3a" stroke-width="3"/><path d="M40 62 l14 14 26-30" stroke="#3e7a3a" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <h3>Your money stays yours</h3>
+        <p>Payments go straight to your own accounts. SugarSnapp never touches the money and takes no cut of any sale.</p>
+      </div>
+    </div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <section class="features">
+    <h2>Built for the stall, <em>not the back office</em></h2>
+    <div class="grid">
+      <div class="card"><h3><span class="tick">✓</span> Quick Charge</h3><p>Type an amount and charge it. Multiply for quantities, add for baskets. A live receipt builds as you type.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Scan-ready in sunlight</h3><p>Brightness ramps up just for the scan and restores itself after. High-contrast QR codes, even in dark mode.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Every payment type</h3><p>Stripe and PayPal confirm automatically. Venmo confirms with one tap. Cash and EBT log with one tap — first-class, no apology.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> No hardware</h3><p>No card reader, no dongles. Customers use the payment app already on their phone.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Receipts when asked</h3><p>Any sale can become a polished receipt, sent from your own Messages or Mail — even cash sales.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Private by design</h3><p>No ads, no tracking, no analytics SDKs. Your sales data belongs to you, and you can delete your account in-app any time.</p></div>
+    </div>
+  </section>
+
+  <div class="pricing">
+    <h2>Free while in <em>early access</em></h2>
+    <div class="price">$0</div>
+    <p>Every feature, no card reader to buy, no cut of your sales — SugarSnapp never touches your money.</p>
+    <p class="fine">Planned pricing: free under $500/month in sales, then $5/month flat. Founding vendors keep the founding price for good.</p>
+  </div>
+</div>
+
+<footer>
+  <div>© 2026 Francesco Bertocci LLC · a Foliàire Studio app</div>
+  <div style="margin-top:8px">
+    <a href="support.html">Support</a> ·
+    <a href="privacy.html">Privacy</a> ·
+    <a href="terms.html">Terms</a> ·
+    <a href="mailto:fbmore+sugarsnapp@gmail.com">Contact</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const slides=document.getElementById('slides'),dots=document.getElementById('dots'),n=4;let i=0,timer;
+  for(let k=0;k<n;k++){const b=document.createElement('button');b.className='dot'+(k?'':' on');b.setAttribute('aria-label','Slide '+(k+1));b.onclick=()=>go(k,true);dots.appendChild(b);}
+  function go(k,manual){i=(k+n)%n;slides.style.transform='translateX(-'+(i*100)+'%)';
+    [...dots.children].forEach((d,j)=>d.classList.toggle('on',j===i));
+    if(manual){clearInterval(timer);start();}}
+  function start(){timer=setInterval(()=>go(i+1),4500);}
+  let x0=null;
+  slides.addEventListener('touchstart',e=>x0=e.touches[0].clientX,{passive:true});
+  slides.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;
+    if(Math.abs(dx)>40)go(i+(dx<0?1:-1),true);x0=null;},{passive:true});
+  document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')go(i+1,true);if(e.key==='ArrowLeft')go(i-1,true);});
+  start();
+})();
+</script>
+</body>
+</html>

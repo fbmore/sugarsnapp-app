@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — SugarSnapp</title>
+<style>
+:root{--ink:#1f2a1d;--muted:#6b7a66;--canvas:#f4f6ee;--accent:#3e7a3a;--surface:#fff;--line:#dde4d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,serif;background:var(--canvas);color:var(--ink);line-height:1.65}
+a{color:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding:0 24px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:28px 0}
+.brand{font-weight:700;text-decoration:none;color:var(--ink)}
+.brand span{color:var(--accent)}
+nav a.lnk{margin-left:18px;font-size:.95rem;text-decoration:none;color:var(--muted)}
+h1{font-size:2rem;margin:26px 0 4px}
+.date{color:var(--muted);font-size:.9rem;margin-bottom:26px}
+h2{font-size:1.25rem;margin:34px 0 10px}
+p,li{color:#33402f}
+ul{padding-left:22px;margin:10px 0}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 8px}
+.pill{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.85rem;color:var(--muted)}
+code{font-family:ui-monospace,Menlo,monospace;font-size:.88em;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="index.html">🫛 Sugar<span>Snapp</span></a>
+    <span>
+      <a class="lnk" href="support.html">Support</a>
+      <a class="lnk" href="terms.html">Terms</a>
+    </span>
+  </nav>
+
+  <h1>Privacy Policy</h1>
+  <div class="date">Last updated: July 28, 2026</div>
+
+  <p>SugarSnapp is a register and ledger for market vendors, made by Francesco Bertocci LLC (Foliàire Studio). This policy says plainly what the app stores, where it lives, and what never gets collected. No legalese padding, no surprises.</p>
+
+  <div class="pills">
+    <span class="pill">No ads</span>
+    <span class="pill">No tracking or analytics SDKs</span>
+    <span class="pill">No card numbers — ever</span>
+    <span class="pill">No selling of data</span>
+    <span class="pill">Delete your account in-app</span>
+  </div>
+
+  <h2>What is stored, and where</h2>
+  <p><strong>On your device only:</strong> whether you've finished onboarding, and your stand name before you sign in. Your sign-in session tokens live in the iOS Keychain.</p>
+  <p><strong>On our backend</strong> (a Supabase database operated for SugarSnapp, project <code>psiattienhrooetmjvue.supabase.co</code>), tied to your account:</p>
+  <ul>
+    <li><strong>Account:</strong> your email address and Google account identity (name, avatar) from sign-in.</li>
+    <li><strong>Profile:</strong> your stand or farm name, and a logo if you add one.</li>
+    <li><strong>Payment connections:</strong> your Stripe connected-account ID, PayPal.Me name, or Venmo business handle. Never any password or secret key for those services.</li>
+    <li><strong>Sales:</strong> amounts, line items (names, prices, quantities), payment type, status, and timestamps — including when a customer scanned a QR code.</li>
+  </ul>
+  <p>This data exists so your ledger syncs and your QR checkout works. We can technically access it as the database operator; we look only for support or debugging, and never sell or share it.</p>
+
+  <h2>Your customers (buyers)</h2>
+  <p>When a customer scans a sale QR code, our redirect service logs the scan time and — like every web server — briefly records standard request metadata (IP address, browser user agent) in infrastructure logs. We do not build buyer profiles, and the app never asks buyers for personal information. If you send a customer a payment link or receipt, it goes from <em>your own</em> Messages or Mail app — SugarSnapp stores no customer contact details.</p>
+
+  <h2>What we never collect</h2>
+  <ul>
+    <li>Card numbers or any payment credentials — customers pay on Stripe's, PayPal's, or Venmo's own pages</li>
+    <li>Location, contacts, photos, microphone, camera — the app doesn't request any of these permissions</li>
+    <li>Advertising identifiers, cross-app tracking, analytics events</li>
+  </ul>
+
+  <h2>Third-party services</h2>
+  <ul>
+    <li><strong>Supabase</strong> hosts the database and sign-in infrastructure.</li>
+    <li><strong>Google</strong> provides sign-in; Google shares your email, name, and avatar with us when you consent at sign-in.</li>
+    <li><strong>Stripe / PayPal / Venmo</strong> receive only the sale amount (and for Stripe, a sale reference) when a customer pays. Their handling of payments is governed by their own privacy policies. Money flows directly to your account — SugarSnapp is never in the flow of funds.</li>
+  </ul>
+
+  <h2>EBT</h2>
+  <p>EBT sales are <em>logged for your bookkeeping only</em>. The app does not process EBT/SNAP payments and no EBT data beyond the amount and time of your own log entry is stored.</p>
+
+  <h2>Deleting your data</h2>
+  <p>Settings → Delete account removes your account and every sale, item, and payment connection from our backend, permanently. Records already in your Stripe, PayPal, or Venmo accounts are yours and are unaffected.</p>
+
+  <h2>Children</h2>
+  <p>SugarSnapp is a business tool, not directed at children under 13, and we do not knowingly collect their data.</p>
+
+  <h2>Changes</h2>
+  <p>If this policy changes materially, the date above changes and significant updates will be noted in the app's release notes.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? <a href="mailto:fbmore+sugarsnapp@gmail.com">fbmore+sugarsnapp@gmail.com</a></p>
+</div>
+<footer>© 2026 Francesco Bertocci LLC · <a href="index.html">SugarSnapp</a></footer>
+</body>
+</html>

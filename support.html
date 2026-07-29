@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support — SugarSnapp</title>
+<style>
+:root{--ink:#1f2a1d;--muted:#6b7a66;--canvas:#f4f6ee;--accent:#3e7a3a;--surface:#fff;--line:#dde4d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,serif;background:var(--canvas);color:var(--ink);line-height:1.65}
+a{color:var(--accent)}
+.wrap{max-width:720px;margin:0 auto;padding:0 24px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:28px 0}
+.brand{font-weight:700;text-decoration:none;color:var(--ink)}
+.brand span{color:var(--accent)}
+nav a.lnk{margin-left:18px;font-size:.95rem;text-decoration:none;color:var(--muted)}
+h1{font-size:2rem;margin:26px 0 18px}
+h2{font-size:1.25rem;margin:34px 0 10px}
+h3{font-size:1.02rem;margin:20px 0 6px}
+p,li{color:#33402f}
+ul{padding-left:22px;margin:10px 0}
+.contact{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;margin-bottom:8px}
+.contact a.mail{font-size:1.15rem;font-weight:700}
+.contact p{color:var(--muted);font-size:.92rem;margin-top:6px}
+footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="index.html">🫛 Sugar<span>Snapp</span></a>
+    <span>
+      <a class="lnk" href="privacy.html">Privacy</a>
+      <a class="lnk" href="terms.html">Terms</a>
+    </span>
+  </nav>
+
+  <h1>Support</h1>
+  <div class="contact">
+    <a class="mail" href="mailto:fbmore+sugarsnapp@gmail.com">fbmore+sugarsnapp@gmail.com</a>
+    <p>Include your device model and iOS version — it makes fixes much faster. Replies usually within a business day.</p>
+  </div>
+
+  <h2>Getting paid</h2>
+  <h3>How do customers pay?</h3>
+  <p>Type an amount and hit Charge. The screen flips to face your customer with a QR code for each payment app you've connected. They scan with their phone camera, the amount is pre-filled, and they pay in their own app. Stripe and PayPal sales confirm automatically; Venmo sales you confirm with one tap when the notification arrives.</p>
+  <h3>Connecting Stripe</h3>
+  <p>Settings → Get paid → Connect next to Stripe. One button, no API keys — you sign in on Stripe's own page (or create a Stripe account there). Money goes straight to your Stripe account; SugarSnapp takes no cut.</p>
+  <h3>Connecting PayPal or Venmo</h3>
+  <p>Enter your PayPal.Me name or your Venmo <em>business profile</em> handle in Settings. Venmo requires a business profile for selling.</p>
+  <h3>Cash and EBT</h3>
+  <p>Tap Cash or EBT on the charge screen to log the sale instantly. EBT is recorded in your ledger for complete bookkeeping — SugarSnapp does not process EBT/SNAP payments.</p>
+
+  <h2>Common issues</h2>
+  <h3>The QR won't scan in bright sun</h3>
+  <p>SugarSnapp automatically boosts brightness during checkout. If it's still hard to scan, check Settings → Display &amp; Brightness on your device and make sure auto-brightness isn't capped by Low Power Mode.</p>
+  <h3>A sale shows "in progress" but the customer says they paid</h3>
+  <p>"In progress" means the customer scanned and was sent to their payment app. Stripe and PayPal confirmations arrive over the network within seconds; on weak signal they can lag. If the customer shows you their confirmation, you can safely log the sale manually — it will carry a small self-confirmed marker so your ledger stays honest.</p>
+  <h3>No signal at my market</h3>
+  <p>The register, cash logging, and manual confirmation all work offline. QR payments need a connection (yours and the customer's) to confirm. Sales logged offline sync when you're back on signal.</p>
+
+  <h2>Your data</h2>
+  <h3>Exporting sales</h3>
+  <p>Ledger tab → share icon exports the visible day as CSV through the standard iOS share sheet.</p>
+  <h3>Sending a receipt</h3>
+  <p>Open any sale in the Ledger and tap "Send receipt" — it composes into your own Messages or Mail. Works for cash sales too.</p>
+  <h3>Deleting your account</h3>
+  <p>Settings → Delete account removes your account and all synced data permanently. Your money and records inside Stripe/PayPal/Venmo are unaffected. See the <a href="privacy.html">privacy policy</a> for details.</p>
+</div>
+<footer>© 2026 Francesco Bertocci LLC · <a href="index.html">SugarSnapp</a></footer>
+</body>
+</html>
