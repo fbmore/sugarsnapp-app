@@ -37,6 +37,11 @@ h1 em{font-style:italic;color:var(--accent)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--line);border:none;cursor:pointer}
 .dot.on{background:var(--accent)}
 section.features{padding:72px 0 8px}
+section.gallery{padding:72px 0 0}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;margin-top:34px}
+.shots figure{margin:0;text-align:center}
+.shots img{width:100%;max-width:300px;border-radius:24px;border:1px solid var(--line);box-shadow:0 12px 30px rgba(31,42,29,.12)}
+.shots figcaption{margin-top:10px;color:var(--muted);font-size:.92rem;font-style:italic}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:34px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
 .card h3{font-size:1.05rem;margin-bottom:8px}
@@ -96,6 +101,15 @@ footer a{margin:0 10px;color:var(--muted)}
     </div>
     <div class="dots" id="dots"></div>
   </div>
+
+  <section class="gallery">
+    <h2>Straight from <em>the app</em></h2>
+    <div class="shots">
+      <figure><img src="shots/02-choose-app.png" alt="Customer screen: locked total with branded payment app buttons" loading="lazy"><figcaption>They pick their app</figcaption></figure>
+      <figure><img src="shots/03-qr.png" alt="One large scannable QR code for the chosen payment app" loading="lazy"><figcaption>One big scannable code</figcaption></figure>
+      <figure><img src="shots/04-ledger.png" alt="Daily ledger with totals by payment type" loading="lazy"><figcaption>One honest ledger</figcaption></figure>
+    </div>
+  </section>
 
   <section class="features">
     <h2>Built for the stall, <em>not the back office</em></h2>
