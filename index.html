@@ -55,6 +55,9 @@ section.gallery{padding:72px 0 0}
 .shots figure{margin:0;text-align:center}
 .shots img{width:100%;max-width:300px;border-radius:24px;border:1px solid var(--line);box-shadow:0 12px 30px rgba(31,42,29,.12)}
 .shots figcaption{margin-top:10px;color:var(--muted);font-size:.92rem;font-style:italic}
+.shots-wide{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.shots-wide img{max-width:640px}
+.shots img.watch{max-width:210px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:34px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
 .card h3{font-size:1.05rem;margin-bottom:8px}
@@ -123,6 +126,11 @@ footer a{margin:0 10px;color:var(--muted)}
       <figure><img src="shots/02-choose-app.png" alt="Customer screen: locked total with branded payment app buttons" loading="lazy"><figcaption>They pick their app</figcaption></figure>
       <figure><img src="shots/03-qr.png" alt="One large scannable QR code for the chosen payment app" loading="lazy"><figcaption>One big scannable code</figcaption></figure>
       <figure><img src="shots/04-ledger.png" alt="Daily ledger with totals by payment type" loading="lazy"><figcaption>One honest ledger</figcaption></figure>
+      <figure><img src="shots/07-watch.png" alt="Apple Watch: dial an amount with the crown and charge from your wrist" class="watch" loading="lazy"><figcaption>Or charge from your wrist</figcaption></figure>
+    </div>
+    <div class="shots shots-wide">
+      <figure><img src="shots/05-ipad-register.webp" alt="iPad in landscape: register keypad beside a live receipt preview" loading="lazy"><figcaption>Roomier on iPad — receipt included</figcaption></figure>
+      <figure><img src="shots/06-ipad-ledger.webp" alt="iPad in landscape: daily ledger with totals by payment type" loading="lazy"><figcaption>The day&rsquo;s take on the big screen</figcaption></figure>
     </div>
   </section>
 
