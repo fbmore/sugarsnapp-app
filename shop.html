@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shop — SugarSnapp</title>
+<meta name="description" content="Shop as you go: add items while you browse the stand, pay on your own phone, and skip the line. Powered by SugarSnapp.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Shop — SugarSnapp">
+<meta property="og:description" content="Shop as you go: add items while you browse the stand, pay on your own phone, and skip the line.">
+<meta property="og:url" content="https://getsugarsnapp.com/shop.html">
+<meta property="og:image" content="https://getsugarsnapp.com/og-card.png">
+<style>
+:root{
+  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
+  --surface:#ffffff; --line:#dde4d6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.wrap{max-width:560px;margin:0 auto;padding:0 20px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
+.brand{display:inline-flex;align-items:center}
+.brand-logo{height:26px;width:auto;display:block}
+nav .links a,nav .links button{font-size:.92rem;text-decoration:none;color:var(--muted)}
+nav .links a:hover,nav .links button:hover{color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
+.note-card{text-align:center;margin:34px 0}
+.note-card h2{font-size:1.35rem;margin:8px 0 10px;text-align:center}
+.note-card h2 em{font-style:italic;color:var(--accent)}
+.note-card p{color:var(--muted);font-size:.98rem;max-width:30em;margin:0 auto}
+.cta{display:inline-block;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none;cursor:pointer}
+.cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
+.pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.85rem;color:var(--muted)}
+.ghost{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:1rem;cursor:pointer}
+
+/* vendor header */
+.stand{display:flex;align-items:center;gap:16px;margin:6px 0 22px}
+.stand img{width:56px;height:56px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#fff}
+.stand h1{font-size:1.45rem;line-height:1.2;font-weight:700}
+.stand .sub{color:var(--muted);font-size:.9rem;margin-top:2px}
+
+/* item cards */
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:26px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.item .nm{font-size:1.02rem;line-height:1.3}
+.item .un{color:var(--muted);font-size:.85rem;font-style:italic}
+.item .pr{font-family:Georgia,serif;font-weight:700;font-size:1.05rem;white-space:nowrap}
+.step{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;background:var(--canvas)}
+.step button{width:36px;height:36px;font-size:1.25rem;line-height:1;color:var(--accent);border-radius:999px}
+.step button:disabled{color:var(--line);cursor:default}
+.step .q{min-width:26px;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:.98rem;font-variant-numeric:tabular-nums}
+.item.in-cart{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+
+/* sticky pay bar */
+.paybar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 -12px 30px rgba(31,42,29,.08)}
+.paybar .tot{font-family:Georgia,serif;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.paybar .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
+.paybar .cta{padding:13px 30px;white-space:nowrap}
+body.has-paybar{padding-bottom:110px}
+.payerr{color:#8a3b2e;font-size:.9rem;margin:10px 0 0;text-align:center;display:none}
+
+/* trust block */
+.trust{border-top:1px solid var(--line);margin-top:8px;padding:22px 0 8px;text-align:center;color:var(--muted);font-size:.88rem}
+.trust .row{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--ink)}
+.trust .row img{height:15px;opacity:.85}
+.trust p{max-width:30em;margin:0 auto 6px}
+
+/* login */
+.login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
+.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+.login input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.login .err{color:#8a3b2e;font-size:.9rem;margin-top:12px;display:none}
+.login .cta{width:100%;margin-top:20px;text-align:center}
+
+/* register (vendor mode) */
+.reg-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 0 16px}
+.reg-head h1{font-size:1.3rem}
+.reg-head h1 em{font-style:italic;color:var(--accent)}
+.reg-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.reg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;-webkit-user-select:none;user-select:none}
+.reg-item:active{border-color:var(--accent);background:#f2f7ef}
+.reg-item .nm{font-size:.98rem;line-height:1.25}
+.reg-item .pr{font-family:Georgia,serif;font-weight:700;margin-top:2px}
+.reg-item .un{color:var(--muted);font-size:.8rem;font-style:italic;font-weight:400}
+.tape{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;font-family:ui-monospace,Menlo,monospace;font-size:.88rem}
+.tape .empty{color:var(--muted);text-align:center;font-style:italic;font-family:ui-serif,Georgia,serif;padding:6px 0}
+.tape .tl{display:flex;align-items:baseline;gap:8px;padding:3px 0}
+.tape .tl .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tape .tl .m{color:var(--muted);white-space:nowrap}
+.tape .tl .amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tape .tl button{color:#8a3b2e;font-size:1rem;line-height:1;padding:0 4px}
+.tape .rule{border-top:1px dashed #b9c2b1;margin:10px 0}
+.tape .totrow{display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
+.tape .totrow .big{font-size:1.45rem;font-variant-numeric:tabular-nums}
+.reg-actions{display:flex;gap:10px;margin-top:16px}
+.reg-actions .cta{flex:1;text-align:center;padding:14px 10px}
+.reg-actions .ghost{flex:1;text-align:center}
+.reg-note{color:var(--muted);font-size:.82rem;font-style:italic;text-align:center;margin-top:14px}
+
+/* charge / QR screen */
+.charge{text-align:center;margin:26px 0}
+.charge .amt{font-family:Georgia,serif;font-weight:700;font-size:2.4rem;font-variant-numeric:tabular-nums;margin:6px 0 2px}
+.charge .who{color:var(--muted);font-size:.95rem}
+.proc-tabs{display:flex;justify-content:center;gap:8px;margin:18px 0 14px;flex-wrap:wrap}
+.proc-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 16px;font-size:.9rem;color:var(--muted)}
+.proc-tabs button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+.qrbox{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(31,42,29,.12)}
+.qrbox canvas{display:block;width:min(62vw,240px);height:auto;image-rendering:pixelated}
+.wait{color:var(--muted);font-size:.92rem;margin-top:14px}
+.wait .dotp{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:7px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
+.charge .cancel{margin-top:20px}
+.paid-view{text-align:center;margin:40px 0}
+.paid-badge{display:inline-flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:50%;border:3px solid var(--accent);color:var(--accent);font-size:2.4rem;margin-bottom:12px}
+.paid-view h2{font-size:1.7rem;text-align:center}
+.paid-view h2 em{font-style:italic;color:var(--accent)}
+.paid-view .meta{color:var(--muted);margin:6px 0 24px}
+
+footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 40px;text-align:center;color:var(--muted);font-size:.88rem}
+footer a{margin:0 8px;color:var(--muted)}
+.hidden{display:none!important}
+@media(max-width:400px){.item{padding:13px 14px}.paybar .cta{padding:12px 22px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="https://getsugarsnapp.com"><img src="logo.svg" alt="SugarSnapp" class="brand-logo"></a>
+    <div class="links">
+      <button id="navVendor" class="hidden">Vendor? Sign in</button>
+      <button id="navSignout" class="hidden">Sign out</button>
+    </div>
+  </nav>
+
+  <main>
+    <!-- loading -->
+    <section id="v-loading" class="card note-card hidden">
+      <div class="kicker">SugarSnapp</div>
+      <h2>Setting up <em>the stand</em>&hellip;</h2>
+    </section>
+
+    <!-- missing slug -->
+    <section id="v-missing" class="card note-card hidden">
+      <div class="kicker">Hmm</div>
+      <h2>This link is missing <em>its stand</em></h2>
+      <p>Scan the vendor&rsquo;s QR code again, or ask them for a fresh link.</p>
+      <p style="margin-top:14px"><a href="https://getsugarsnapp.com">What&rsquo;s SugarSnapp?</a></p>
+    </section>
+
+    <!-- checkout off -->
+    <section id="v-off" class="card note-card hidden">
+      <div class="kicker">Self-checkout</div>
+      <h2>This stand&rsquo;s self-checkout is <em>currently off</em></h2>
+      <p>No worries — just pay at the stand. Cash, Venmo, or a card with the vendor all work.</p>
+    </section>
+
+    <!-- dead zone / no signal -->
+    <section id="v-dead" class="card note-card hidden">
+      <div class="kicker">No connection</div>
+      <h2>No signal <em>here</em></h2>
+      <p>Pay with cash or Venmo at the stand instead.</p>
+      <p style="margin-top:18px"><button class="ghost" id="retryBtn">Retry</button></p>
+    </section>
+
+    <!-- guest shopfront -->
+    <section id="v-shop" class="hidden">
+      <div class="kicker" style="margin-bottom:10px">Shop as you go · Skip the line</div>
+      <div class="stand">
+        <img id="shopLogo" alt="" class="hidden">
+        <div>
+          <h1 id="shopName"></h1>
+          <div class="sub" id="shopSub"></div>
+        </div>
+      </div>
+      <div class="items" id="shopItems"></div>
+      <div class="trust">
+        <div class="row"><img src="mark.svg" alt=""><span><strong>Powered by SugarSnapp</strong></span></div>
+        <p id="trustLine">Payments are processed by Stripe on this vendor&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — the vendor pays only Stripe&rsquo;s standard card fee.</p>
+        <p>After you pay, show the vendor your <em>PAID</em> receipt — it appears in their register too.</p>
+        <p><a href="https://getsugarsnapp.com">getsugarsnapp.com</a></p>
+      </div>
+    </section>
+
+    <!-- vendor login -->
+    <section id="v-login" class="card login hidden" style="margin:30px 0">
+      <div class="kicker">Vendor sign in</div>
+      <h2 style="text-align:left;font-size:1.35rem;margin-top:8px">Run your register <em style="color:var(--accent)">from this browser</em></h2>
+      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Use the same email and password as the SugarSnapp app.</p>
+      <form id="loginForm">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required>
+        <label for="loginPass">Password</label>
+        <input id="loginPass" type="password" autocomplete="current-password" required>
+        <div class="err" id="loginErr"></div>
+        <button class="cta" id="loginBtn" type="submit">Sign in</button>
+        <p style="text-align:center;margin-top:14px"><button type="button" id="loginBack" style="color:var(--muted);font-size:.9rem">Back to the shop</button></p>
+      </form>
+    </section>
+
+    <!-- vendor register -->
+    <section id="v-register" class="hidden">
+      <div class="reg-head">
+        <h1>Register — <em id="regName"></em></h1>
+        <span class="pill">Web register</span>
+      </div>
+      <div class="reg-items" id="regItems"></div>
+      <div class="tape" id="tape"></div>
+      <div class="reg-actions">
+        <button class="ghost" id="cashBtn">Log cash</button>
+        <button class="cta" id="chargeBtn">Get paid</button>
+      </div>
+      <div class="payerr" id="regErr"></div>
+      <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.</p>
+    </section>
+
+    <!-- charge (QR waiting) -->
+    <section id="v-charge" class="charge hidden">
+      <div class="kicker">Show this to your customer</div>
+      <div class="amt" id="chargeAmt"></div>
+      <div class="who" id="chargeWho"></div>
+      <div class="proc-tabs" id="procTabs"></div>
+      <div class="qrbox"><canvas id="qrCanvas" width="10" height="10"></canvas></div>
+      <div class="wait" id="chargeWait"><span class="dotp"></span>Waiting for payment&hellip;</div>
+      <div class="cancel"><button class="ghost" id="cancelBtn">Cancel sale</button></div>
+    </section>
+
+    <!-- paid -->
+    <section id="v-paid" class="paid-view hidden">
+      <div class="paid-badge">✓</div>
+      <h2>Paid · <em id="paidAmt"></em></h2>
+      <div class="meta" id="paidMeta"></div>
+      <button class="cta" id="newSaleBtn">New sale</button>
+    </section>
+  </main>
+</div>
+
+<!-- guest sticky pay bar -->
+<div class="paybar hidden" id="paybar">
+  <div><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
+  <div style="text-align:right">
+    <button class="cta" id="payBtn" disabled>Pay</button>
+    <div class="payerr" id="payErr"></div>
+  </div>
+</div>
+
+<footer>
+  <div>Made by Francesco Bertocci LLC · © 2026</div>
+  <div style="margin-top:8px">
+    <a href="https://getsugarsnapp.com">SugarSnapp</a> ·
+    <a href="support.html">Support</a> ·
+    <a href="privacy.html">Privacy</a> ·
+    <a href="terms.html">Terms</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- QR encoder — byte mode, ECC M, versions 1-10 ----------
+   Port of the qrcodegen algorithm (Project Nayuki, MIT licence).
+   Returns rows of booleans (true = dark module). */
+function qrMatrix(text){
+  var ECC_M=[0,10,16,26,18,24,16,18,22,22,26];
+  var BLK_M=[0,1,1,1,2,2,4,4,4,5,5];
+  var data=[],i,j,k;
+  for(i=0;i<text.length;i++){
+    var c=text.codePointAt(i);
+    if(c>0xFFFF)i++;
+    if(c<0x80)data.push(c);
+    else if(c<0x800)data.push(0xC0|c>>6,0x80|c&63);
+    else if(c<0x10000)data.push(0xE0|c>>12,0x80|c>>6&63,0x80|c&63);
+    else data.push(0xF0|c>>18,0x80|c>>12&63,0x80|c>>6&63,0x80|c&63);
+  }
+  function rawModules(v){
+    var r=(16*v+128)*v+64;
+    if(v>=2){var a=Math.floor(v/7)+2;r-=(25*a-10)*a-55;if(v>=7)r-=36;}
+    return r;
+  }
+  var ver=-1,dataCap=0;
+  for(var v=1;v<=10;v++){
+    dataCap=Math.floor(rawModules(v)/8)-ECC_M[v]*BLK_M[v];
+    if(Math.ceil((4+(v<10?8:16)+data.length*8)/8)<=dataCap){ver=v;break;}
+  }
+  if(ver<0)throw new Error("payload too long");
+  var bits=[];
+  function put(val,n){for(var t=n-1;t>=0;t--)bits.push(val>>>t&1);}
+  put(4,4);put(data.length,ver<10?8:16);
+  data.forEach(function(b){put(b,8);});
+  var capBits=dataCap*8;
+  put(0,Math.min(4,capBits-bits.length));
+  if(bits.length%8)put(0,8-bits.length%8);
+  for(var pad=0xEC;bits.length<capBits;pad^=0xEC^0x11)put(pad,8);
+  var dcw=[];
+  for(i=0;i<bits.length;i+=8){var by=0;for(j=0;j<8;j++)by=by<<1|bits[i+j];dcw.push(by);}
+  function gfMul(x,y){var z=0;for(var t=7;t>=0;t--){z=z<<1^((z>>>7)*0x11D);z^=((y>>>t)&1)*x;}return z;}
+  function rsDivisor(deg){
+    var d=[];for(var t=0;t<deg-1;t++)d.push(0);d.push(1);
+    var root=1;
+    for(t=0;t<deg;t++){
+      for(var l=0;l<d.length;l++){
+        var f=gfMul(d[l],root);
+        d[l]=(l+1<d.length?d[l+1]:0)^f;
+      }
+      root=gfMul(root,2);
+    }
+    return d;
+  }
+  function rsRemainder(msg,div){
+    var rem=div.map(function(){return 0;});
+    msg.forEach(function(b){
+      var f=b^rem.shift();rem.push(0);
+      div.forEach(function(coef,l){rem[l]^=gfMul(coef,f);});
+    });
+    return rem;
+  }
+  var numBlocks=BLK_M[ver],eccLen=ECC_M[ver];
+  var totalCw=Math.floor(rawModules(ver)/8);
+  var numShort=numBlocks-totalCw%numBlocks;
+  var shortLen=Math.floor(totalCw/numBlocks);
+  var blocks=[],div=rsDivisor(eccLen),off=0;
+  for(i=0;i<numBlocks;i++){
+    var len=shortLen-eccLen+(i<numShort?0:1);
+    var blk=dcw.slice(off,off+len);off+=len;
+    var ecc=rsRemainder(blk,div);
+    if(i<numShort)blk.push(-1);
+    blocks.push(blk.concat(ecc));
+  }
+  var allCw=[];
+  for(i=0;i<blocks[0].length;i++)
+    blocks.forEach(function(b){if(b[i]!==-1)allCw.push(b[i]);});
+  var size=ver*4+17;
+  var mod=[],fun=[];
+  for(i=0;i<size;i++){mod.push(new Array(size).fill(false));fun.push(new Array(size).fill(false));}
+  function setFun(x,y,dark){mod[y][x]=dark;fun[y][x]=true;}
+  for(i=0;i<size;i++){setFun(6,i,i%2===0);setFun(i,6,i%2===0);}
+  function finder(cx,cy){
+    for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++){
+      var x=cx+dx,y=cy+dy;
+      if(x<0||x>=size||y<0||y>=size)continue;
+      var dist=Math.max(Math.abs(dx),Math.abs(dy));
+      setFun(x,y,dist!==2&&dist!==4);
+    }
+  }
+  finder(3,3);finder(size-4,3);finder(3,size-4);
+  var align=[];
+  if(ver>1){
+    var numAlign=Math.floor(ver/7)+2;
+    var step=Math.ceil((ver*4+4)/(numAlign*2-2))*2;
+    align=[6];
+    for(var pos=size-7;align.length<numAlign;pos-=step)align.splice(1,0,pos);
+  }
+  align.forEach(function(ay,ii){align.forEach(function(ax,jj){
+    if((ii===0&&jj===0)||(ii===0&&jj===align.length-1)||(ii===align.length-1&&jj===0))return;
+    for(var dy=-2;dy<=2;dy++)for(var dx=-2;dx<=2;dx++)
+      setFun(ax+dx,ay+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);
+  });});
+  function drawFormat(mask){
+    var dt=0<<3|mask, rem=dt;
+    for(var t=0;t<10;t++)rem=rem<<1^((rem>>>9)*0x537);
+    var fb=(dt<<10|rem)^0x5412;
+    for(t=0;t<=5;t++)setFun(8,t,(fb>>>t&1)!==0);
+    setFun(8,7,(fb>>>6&1)!==0);setFun(8,8,(fb>>>7&1)!==0);setFun(7,8,(fb>>>8&1)!==0);
+    for(t=9;t<15;t++)setFun(14-t,8,(fb>>>t&1)!==0);
+    for(t=0;t<8;t++)setFun(size-1-t,8,(fb>>>t&1)!==0);
+    for(t=8;t<15;t++)setFun(8,size-15+t,(fb>>>t&1)!==0);
+    setFun(8,size-8,true);
+  }
+  drawFormat(0);
+  if(ver>=7){
+    var rem7=ver;
+    for(k=0;k<12;k++)rem7=rem7<<1^((rem7>>>11)*0x1F25);
+    var vb=ver<<12|rem7;
+    for(k=0;k<18;k++){
+      var vBit=(vb>>>k&1)!==0,a=size-11+k%3,cc=Math.floor(k/3);
+      setFun(a,cc,vBit);setFun(cc,a,vBit);
+    }
+  }
+  var bi=0;
+  for(var right=size-1;right>=1;right-=2){
+    if(right===6)right=5;
+    for(var vert=0;vert<size;vert++){
+      for(j=0;j<2;j++){
+        var x=right-j;
+        var upward=((right+1)&2)===0;
+        var y=upward?size-1-vert:vert;
+        if(!fun[y][x]&&bi<allCw.length*8){
+          mod[y][x]=((allCw[bi>>>3]>>>(7-(bi&7)))&1)!==0;
+          bi++;
+        }
+      }
+    }
+  }
+  function applyMask(mask){
+    for(var y=0;y<size;y++)for(var x=0;x<size;x++){
+      if(fun[y][x])continue;
+      var inv;
+      switch(mask){
+        case 0:inv=(x+y)%2===0;break;
+        case 1:inv=y%2===0;break;
+        case 2:inv=x%3===0;break;
+        case 3:inv=(x+y)%3===0;break;
+        case 4:inv=(Math.floor(x/3)+Math.floor(y/2))%2===0;break;
+        case 5:inv=x*y%2+x*y%3===0;break;
+        case 6:inv=(x*y%2+x*y%3)%2===0;break;
+        default:inv=((x+y)%2+x*y%3)%2===0;break;
+      }
+      if(inv)mod[y][x]=!mod[y][x];
+    }
+  }
+  // Penalty picks the friendliest mask; decoders read the mask from the
+  // format bits, so run/block/balance rules are sufficient here.
+  function penalty(){
+    var res=0,x,y;
+    for(y=0;y<size;y++){
+      var rcx=false,runX=0;
+      for(x=0;x<size;x++){
+        if(mod[y][x]===rcx){runX++;if(runX===5)res+=3;else if(runX>5)res++;}
+        else{rcx=mod[y][x];runX=1;}
+      }
+    }
+    for(x=0;x<size;x++){
+      var rcy=false,runY=0;
+      for(y=0;y<size;y++){
+        if(mod[y][x]===rcy){runY++;if(runY===5)res+=3;else if(runY>5)res++;}
+        else{rcy=mod[y][x];runY=1;}
+      }
+    }
+    for(y=0;y<size-1;y++)for(x=0;x<size-1;x++){
+      var cq=mod[y][x];
+      if(cq===mod[y][x+1]&&cq===mod[y+1][x]&&cq===mod[y+1][x+1])res+=3;
+    }
+    var dark=0;
+    for(y=0;y<size;y++)for(x=0;x<size;x++)if(mod[y][x])dark++;
+    res+=(Math.ceil(Math.abs(dark*20-size*size*10)/(size*size))-1)*10;
+    return res;
+  }
+  var best=0,bestScore=Infinity;
+  for(var m=0;m<8;m++){
+    applyMask(m);drawFormat(m);
+    var score=penalty();
+    if(score<bestScore){bestScore=score;best=m;}
+    applyMask(m);
+  }
+  applyMask(best);drawFormat(best);
+  return mod;
+}
+
+function drawQR(canvas,text){
+  var m=qrMatrix(text),n=m.length,quiet=4,scale=8;
+  var dim=(n+quiet*2)*scale;
+  canvas.width=dim;canvas.height=dim;
+  var g=canvas.getContext("2d");
+  g.fillStyle="#fff";g.fillRect(0,0,dim,dim);
+  g.fillStyle="#1a1a1a";
+  for(var y=0;y<n;y++)for(var x=0;x<n;x++)
+    if(m[y][x])g.fillRect((x+quiet)*scale,(y+quiet)*scale,scale,scale);
+}
+
+/* ---------- plumbing ---------- */
+var SUPA="https://psiattienhrooetmjvue.supabase.co";
+var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
+var PAY="https://pay.getsugarsnapp.com/r/";
+var PROC_NAMES={stripe:"Stripe",paypal:"PayPal",venmo:"Venmo",cash:"Cash",ebt:"EBT",tap_to_pay:"Card · Tap to Pay"};
+
+function rest(path,opts,token){
+  opts=opts||{};
+  var headers={apikey:ANON,Authorization:"Bearer "+(token||ANON),"Content-Type":"application/json"};
+  for(var h in (opts.headers||{}))headers[h]=opts.headers[h];
+  return fetch(SUPA+"/rest/v1/"+path,{method:opts.method||"GET",headers:headers,body:opts.body});
+}
+function fn(name,opts){
+  opts=opts||{};
+  return fetch(SUPA+"/functions/v1/"+name,{
+    method:opts.method||"GET",
+    headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},
+    body:opts.body
+  });
+}
+function getSession(){try{return JSON.parse(localStorage.getItem("ss-session"));}catch(e){return null;}}
+function setSession(s){if(s)localStorage.setItem("ss-session",JSON.stringify(s));else localStorage.removeItem("ss-session");}
+function refreshSession(s){
+  return fetch(SUPA+"/auth/v1/token?grant_type=refresh_token",{
+    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({refresh_token:s.refresh_token})
+  }).then(function(r){
+    if(!r.ok){setSession(null);return null;}
+    return r.json().then(function(j){
+      var ns={access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id};
+      setSession(ns);return ns;
+    });
+  });
+}
+function authRest(path,opts){
+  var s=getSession();
+  if(!s)return Promise.reject(new Error("no session"));
+  return rest(path,opts,s.access_token).then(function(r){
+    if(r.status!==401)return r;
+    return refreshSession(s).then(function(ns){
+      if(!ns)throw new Error("signed out");
+      return rest(path,opts,ns.access_token);
+    });
+  });
+}
+
+function money(cents){return "$"+(cents/100).toFixed(2);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+
+/* ---------- view switching ---------- */
+var VIEWS=["v-loading","v-missing","v-off","v-dead","v-shop","v-login","v-register","v-charge","v-paid"];
+function show(id){
+  VIEWS.forEach(function(v){document.getElementById(v).classList.toggle("hidden",v!==id);});
+  var guest=id==="v-shop";
+  document.getElementById("paybar").classList.toggle("hidden",!guest);
+  document.body.classList.toggle("has-paybar",guest);
+  var vendorish=id==="v-register"||id==="v-charge"||id==="v-paid";
+  document.getElementById("navVendor").classList.toggle("hidden",!guest);
+  document.getElementById("navSignout").classList.toggle("hidden",!vendorish);
+  window.scrollTo(0,0);
+}
+function $(id){return document.getElementById(id);}
+
+/* ---------- state ---------- */
+var slug=new URLSearchParams(location.search).get("v");
+var vendor=null,items=[],cart={};      // guest
+var regProfile=null,regItems=[],tape=[],accounts=[]; // vendor
+var pollTimer=null,activeSale=null,activeProc=null;
+
+/* ---------- boot ---------- */
+function boot(){
+  if(!slug){show("v-missing");return;}
+  show("v-loading");
+  var s=getSession();
+  var tryVendor=s
+    ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug")
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(rows){return rows[0]&&rows[0].checkout_slug===slug?rows[0]:null;})
+      .catch(function(){return null;})
+    :Promise.resolve(null);
+  tryVendor.then(function(own){
+    if(own)return enterRegister(own);
+    return guestBoot();
+  });
+}
+
+function guestBoot(){
+  return rest("profiles?checkout_slug=eq."+encodeURIComponent(slug)+"&select=id,business_name,logo_url,address,website")
+  .then(function(r){
+    if(!r.ok)throw 0;
+    return r.json();
+  }).then(function(rows){
+    if(!rows.length){show("v-off");return;}
+    vendor=rows[0];
+    return rest("items?user_id=eq."+vendor.id+"&active=eq.true&order=sort_order.asc,name.asc&select=id,name,price_cents,unit")
+    .then(function(r){if(!r.ok)throw 0;return r.json();})
+    .then(function(list){items=list;renderShop();});
+  }).catch(function(){show("v-dead");});
+}
+
+/* ---------- guest shopfront ---------- */
+function loadCart(){
+  var saved={};
+  try{saved=JSON.parse(localStorage.getItem("ss-cart-"+slug))||{};}catch(e){}
+  cart={};
+  items.forEach(function(it){
+    var q=parseInt(saved[it.id],10);
+    if(q>0)cart[it.id]=Math.min(q,999);
+  });
+}
+function saveCart(){localStorage.setItem("ss-cart-"+slug,JSON.stringify(cart));}
+function cartTotal(){
+  return items.reduce(function(sum,it){return sum+(cart[it.id]||0)*it.price_cents;},0);
+}
+function renderShop(){
+  var name=vendor.business_name||"This stand";
+  document.title=name+" — SugarSnapp";
+  $("shopName").textContent=name;
+  var subBits=[];
+  if(vendor.address)subBits.push(vendor.address);
+  if(vendor.website)subBits.push(vendor.website);
+  $("shopSub").textContent=subBits.join(" · ");
+  if(vendor.logo_url&&/^https:\/\//.test(vendor.logo_url)){
+    $("shopLogo").src=vendor.logo_url;$("shopLogo").classList.remove("hidden");
+  }
+  $("trustLine").innerHTML="Payments are processed by <strong>Stripe</strong> on "+esc(name)+
+    "&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — "+
+    esc(name)+" pays only Stripe&rsquo;s standard card fee.";
+  loadCart();
+  var grid=$("shopItems");
+  grid.innerHTML="";
+  if(!items.length){
+    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>No items listed yet — pay at the stand.</p></div>';
+  }
+  items.forEach(function(it){
+    var el=document.createElement("div");
+    el.className="item";
+    el.innerHTML='<div><div class="nm">'+esc(it.name)+'</div>'+
+      '<div class="pr">'+money(it.price_cents)+(it.unit?' <span class="un">/ '+esc(it.unit)+'</span>':'')+'</div></div>'+
+      '<div class="step"><button type="button" aria-label="Remove one">−</button>'+
+      '<span class="q">0</span>'+
+      '<button type="button" aria-label="Add one">+</button></div>';
+    var minus=el.querySelectorAll("button")[0],plus=el.querySelectorAll("button")[1],qEl=el.querySelector(".q");
+    function sync(){
+      var q=cart[it.id]||0;
+      qEl.textContent=q;
+      minus.disabled=q===0;
+      plus.disabled=q>=999;
+      el.classList.toggle("in-cart",q>0);
+      syncPaybar();
+    }
+    minus.onclick=function(){if(cart[it.id]>1)cart[it.id]--;else delete cart[it.id];saveCart();sync();};
+    plus.onclick=function(){cart[it.id]=Math.min((cart[it.id]||0)+1,999);saveCart();sync();};
+    sync();
+    grid.appendChild(el);
+  });
+  syncPaybar();
+  show("v-shop");
+}
+function syncPaybar(){
+  var total=cartTotal();
+  $("payTotal").textContent=money(total);
+  var btn=$("payBtn");
+  btn.disabled=total===0;
+  btn.textContent=total===0?"Pay":"Pay "+money(total);
+  $("payErr").style.display="none";
+}
+$("payBtn").onclick=function(){
+  var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
+    .filter(function(l){return l.quantity>0;});
+  if(!lines.length)return;
+  var errEl=$("payErr");
+  if(lines.length>50){errEl.textContent="That's a lot! Split into two checkouts, or see the vendor.";errEl.style.display="block";return;}
+  if(cartTotal()>500000){errEl.textContent="Totals over $5,000 can't go through self-checkout — see the vendor.";errEl.style.display="block";return;}
+  var btn=$("payBtn");
+  btn.disabled=true;btn.textContent="One moment…";
+  fn("guest-checkout",{method:"POST",body:JSON.stringify({slug:slug,lines:lines})})
+  .then(function(r){
+    return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok)throw new Error(j.error||"Checkout didn't go through. Try again, or pay at the stand.");
+      localStorage.removeItem("ss-cart-"+slug);
+      location.href=j.pay_url;
+    });
+  })
+  .catch(function(e){
+    var offline=e instanceof TypeError;
+    errEl.textContent=offline?"No signal here. Pay with cash or Venmo at the stand instead.":e.message;
+    errEl.style.display="block";
+    btn.disabled=false;btn.textContent="Pay "+money(cartTotal());
+  });
+};
+
+/* ---------- vendor login ---------- */
+$("navVendor").onclick=function(){show("v-login");};
+$("loginBack").onclick=function(){show("v-shop");};
+$("navSignout").onclick=function(){
+  setSession(null);
+  stopPoll();
+  boot();
+};
+$("loginForm").onsubmit=function(ev){
+  ev.preventDefault();
+  var err=$("loginErr");err.style.display="none";
+  var btn=$("loginBtn");btn.disabled=true;btn.textContent="Signing in…";
+  fetch(SUPA+"/auth/v1/token?grant_type=password",{
+    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({email:$("loginEmail").value.trim(),password:$("loginPass").value})
+  }).then(function(r){
+    return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
+      setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
+      return authRest("profiles?id=eq."+encodeURIComponent(j.user.id)+"&select=id,business_name,logo_url,checkout_slug")
+        .then(function(r2){return r2.ok?r2.json():[];})
+        .then(function(rows){
+          if(rows[0]&&rows[0].checkout_slug===slug)return enterRegister(rows[0]);
+          throw new Error("That account doesn't own this stand's checkout.");
+        });
+    });
+  }).catch(function(e){
+    err.textContent=(e instanceof TypeError)?"No signal here — try again in a moment.":e.message;
+    err.style.display="block";
+  }).finally(function(){btn.disabled=false;btn.textContent="Sign in";});
+};
+
+/* ---------- vendor register ---------- */
+function enterRegister(profile){
+  regProfile=profile;
+  document.title=(profile.business_name||"Register")+" — SugarSnapp";
+  $("regName").textContent=profile.business_name||"your stand";
+  var uid=getSession().user_id;
+  return Promise.all([
+    authRest("items?user_id=eq."+encodeURIComponent(uid)+"&active=eq.true&order=sort_order.asc,name.asc&select=id,name,price_cents,unit")
+      .then(function(r){if(!r.ok)throw 0;return r.json();}),
+    authRest("payment_accounts?select=processor,external_id,is_default&order=is_default.desc")
+      .then(function(r){return r.ok?r.json():[];})
+  ]).then(function(res){
+    regItems=res[0];
+    accounts=res[1].filter(function(a){
+      return a.external_id&&["stripe","paypal","venmo"].indexOf(a.processor)>=0;
+    });
+    tape=[];
+    renderRegister();
+  }).catch(function(){show("v-dead");});
+}
+function renderRegister(){
+  var grid=$("regItems");
+  grid.innerHTML="";
+  if(!regItems.length){
+    grid.innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted)">No active items. Add items in the SugarSnapp app and refresh.</div>';
+  }
+  regItems.forEach(function(it){
+    var b=document.createElement("button");
+    b.type="button";b.className="reg-item";
+    b.innerHTML='<div class="nm">'+esc(it.name)+'</div>'+
+      '<div class="pr">'+money(it.price_cents)+(it.unit?' <span class="un">/ '+esc(it.unit)+'</span>':'')+'</div>';
+    b.onclick=function(){addTape(it);};
+    grid.appendChild(b);
+  });
+  renderTape();
+  show("v-register");
+}
+function addTape(it){
+  var line=tape.find(function(l){return l.item.id===it.id;});
+  if(line)line.qty=Math.min(line.qty+1,999);
+  else tape.push({item:it,qty:1});
+  renderTape();
+}
+function tapeTotal(){
+  return tape.reduce(function(s,l){return s+l.item.price_cents*l.qty;},0);
+}
+function renderTape(){
+  var el=$("tape");
+  if(!tape.length){
+    el.innerHTML='<div class="empty">Tap items to ring them up</div>';
+  }else{
+    var html="";
+    tape.forEach(function(l,idx){
+      html+='<div class="tl"><span class="nm">'+esc(l.item.name)+'</span>'+
+        (l.qty>1?'<span class="m">'+money(l.item.price_cents)+' ×'+l.qty+'</span>':'')+
+        '<span class="amt">'+money(l.item.price_cents*l.qty)+'</span>'+
+        '<button type="button" aria-label="Remove one" data-i="'+idx+'">✕</button></div>';
+    });
+    html+='<div class="rule"></div>'+
+      '<div class="totrow"><span>TOTAL</span><span class="big">'+money(tapeTotal())+'</span></div>';
+    el.innerHTML=html;
+    el.querySelectorAll("button[data-i]").forEach(function(b){
+      b.onclick=function(){
+        var i=+b.getAttribute("data-i");
+        if(tape[i].qty>1)tape[i].qty--;else tape.splice(i,1);
+        renderTape();
+      };
+    });
+  }
+  var has=tape.length>0;
+  $("chargeBtn").disabled=!has||!accounts.length;
+  $("cashBtn").disabled=!has;
+  $("chargeBtn").textContent=accounts.length?"Get paid":"Get paid (no accounts)";
+  $("regErr").style.display="none";
+}
+function regError(msg){
+  var el=$("regErr");
+  el.textContent=msg;el.style.display="block";
+}
+function saleLinesBody(saleId){
+  return tape.map(function(l){
+    return{sale_id:saleId,item_id:l.item.id,name_snapshot:l.item.name,
+      unit_price_cents:l.item.price_cents,quantity:l.qty,
+      line_total_cents:l.item.price_cents*l.qty};
+  });
+}
+function createSale(extra){
+  var total=tapeTotal();
+  var body={user_id:getSession().user_id,origin:"web_register",
+    subtotal_cents:total,total_cents:total};
+  for(var k in extra)body[k]=extra[k];
+  return authRest("sales",{method:"POST",headers:{Prefer:"return=representation"},
+    body:JSON.stringify(body)})
+  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(rows){
+    var sale=rows[0];
+    return authRest("sale_items",{method:"POST",body:JSON.stringify(saleLinesBody(sale.id))})
+      .then(function(r){if(!r.ok)throw 0;return sale;});
+  });
+}
+$("chargeBtn").onclick=function(){
+  if(!tape.length||!accounts.length)return;
+  var btn=$("chargeBtn");btn.disabled=true;btn.textContent="One moment…";
+  createSale({status:"pending"})
+  .then(function(sale){
+    activeSale=sale;
+    showCharge(sale);
+  })
+  .catch(function(){regError("No signal — the sale couldn't be created. Log cash instead, or try again.");})
+  .finally(function(){btn.disabled=false;btn.textContent="Get paid";});
+};
+$("cashBtn").onclick=function(){
+  if(!tape.length)return;
+  var btn=$("cashBtn");btn.disabled=true;btn.textContent="Logging…";
+  createSale({status:"paid",processor:"cash",confirmation_method:"manual",
+    confirmed_at:new Date().toISOString()})
+  .then(function(sale){showPaid(sale.total_cents,"cash");})
+  .catch(function(){regError("No signal — the cash sale couldn't be logged. It's safe to retry.");})
+  .finally(function(){btn.disabled=false;btn.textContent="Log cash";});
+};
+
+/* ---------- charge screen ---------- */
+function showCharge(sale){
+  $("chargeAmt").textContent=money(sale.total_cents);
+  $("chargeWho").textContent="Scan to pay "+(regProfile.business_name||"this stand");
+  var tabs=$("procTabs");
+  tabs.innerHTML="";
+  accounts.forEach(function(a,i){
+    var b=document.createElement("button");
+    b.type="button";b.textContent=PROC_NAMES[a.processor]||a.processor;
+    b.onclick=function(){selectProc(a.processor);};
+    b.setAttribute("data-proc",a.processor);
+    tabs.appendChild(b);
+  });
+  selectProc(accounts[0].processor);
+  $("chargeWait").innerHTML='<span class="dotp"></span>Waiting for payment&hellip;';
+  show("v-charge");
+  startPoll(sale.id);
+}
+function selectProc(proc){
+  activeProc=proc;
+  document.querySelectorAll("#procTabs button").forEach(function(b){
+    b.classList.toggle("on",b.getAttribute("data-proc")===proc);
+  });
+  drawQR($("qrCanvas"),PAY+activeSale.id+"/"+proc);
+}
+function startPoll(saleId){
+  stopPoll();
+  pollTimer=setInterval(function(){
+    authRest("sales?id=eq."+saleId+"&select=status,processor,total_cents")
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(rows){
+      var s=rows[0];
+      if(!s)return;
+      if(s.status==="paid"){
+        stopPoll();
+        showPaid(s.total_cents,s.processor);
+      }else if(s.status==="in_progress"){
+        $("chargeWait").innerHTML='<span class="dotp"></span>Customer scanned — paying now&hellip;';
+      }
+    }).catch(function(){});
+  },2000);
+}
+function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+$("cancelBtn").onclick=function(){
+  var id=activeSale&&activeSale.id;
+  stopPoll();
+  if(id)authRest("sales?id=eq."+id+"&status=neq.paid",{method:"PATCH",
+    body:JSON.stringify({status:"canceled"})}).catch(function(){});
+  activeSale=null;
+  show("v-register");
+};
+function showPaid(cents,proc){
+  tape=[];
+  activeSale=null;
+  $("paidAmt").textContent=money(cents);
+  $("paidMeta").textContent=(PROC_NAMES[proc]||proc||"")+" · "+
+    new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  show("v-paid");
+}
+$("newSaleBtn").onclick=function(){renderTape();show("v-register");};
+$("retryBtn").onclick=boot;
+
+boot();
+})();
+</script>
+</body>
+</html>
