@@ -71,6 +71,10 @@ h2 em{font-style:italic;color:var(--accent)}
 .pricing p{color:var(--muted)}
 .pricing .fine{font-size:.88rem;margin-top:14px}
 footer{border-top:1px solid var(--line);margin-top:40px;padding:34px 0 50px;text-align:center;color:var(--muted);font-size:.9rem}
+.faq{max-width:640px;margin:70px auto 0}
+.faq details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-top:22px}
+.faq summary{cursor:pointer;font-weight:700}
+.faq details p{margin-top:10px;color:var(--muted)}
 footer a{margin:0 10px;color:var(--muted)}
 @media(max-width:600px){nav .links a{margin-left:12px}}
 </style>
@@ -144,6 +148,9 @@ footer a{margin:0 10px;color:var(--muted)}
       <div class="card"><h3><span class="tick">✓</span> No hardware</h3><p>No card reader, no dongles. Customers use the payment app already on their phone.</p></div>
       <div class="card"><h3><span class="tick">✓</span> Receipts when asked</h3><p>Any sale can become a polished receipt, sent from your own Messages or Mail — even cash sales.</p></div>
       <div class="card"><h3><span class="tick">✓</span> Private by design</h3><p>No ads, no tracking, no analytics SDKs. Your sales data belongs to you, and you can delete your account in-app any time.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Shop as you go</h3><p>Turn on your stall&rsquo;s self-checkout page and customers in a hurry scan, pay on their own phone, and show a PAID receipt. The line never forms.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> A register in any browser</h3><p>No iPhone? Sign in to your checkout page from any phone&rsquo;s browser and ring up sales there — same catalog, same ledger.</p></div>
+      <div class="card"><h3><span class="tick">✓</span> Run the whole market</h3><p>Organizer mode runs the manager&rsquo;s tent: token sales, vendor check-in with a join code, and end-of-day reconciliation that squares.</p></div>
     </div>
   </section>
 
@@ -151,8 +158,16 @@ footer a{margin:0 10px;color:var(--muted)}
     <h2>Free while in <em>early access</em></h2>
     <div class="price">$0</div>
     <p>Every feature, no card reader to buy, no cut of your sales — SugarSnapp never touches your money.</p>
+    <p class="fine">Cash, Venmo, and PayPal cost nothing extra. Card payments cost only Stripe&rsquo;s standard fee, paid to Stripe — SugarSnapp adds nothing.</p>
     <p class="fine">Planned pricing: free under $500/month in sales, then $5/month flat. Founding vendors keep the founding price for good.</p>
   </div>
+
+  <section class="faq">
+    <h2>Fair <em>questions</em></h2>
+    <details><summary>Do my customers need the app?</summary><p>No. Customers pay with the payment app already on their phone, or — if you enable self-checkout — right in their browser. Nobody installs anything, nobody makes an account.</p></details>
+    <details><summary>What does it cost me?</summary><p>SugarSnapp takes no cut of any sale, ever. Payments settle to your own accounts; card payments cost only your processor&rsquo;s standard fee. The app itself is free in early access.</p></details>
+    <details><summary>Does it work in a dead zone?</summary><p>The register and QR codes work offline. Confirming electronic payments needs signal — where there is none, take cash or Venmo and log it with one tap. The honest answer is the one your market already knows.</p></details>
+  </section>
 </div>
 
 <footer>

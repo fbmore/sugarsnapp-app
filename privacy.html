@@ -39,7 +39,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   </nav>
 
   <h1>Privacy Policy</h1>
-  <div class="date">Last updated: July 28, 2026</div>
+  <div class="date">Last updated: August 2, 2026</div>
 
   <p>SugarSnapp is a register and ledger for market vendors, made by Francesco Bertocci LLC. This policy says plainly what the app stores, where it lives, and what never gets collected. No legalese padding, no surprises.</p>
 
@@ -55,27 +55,40 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   <p><strong>On your device only:</strong> whether you've finished onboarding, and your stand name before you sign in. Your sign-in session tokens live in the iOS Keychain.</p>
   <p><strong>On our backend</strong> (a Supabase database operated for SugarSnapp, project <code>psiattienhrooetmjvue.supabase.co</code>), tied to your account:</p>
   <ul>
-    <li><strong>Account:</strong> your email address and Google account identity (name, avatar) from sign-in.</li>
+    <li><strong>Account:</strong> your email address and, if you use them, your Apple or Google sign-in identity (name, avatar).</li>
     <li><strong>Profile:</strong> your stand or farm name, and a logo if you add one.</li>
     <li><strong>Payment connections:</strong> your Stripe connected-account ID, PayPal.Me name, or Venmo business handle. Never any password or secret key for those services.</li>
     <li><strong>Sales:</strong> amounts, line items (names, prices, quantities), payment type, status, and timestamps — including when a customer scanned a QR code.</li>
+    <li><strong>Market check-ins:</strong> if you check in to a market, the market, date, and time of your check-in.</li>
   </ul>
   <p>This data exists so your ledger syncs and your QR checkout works. We can technically access it as the database operator; we look only for support or debugging, and never sell or share it.</p>
 
+  <h2>Your public checkout page (optional)</h2>
+  <p>If you turn on the self-checkout page for your stall, your <strong>stand name, logo, address, website, and item catalog</strong> become publicly readable — that is what makes the page work. Your <strong>contact email and phone number are not exposed</strong> on the public page. Turning the page off takes it offline; the data returns to being private to your account.</p>
+
   <h2>Your customers (buyers)</h2>
-  <p>When a customer scans a sale QR code, our redirect service logs the scan time and — like every web server — briefly records standard request metadata (IP address, browser user agent) in infrastructure logs. We do not build buyer profiles, and the app never asks buyers for personal information. If you send a customer a payment link or receipt, it goes from <em>your own</em> Messages or Mail app — SugarSnapp stores no customer contact details.</p>
+  <p>Buyers never need an account, and the app never asks them for personal information. When a customer scans a sale QR code, our redirect service logs the scan time and — like every web server — briefly records standard request metadata (IP address, browser user agent) in infrastructure logs. We do not build buyer profiles.</p>
+  <p><strong>Self-checkout shoppers:</strong> the cart lives in the shopper's own browser (localStorage) and is never sent to us until they pay. When they pay, the sale record (items, amounts, timestamps) is stored so your ledger and their receipt work. Card details go directly to Stripe and never touch SugarSnapp's servers. The receipt link contains no personal information about the shopper.</p>
+  <p>If you send a customer a payment link or receipt, it goes from <em>your own</em> Messages or Mail app — SugarSnapp stores no customer contact details.</p>
+
+  <h2>Markets and organizers</h2>
+  <p>If you check in to a market with its join code, that market's organizer can see your stand name and your check-in time on their roster for that day. That's the whole point of checking in — it's how end-of-day reconciliation knows who was there. Organizers never see your sales, ledger, or payment connections.</p>
+
+  <h2>Tap to Pay on iPhone</h2>
+  <p>If you enable Tap to Pay on iPhone, iOS will ask for <strong>location access while accepting a tap</strong> — Stripe checks device location during a contactless payment for fraud prevention. SugarSnapp never stores, tracks, or sees your location. iOS may also mention Bluetooth as part of the contactless reader setup; no data about you or your customers is collected through it. Your customer's card data is read by Apple's secure hardware and goes directly to Stripe — SugarSnapp never sees it. If you don't enable Tap to Pay, the app requests neither permission.</p>
 
   <h2>What we never collect</h2>
   <ul>
-    <li>Card numbers or any payment credentials — customers pay on Stripe's, PayPal's, or Venmo's own pages</li>
-    <li>Location, contacts, photos, microphone, camera — the app doesn't request any of these permissions</li>
+    <li>Card numbers or any payment credentials — customers pay on Stripe's, PayPal's, or Venmo's own pages, or by a contactless tap that goes directly to Stripe</li>
+    <li>Contacts, photos, microphone, camera — the app doesn't request these permissions</li>
+    <li>Location tracking of any kind — the only location use is Stripe's fraud check during a Tap to Pay tap, and only if you enable that feature</li>
     <li>Advertising identifiers, cross-app tracking, analytics events</li>
   </ul>
 
   <h2>Third-party services</h2>
   <ul>
     <li><strong>Supabase</strong> hosts the database and sign-in infrastructure.</li>
-    <li><strong>Google</strong> provides sign-in; Google shares your email, name, and avatar with us when you consent at sign-in.</li>
+    <li><strong>Apple / Google</strong> provide sign-in; they share your email, name, and avatar with us when you consent at sign-in.</li>
     <li><strong>Stripe / PayPal / Venmo</strong> receive only the sale amount (and for Stripe, a sale reference) when a customer pays. Their handling of payments is governed by their own privacy policies. Money flows directly to your account — SugarSnapp is never in the flow of funds.</li>
   </ul>
 
@@ -83,7 +96,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   <p>EBT sales are <em>logged for your bookkeeping only</em>. The app does not process EBT/SNAP payments and no EBT data beyond the amount and time of your own log entry is stored.</p>
 
   <h2>Deleting your data</h2>
-  <p>Settings → Delete account removes your account and every sale, item, and payment connection from our backend, permanently. Records already in your Stripe, PayPal, or Venmo accounts are yours and are unaffected.</p>
+  <p>Settings → Delete account removes your account and every sale, item, check-in, and payment connection from our backend, permanently. Records already in your Stripe, PayPal, or Venmo accounts are yours and are unaffected.</p>
 
   <h2>Children</h2>
   <p>SugarSnapp is a business tool, not directed at children under 13, and we do not knowingly collect their data.</p>
