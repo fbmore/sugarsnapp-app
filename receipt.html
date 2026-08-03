@@ -77,6 +77,14 @@ nav .links a:hover{color:var(--accent)}
 @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
 .awaiting p{color:var(--muted);font-size:.92rem;margin-bottom:14px}
 
+/* email-me-this-receipt row */
+.email-row{margin-top:18px}
+.email-row form{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.email-row input{font:inherit;font-size:.95rem;padding:10px 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--ink);min-width:0;flex:1;max-width:240px}
+.email-row input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.email-row .ghost{padding:10px 22px}
+.email-row .msg{font-size:.85rem;color:var(--muted);margin-top:8px;font-style:italic}
+
 footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 40px;text-align:center;color:var(--muted);font-size:.88rem}
 footer a{margin:0 8px;color:var(--muted)}
 
@@ -145,6 +153,13 @@ footer a{margin:0 8px;color:var(--muted)}
           <a class="cta" id="retryPay" href="#">Retry payment</a>
         </div>
         <div class="hint" id="saveHint">To save it: screenshot this screen, or use Print → Save as PDF.</div>
+        <div class="email-row hidden" id="emailRow">
+          <form id="emailForm">
+            <input type="email" id="emailInput" placeholder="you@example.com" autocomplete="email" required maxlength="254">
+            <button type="submit" class="ghost" id="emailBtn">Email me this receipt</button>
+          </form>
+          <div class="msg hidden" id="emailMsg"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -175,6 +190,7 @@ var params=new URLSearchParams(location.search);
 var saleId=params.get("sale");
 var canceled=params.get("canceled")==="1";
 var pollTimer=null;
+var emailSent=false;
 
 function $(id){return document.getElementById(id);}
 function money(cents){return "$"+(cents/100).toFixed(2);}
@@ -250,6 +266,7 @@ function render(j){
     $("stamp").classList.remove("hidden");
     $("awaiting").classList.add("hidden");
     $("saveHint").textContent="Show this to the vendor. To save it: screenshot this screen, or use Print → Save as PDF.";
+    if(!emailSent)$("emailRow").classList.remove("hidden");
     stopPoll();
   }else if(sale.status==="canceled"){
     $("stamp").classList.add("hidden");
@@ -274,6 +291,38 @@ function startPoll(){
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
 $("retryBtn").onclick=function(){show("v-loading");load();};
+
+/* email-me-this-receipt: server builds the body; we only pass the address */
+$("emailForm").onsubmit=function(e){
+  e.preventDefault();
+  var addr=$("emailInput").value.trim();
+  if(!addr)return;
+  var btn=$("emailBtn"),msg=$("emailMsg");
+  btn.disabled=true;btn.textContent="Sending…";
+  msg.classList.add("hidden");
+  fetch(SUPA+"/functions/v1/email-receipt",{
+    method:"POST",
+    headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({sale:saleId,email:addr})
+  }).then(function(r){
+    return r.json().then(function(j){return{ok:r.ok,j:j};});
+  }).then(function(res){
+    if(res.ok){
+      emailSent=true;
+      $("emailForm").classList.add("hidden");
+      msg.textContent="Sent — check your inbox (and spam, the first time).";
+      msg.classList.remove("hidden");
+    }else{
+      btn.disabled=false;btn.textContent="Email me this receipt";
+      msg.textContent=(res.j&&res.j.error)||"Couldn't send right now. Try again later.";
+      msg.classList.remove("hidden");
+    }
+  }).catch(function(){
+    btn.disabled=false;btn.textContent="Email me this receipt";
+    msg.textContent="Couldn't send right now. Try again later.";
+    msg.classList.remove("hidden");
+  });
+};
 load();
 })();
 </script>
