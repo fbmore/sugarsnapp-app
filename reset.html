@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reset your password — SugarSnapp</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="robots" content="noindex">
+<style>
+:root{--ink:#1f2a1d;--muted:#6b7a66;--canvas:#f4f6ee;--accent:#3e7a3a;--surface:#ffffff;--line:#dde4d6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:44px 36px;max-width:440px;text-align:center}
+.card img.logo{height:30px;margin-bottom:26px}
+h1{font-size:1.6rem;margin-bottom:10px}
+p{color:var(--muted);font-size:1rem}
+.tick{font-size:44px;color:var(--accent);margin-bottom:14px}
+.cta{display:inline-block;margin-top:26px;padding:13px 32px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none}
+.fine{font-size:.85rem;margin-top:18px;color:#9aa694}
+.error .tick{color:#b3402a}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <img class="logo" src="logo.svg" alt="SugarSnapp">
+  <div class="tick" id="tick">✓</div>
+  <h1 id="title">Almost there</h1>
+  <p id="body">Open SugarSnapp on your iPhone to choose a new password. If you're reading this on your phone, the app opens by itself.</p>
+  <a class="cta" id="open" href="#" style="display:none">Open SugarSnapp</a>
+  <p class="fine" id="fine">Reading this on a computer? Open the same email on your iPhone and tap the link there.</p>
+</div>
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var hashParams = new URLSearchParams(location.hash.replace(/^#/, ''));
+  var err = params.get('error_description') || hashParams.get('error_description');
+  if (err) {
+    document.getElementById('card').className = 'card error';
+    document.getElementById('tick').textContent = '✕';
+    document.getElementById('title').textContent = "That link didn't work";
+    document.getElementById('body').textContent = decodeURIComponent(err).replace(/\+/g,' ') +
+      ' — request a fresh reset link from the app and try again.';
+    document.getElementById('fine').textContent = '';
+    return;
+  }
+  // Forward any auth payload (PKCE ?code= or implicit #tokens) into the app,
+  // so a tap on the same iPhone signs the vendor straight in.
+  var payload = location.search + location.hash;
+  if (payload.length > 1) {
+    var target = 'sugarsnapp://auth-callback' + payload;
+    var open = document.getElementById('open');
+    open.href = target;
+    open.style.display = 'inline-block';
+    location.href = target;
+  } else {
+    document.getElementById('fine').textContent = '';
+  }
+})();
+</script>
+</body>
+</html>
