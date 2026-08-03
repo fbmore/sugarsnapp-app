@@ -552,18 +552,19 @@ function boot(){
 }
 
 function guestBoot(){
-  var isUUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-  var vendorKey=isUUID?"id":"checkout_slug";
-  return rest("profiles?"+vendorKey+"=eq."+encodeURIComponent(slug)+"&select=id,business_name,logo_url,address,website,checkout_slug")
+  // One scoped RPC replaces the old raw-table reads: the anon role can no
+  // longer read profiles/items directly. checkout_catalog resolves a single
+  // vendor by slug (or legacy UUID), only while checkout is enabled, and
+  // returns exactly the storefront fields plus active items.
+  return rest("rpc/checkout_catalog",{method:"POST",body:JSON.stringify({slug:String(slug).toLowerCase()})})
   .then(function(r){
     if(!r.ok)throw 0;
     return r.json();
-  }).then(function(rows){
-    if(!rows.length){show("v-off");return;}
-    vendor=rows[0];
-    return rest("items?user_id=eq."+vendor.id+"&active=eq.true&order=sort_order.asc,name.asc&select=id,name,price_cents,unit")
-    .then(function(r){if(!r.ok)throw 0;return r.json();})
-    .then(function(list){items=list;renderShop();});
+  }).then(function(cat){
+    if(!cat||!cat.vendor){show("v-off");return;}
+    vendor=cat.vendor;
+    items=cat.items||[];
+    renderShop();
   }).catch(function(){show("v-dead");});
 }
 
