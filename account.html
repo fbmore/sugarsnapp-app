@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KGAGf0GSusQPrG0wIHLgzZPAlSIqdY2kyHZBvZQIvt8='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Your account — SugarSnapp</title>
+<meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
+  --surface:#ffffff; --line:#dde4d6; --bad:#8a3b2e;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
+.brand-logo{height:26px;width:auto;display:block}
+.navside{display:flex;align-items:center;gap:14px}
+.navside button{font-size:.92rem;color:var(--muted)}
+.navside button:hover{color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
+.note-card{text-align:center;margin:34px 0}
+.note-card h2{font-size:1.35rem;margin:8px 0 10px}
+.note-card h2 em{font-style:italic;color:var(--accent)}
+.note-card p{color:var(--muted);font-size:.95rem;max-width:32em;margin:0 auto}
+.hidden{display:none!important}
+.cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer}
+.cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
+.ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer}
+.pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:.85rem;color:var(--muted)}
+
+/* view toggle */
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);overflow:hidden}
+.toggle button{padding:7px 16px;font-size:.9rem;color:var(--muted)}
+.toggle button.on{background:var(--accent);color:#fff}
+
+/* login */
+.login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
+.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+.login input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.login .err{color:var(--bad);font-size:.9rem;margin-top:12px;display:none}
+.login .cta{width:100%;margin-top:20px;text-align:center}
+.obtn{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;min-height:46px;font-size:1rem;width:100%}
+.obtn.apple{background:#000;color:#fff}
+.obtn.google{background:#fff;color:#1f1f20;border:1px solid #747775}
+
+/* header */
+.stand{display:flex;align-items:center;gap:14px;margin:4px 0 18px}
+.stand img{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#fff}
+.stand h1{font-size:1.35rem;line-height:1.2;font-weight:700}
+.stand .sub{color:var(--muted);font-size:.88rem;margin-top:1px}
+
+/* day nav */
+.daynav{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.daynav button.step{width:38px;height:38px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:1.1rem;color:var(--accent);line-height:1}
+.daynav button.step:disabled{color:var(--line)}
+.daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)}
+
+/* totals */
+.bigtot{font-family:Georgia,serif;font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
+.bigtot .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
+.brk{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;font-size:.92rem}
+.brk .r{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)}
+.brk .r b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:Georgia,serif}
+
+/* sale rows */
+.sale{border-top:1px solid var(--line);padding:12px 0}
+.sale:first-child{border-top:none}
+.sale .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sale .t{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.sale .p{flex:1}
+.sale .amt{font-family:Georgia,serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sale .st{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+.sale.dead .amt,.sale.dead .p{text-decoration:line-through;color:var(--muted)}
+.sale .st.refunded,.sale .st.canceled{color:var(--bad)}
+.sale .st.pending,.sale .st.in_progress{color:var(--muted)}
+.lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+.lines .ln{display:flex;justify-content:space-between;gap:8px}
+.lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emptyday{color:var(--muted);font-style:italic;text-align:center;padding:8px 0}
+
+/* export */
+.exp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas)}
+.exp label.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted)}
+.expmsg{font-size:.88rem;color:var(--muted);margin-top:8px}
+
+/* organizer */
+.ro-banner{background:#f2f7ef;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.grid2{grid-template-columns:1fr}}
+.stat .v{font-family:Georgia,serif;font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.stat .k{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.stat .sub2{font-size:.85rem;color:var(--muted);margin-top:2px}
+.delta-ok{color:var(--accent)}
+.delta-off{color:var(--bad)}
+table.tal{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:6px}
+table.tal th{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:4px 6px 6px 0}
+table.tal td{border-top:1px solid var(--line);padding:7px 6px 7px 0}
+table.tal td.n,table.tal th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:Georgia,serif}
+.flagged{color:var(--bad);font-size:.8rem}
+.audit .ae{border-top:1px solid var(--line);padding:9px 0;font-size:.9rem}
+.audit .ae:first-child{border-top:none}
+.audit .ae .m{color:var(--muted);font-size:.8rem}
+.audit .ae .rsn{color:var(--muted);font-style:italic}
+footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-align:center;color:var(--muted);font-size:.85rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
+    <div class="navside">
+      <div class="toggle hidden" id="viewToggle">
+        <button id="tabVendor" type="button">Stand</button>
+        <button id="tabOrganizer" type="button">Market</button>
+      </div>
+      <button id="signOut" class="hidden" type="button">Sign out</button>
+    </div>
+  </nav>
+  <main>
+
+    <!-- loading -->
+    <section id="v-loading" class="card note-card">
+      <div class="kicker">SugarSnapp</div>
+      <h2>Opening <em>your ledger</em>&hellip;</h2>
+    </section>
+
+    <!-- sign in -->
+    <section id="v-login" class="card login hidden" style="margin:30px 0">
+      <div class="kicker">Your account</div>
+      <h2 style="font-size:1.35rem;margin-top:8px">Your market day, <em style="color:var(--accent)">from any browser</em></h2>
+      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Same sign-in as the SugarSnapp app. This page is view-only — sales, exports, and tent records; changes happen in the app.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <button type="button" id="oauthApple" class="obtn apple">
+          <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.44 9.56c.02 2.42 2.12 3.23 2.14 3.24-.02.06-.34 1.15-1.1 2.28-.67.98-1.36 1.95-2.45 1.97-1.07.02-1.42-.63-2.64-.63-1.23 0-1.61.61-2.62.65-1.05.04-1.85-1.05-2.52-2.02C1.87 13.06.83 9.44 2.24 6.99c.7-1.22 1.95-1.99 3.3-2.01 1.03-.02 2.01.7 2.64.7.63 0 1.81-.86 3.05-.73.52.02 1.98.21 2.92 1.58-.08.05-1.74 1.02-1.71 3.03zM10.41 3.65c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.97 1.56-.85 2.48.9.07 1.82-.46 2.39-1.13z"/></svg>
+          Continue with Apple
+        </button>
+        <button type="button" id="oauthGoogle" class="obtn google">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continue with Google
+        </button>
+        <div style="display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.85rem;margin:4px 0"><span style="flex:1;height:1px;background:var(--line)"></span>or<span style="flex:1;height:1px;background:var(--line)"></span></div>
+      </div>
+      <form id="loginForm">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required>
+        <label for="loginPass">Password</label>
+        <input id="loginPass" type="password" autocomplete="current-password" required>
+        <div class="err" id="loginErr"></div>
+        <button class="cta" id="loginBtn" type="submit">Sign in</button>
+        <p style="text-align:center;margin-top:14px;font-size:.9rem"><a href="reset.html">Forgot your password?</a></p>
+        <p style="text-align:center;margin-top:10px;font-size:.82rem;color:var(--muted)">On a shared computer? Sign out when you&rsquo;re done — the button lives top right.</p>
+      </form>
+    </section>
+
+    <!-- vendor ledger -->
+    <section id="v-vendor" class="hidden">
+      <div class="stand">
+        <img id="vLogo" alt="" class="hidden">
+        <div>
+          <h1 id="vName">Your stand</h1>
+          <div class="sub">Vendor ledger · view only</div>
+        </div>
+      </div>
+      <div class="daynav">
+        <button class="step" id="vPrev" type="button" aria-label="Previous day">&lsaquo;</button>
+        <input type="date" id="vDate" aria-label="Ledger day">
+        <button class="step" id="vNext" type="button" aria-label="Next day">&rsaquo;</button>
+        <button class="ghost" id="vToday" type="button">Today</button>
+      </div>
+      <div class="card">
+        <div class="bigtot"><span class="lbl" id="vTotLbl">Total</span><span id="vTotal">$0.00</span></div>
+        <div class="brk" id="vBreak"></div>
+      </div>
+      <div class="card" id="vSalesCard">
+        <div class="kicker" style="margin-bottom:6px">Sales</div>
+        <div id="vSales"></div>
+      </div>
+      <div class="card">
+        <div class="kicker">Export CSV</div>
+        <div class="exp">
+          <input type="date" id="expFrom" aria-label="Export from">
+          <span style="color:var(--muted)">to</span>
+          <input type="date" id="expTo" aria-label="Export to">
+          <label class="chk"><input type="checkbox" id="expPaid" checked>Paid only</label>
+          <button class="ghost" id="expBtn" type="button">Download</button>
+        </div>
+        <div class="expmsg" id="expMsg">Same columns as the app&rsquo;s export — open it in Numbers, Excel, or hand it to your accountant.</div>
+      </div>
+      <div class="payerr" id="vErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
+    </section>
+
+    <!-- organizer (read-only) -->
+    <section id="v-organizer" class="hidden">
+      <div class="stand">
+        <div>
+          <h1 id="oName">Your market</h1>
+          <div class="sub">Manager&rsquo;s tent · view only</div>
+        </div>
+      </div>
+      <div class="ro-banner">View-only mirror of the tent. Log swipes and spends in the SugarSnapp app at the market — everything here updates from your account backup.</div>
+      <div class="daynav">
+        <button class="step" id="oPrev" type="button" aria-label="Previous day">&lsaquo;</button>
+        <input type="date" id="oDate" aria-label="Tent day">
+        <button class="step" id="oNext" type="button" aria-label="Next day">&rsaquo;</button>
+        <button class="ghost" id="oToday" type="button">Today</button>
+      </div>
+      <section id="oEmpty" class="card note-card hidden">
+        <div class="kicker">The tent</div>
+        <h2>Nothing at the tent <em>yet</em></h2>
+        <p>Your tent records appear here after you use organizer mode in the SugarSnapp app while signed in to this account.</p>
+      </section>
+      <div id="oData" class="hidden">
+        <div class="grid2">
+          <div class="card stat">
+            <div class="k">Issued at the tent</div>
+            <div class="v" id="oIssued">$0.00</div>
+            <div class="sub2" id="oIssuedSub"></div>
+          </div>
+          <div class="card stat">
+            <div class="k">Redeemed at stalls</div>
+            <div class="v" id="oRedeemed">$0.00</div>
+            <div class="sub2" id="oRedeemedSub"></div>
+          </div>
+        </div>
+        <div class="card stat">
+          <div class="k">Day&rsquo;s delta</div>
+          <div class="v" id="oDelta">$0.00</div>
+          <div class="sub2" id="oDeltaSub"></div>
+        </div>
+        <div class="card">
+          <div class="kicker" style="margin-bottom:4px">By stall</div>
+          <div id="oTallies"></div>
+        </div>
+        <div class="card hidden" id="oRosterCard">
+          <div class="kicker" style="margin-bottom:4px">Checked in today</div>
+          <div id="oRoster"></div>
+        </div>
+        <div class="card audit">
+          <div class="kicker" style="margin-bottom:4px">Audit log</div>
+          <div id="oAudit"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <footer>
+    <p>Made by Francesco Bertocci LLC · <a href="index.html">getsugarsnapp.com</a></p>
+  </footer>
+</div>
+<script>
+"use strict";
+/* ---------- plumbing (mirrors shop.html) ---------- */
+var SUPA="https://psiattienhrooetmjvue.supabase.co";
+var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
+var PROC_NAMES={stripe:"Stripe",paypal:"PayPal",venmo:"Venmo",cash:"Cash",ebt:"EBT",tap_to_pay:"Card · Tap to Pay"};
+
+function rest(path,opts,token){
+  opts=opts||{};
+  var headers={apikey:ANON,Authorization:"Bearer "+(token||ANON),"Content-Type":"application/json"};
+  for(var h in (opts.headers||{}))headers[h]=opts.headers[h];
+  return fetch(SUPA+"/rest/v1/"+path,{method:opts.method||"GET",headers:headers,body:opts.body});
+}
+function getSession(){try{return JSON.parse(localStorage.getItem("ss-session"));}catch(e){return null;}}
+function setSession(s){if(s)localStorage.setItem("ss-session",JSON.stringify(s));else localStorage.removeItem("ss-session");}
+function refreshSession(s){
+  return fetch(SUPA+"/auth/v1/token?grant_type=refresh_token",{
+    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({refresh_token:s.refresh_token})
+  }).then(function(r){
+    if(!r.ok){setSession(null);return null;}
+    return r.json().then(function(j){
+      var ns={access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id};
+      setSession(ns);return ns;
+    });
+  });
+}
+function authRest(path,opts){
+  var s=getSession();
+  if(!s)return Promise.reject(new Error("no session"));
+  return rest(path,opts,s.access_token).then(function(r){
+    if(r.status!==401)return r;
+    return refreshSession(s).then(function(ns){
+      if(!ns){show("v-login");throw new Error("signed out");}
+      return rest(path,opts,ns.access_token);
+    });
+  });
+}
+function money(cents){return "$"+((cents||0)/100).toFixed(2);}
+function moneyPlain(cents){return ((cents||0)/100).toFixed(2);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function $(id){return document.getElementById(id);}
+
+/* ---------- views ---------- */
+var VIEWS=["v-loading","v-login","v-vendor","v-organizer"];
+function show(id){
+  VIEWS.forEach(function(v){$(v).classList.toggle("hidden",v!==id);});
+  var authed=id==="v-vendor"||id==="v-organizer";
+  $("viewToggle").classList.toggle("hidden",!authed);
+  $("signOut").classList.toggle("hidden",!authed);
+  $("tabVendor").classList.toggle("on",id==="v-vendor");
+  $("tabOrganizer").classList.toggle("on",id==="v-organizer");
+  window.scrollTo(0,0);
+}
+
+/* ---------- OAuth return leg (mirrors shop.html, minus the slug) ---------- */
+var oauthError=null;
+(function(){
+  var hash=location.hash||"";
+  if(hash.indexOf("access_token")<0&&hash.indexOf("error")<0)return;
+  var h=new URLSearchParams(hash.slice(1));
+  var at=h.get("access_token"),rt=h.get("refresh_token");
+  if(at&&rt){
+    var uid="";
+    try{uid=JSON.parse(atob(at.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(e){}
+    setSession({access_token:at,refresh_token:rt,user_id:uid});
+  }else{
+    oauthError=h.get("error_description")||"Sign-in didn't complete. Try again.";
+    oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));
+  }
+  history.replaceState(null,"",location.pathname);
+})();
+
+/* ---------- date helpers (local-midnight day boundaries, like the app) ---------- */
+function dstr(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function parseDstr(s){
+  var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2]);
+}
+function dayBounds(d){
+  var a=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  var b=new Date(a);b.setDate(b.getDate()+1);
+  return [a.toISOString(),b.toISOString()];
+}
+function sameLocalDay(iso,d){
+  var x=new Date(iso);
+  return x.getFullYear()===d.getFullYear()&&x.getMonth()===d.getMonth()&&x.getDate()===d.getDate();
+}
+function timeOf(iso){
+  return new Date(iso).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+}
+
+/* ---------- vendor ledger ---------- */
+var vDay=new Date();
+function clampFuture(d){
+  var today=new Date();today.setHours(0,0,0,0);
+  return d>today?today:d;
+}
+function loadVendorHeader(){
+  var s=getSession();
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=business_name,logo_url")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    var p=rows[0]||{};
+    if(p.business_name)$("vName").textContent=p.business_name;
+    if(p.logo_url){$("vLogo").src=p.logo_url;$("vLogo").classList.remove("hidden");}
+  }).catch(function(){});
+}
+function loadVendorDay(){
+  vDay=clampFuture(vDay);
+  $("vDate").value=dstr(vDay);
+  $("vNext").disabled=dstr(vDay)===dstr(new Date());
+  var s=getSession(),b=dayBounds(vDay);
+  var q="sales?user_id=eq."+encodeURIComponent(s.user_id)
+    +"&status=in.(paid,in_progress,pending,refunded,canceled)"
+    +"&created_at=gte."+encodeURIComponent(b[0])
+    +"&created_at=lt."+encodeURIComponent(b[1])
+    +"&order=created_at.desc"
+    +"&select=id,created_at,processor,status,total_cents";
+  $("vErr").style.display="none";
+  authRest(q).then(function(r){
+    if(!r.ok)throw 0;
+    return r.json();
+  }).then(function(sales){
+    renderVendorDay(sales);
+    if(!sales.length)return;
+    var ids=sales.map(function(x){return x.id;}).join(",");
+    return authRest("sale_items?sale_id=in.("+ids+")&select=sale_id,name_snapshot,quantity,line_total_cents")
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(items){renderSaleLines(items);})
+      .catch(function(){});
+  }).catch(function(){
+    $("vErr").textContent="Couldn't load that day — check your connection and try again.";
+    $("vErr").style.display="block";
+  });
+}
+function renderVendorDay(sales){
+  var paid=sales.filter(function(x){return x.status==="paid";});
+  var tot=paid.reduce(function(a,x){return a+(x.total_cents||0);},0);
+  $("vTotal").textContent=money(tot);
+  var isToday=dstr(vDay)===dstr(new Date());
+  $("vTotLbl").textContent=(isToday?"Today":vDay.toLocaleDateString([], {weekday:"short",month:"short",day:"numeric"}))+" · "+paid.length+" paid";
+  var brk="";
+  Object.keys(PROC_NAMES).forEach(function(p){
+    var sub=paid.filter(function(x){return x.processor===p;});
+    if(!sub.length)return;
+    var c=sub.reduce(function(a,x){return a+(x.total_cents||0);},0);
+    brk+='<div class="r"><span>'+esc(PROC_NAMES[p])+" · "+sub.length+"</span><b>"+money(c)+"</b></div>";
+  });
+  $("vBreak").innerHTML=brk;
+  $("vBreak").style.display=brk?"":"none";
+  if(!sales.length){
+    $("vSales").innerHTML='<div class="emptyday">No sales this day.</div>';
+    return;
+  }
+  var html="";
+  sales.forEach(function(x){
+    var dead=x.status==="refunded"||x.status==="canceled";
+    var st=x.status==="paid"?"":'<span class="st '+esc(x.status)+'">'+esc(x.status.replace("_"," "))+"</span>";
+    html+='<div class="sale'+(dead?" dead":"")+'">'
+      +'<div class="top"><span class="t">'+esc(timeOf(x.created_at))+"</span>"
+      +'<span class="p">'+esc(PROC_NAMES[x.processor]||x.processor||"—")+" "+st+"</span>"
+      +'<span class="amt">'+money(x.total_cents)+"</span></div>"
+      +'<div class="lines" data-sale="'+esc(x.id)+'"></div>'
+      +"</div>";
+  });
+  $("vSales").innerHTML=html;
+}
+function renderSaleLines(items){
+  var by={};
+  items.forEach(function(it){(by[it.sale_id]=by[it.sale_id]||[]).push(it);});
+  Object.keys(by).forEach(function(sid){
+    var el=document.querySelector('.lines[data-sale="'+sid+'"]');
+    if(!el)return;
+    el.innerHTML=by[sid].map(function(it){
+      var nm=(it.name_snapshot||"Item")+(it.quantity>1?" ×"+it.quantity:"");
+      return '<div class="ln"><span>'+esc(nm)+"</span><span>"+money(it.line_total_cents)+"</span></div>";
+    }).join("");
+  });
+}
+
+/* CSV export: pages past PostgREST's 1000-row cap, RFC-4180 quoting,
+   same columns as the app's LedgerModel.exportCSV. */
+function csvField(v){
+  v=String(v==null?"":v);
+  if(!/[",\n\r]/.test(v))return v;
+  return '"'+v.replace(/"/g,'""')+'"';
+}
+function exportCSV(){
+  var from=parseDstr($("expFrom").value||dstr(vDay));
+  var to=parseDstr($("expTo").value||dstr(vDay));
+  if(to<from){var t=from;from=to;to=t;}
+  var endB=dayBounds(to)[1],startB=dayBounds(from)[0];
+  var paidOnly=$("expPaid").checked;
+  var s=getSession();
+  var btn=$("expBtn");btn.disabled=true;btn.textContent="Fetching…";
+  var rows=[],offset=0,PAGE=1000;
+  function page(){
+    var q="sales?user_id=eq."+encodeURIComponent(s.user_id)
+      +(paidOnly?"&status=eq.paid":"")
+      +"&created_at=gte."+encodeURIComponent(startB)
+      +"&created_at=lt."+encodeURIComponent(endB)
+      +"&order=created_at.asc,id.asc&limit="+PAGE+"&offset="+offset
+      +"&select=id,created_at,processor,status,confirmation_method,subtotal_cents,total_cents,tax_cents";
+    return authRest(q).then(function(r){
+      if(!r.ok)throw 0;
+      return r.json();
+    }).then(function(pg){
+      rows=rows.concat(pg);
+      if(pg.length<PAGE)return rows;
+      offset+=PAGE;
+      return page();
+    });
+  }
+  page().then(function(all){
+    var out=["sale_id,datetime,processor,status,confirmation_method,subtotal,total,tax"];
+    all.forEach(function(x){
+      out.push([
+        x.id,
+        new Date(x.created_at).toISOString(),
+        x.processor||"",
+        x.status,
+        x.confirmation_method||"",
+        moneyPlain(x.subtotal_cents),
+        moneyPlain(x.total_cents),
+        x.tax_cents==null?"":moneyPlain(x.tax_cents)
+      ].map(csvField).join(","));
+    });
+    var blob=new Blob([out.join("\n")],{type:"text/csv"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="sugarsnapp-"+dstr(from)+"_"+dstr(to)+".csv";
+    document.body.appendChild(a);a.click();a.remove();
+    $("expMsg").textContent=all.length+" sale"+(all.length===1?"":"s")+" exported.";
+  }).catch(function(){
+    $("expMsg").textContent="Export didn't finish — check your connection and try again.";
+  }).finally(function(){btn.disabled=false;btn.textContent="Download";});
+}
+
+/* ---------- organizer (read-only mirror of organizer_state) ---------- */
+var oDay=new Date(),snap=null;
+var ACTION_NAMES={spendAdded:"Spend logged",spendEdited:"Spend edited",spendDeleted:"Spend deleted",
+  conversionAdded:"Swipe logged",conversionEdited:"Swipe edited",conversionDeleted:"Swipe deleted",
+  eligibilityOverridden:"Eligibility override",demoLoaded:"Demo loaded",dataCleared:"Data cleared"};
+function loadOrganizer(){
+  authRest("organizer_state?select=snapshot")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    snap=rows[0]?rows[0].snapshot:null;
+    renderOrganizerDay();
+    loadRoster();
+  }).catch(function(){
+    snap=null;renderOrganizerDay();
+  });
+}
+function renderOrganizerDay(){
+  oDay=clampFuture(oDay);
+  $("oDate").value=dstr(oDay);
+  $("oNext").disabled=dstr(oDay)===dstr(new Date());
+  var has=snap&&((snap.conversions||[]).length||(snap.tokenSpends||[]).length||(snap.vendors||[]).length||snap.marketName);
+  $("oEmpty").classList.toggle("hidden",!!has);
+  $("oData").classList.toggle("hidden",!has);
+  if(!has)return;
+  $("oName").textContent=snap.marketName||"Your market";
+  var convs=(snap.conversions||[]).filter(function(c){return sameLocalDay(c.date,oDay);});
+  var spends=(snap.tokenSpends||[]).filter(function(s){return sameLocalDay(s.date,oDay);});
+  var snapC=convs.reduce(function(a,c){return a+(c.snapCents||0);},0);
+  var matchC=convs.reduce(function(a,c){return a+(c.matchCents||0);},0);
+  var issued=snapC+matchC;
+  var cards={};convs.forEach(function(c){cards[c.cardRef]=1;});
+  $("oIssued").textContent=money(issued);
+  $("oIssuedSub").textContent="SNAP "+money(snapC)+" · Match "+money(matchC)+" · "+Object.keys(cards).length+" card"+(Object.keys(cards).length===1?"":"s");
+  var redSnap=spends.filter(function(s){return s.tokenType==="snap";}).reduce(function(a,s){return a+(s.cents||0);},0);
+  var redMatch=spends.filter(function(s){return s.tokenType==="match";}).reduce(function(a,s){return a+(s.cents||0);},0);
+  var redeemed=redSnap+redMatch;
+  $("oRedeemed").textContent=money(redeemed);
+  $("oRedeemedSub").textContent="SNAP "+money(redSnap)+" · Match "+money(redMatch)+" · "+spends.length+" spend"+(spends.length===1?"":"s");
+  var delta=issued-redeemed;
+  $("oDelta").textContent=money(Math.abs(delta));
+  $("oDelta").className="v "+(delta===0?"delta-ok":"delta-off");
+  var flaggedN=spends.filter(function(s){return s.eligibilityFlag;}).length;
+  $("oDeltaSub").textContent=(delta===0?"The day squares — issued matches redeemed.":
+    (delta>0?money(delta)+" issued but not yet redeemed at stalls.":money(-delta)+" redeemed over issued — worth a look."))
+    +(flaggedN?" "+flaggedN+" eligibility flag"+(flaggedN===1?"":"s")+".":"");
+  /* per-vendor tallies */
+  var vendors=snap.vendors||[];
+  var rowsH="";
+  vendors.map(function(v){
+    var mine=spends.filter(function(s){return s.vendorID===v.id;});
+    return {v:v,
+      snap:mine.filter(function(s){return s.tokenType==="snap";}).reduce(function(a,s){return a+s.cents;},0),
+      match:mine.filter(function(s){return s.tokenType==="match";}).reduce(function(a,s){return a+s.cents;},0),
+      fl:mine.filter(function(s){return s.eligibilityFlag;}).length};
+  }).sort(function(a,b){return (b.snap+b.match)-(a.snap+a.match);})
+  .forEach(function(t){
+    rowsH+="<tr><td>"+esc(t.v.name)+(t.fl?' <span class="flagged">⚑ '+t.fl+"</span>":"")+"</td>"
+      +'<td class="n">'+money(t.snap)+'</td><td class="n">'+money(t.match)+'</td><td class="n"><b>'+money(t.snap+t.match)+"</b></td></tr>";
+  });
+  $("oTallies").innerHTML=rowsH
+    ?'<table class="tal"><tr><th>Stall</th><th class="n">SNAP</th><th class="n">Match</th><th class="n">Total</th></tr>'+rowsH+"</table>"
+    :'<div class="emptyday">No stalls on the roster yet.</div>';
+  /* audit trail — newest first, capped for the page */
+  var audit=(snap.auditEntries||[]).slice().reverse().slice(0,50);
+  $("oAudit").innerHTML=audit.length?audit.map(function(a){
+    var when=new Date(a.date).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+    return '<div class="ae"><div>'+esc(ACTION_NAMES[a.action]||a.action)+" — "+esc(a.detail||"")+"</div>"
+      +'<div class="m">'+esc(when)+" · "+esc(a.actorPersona||"organizer")
+      +(a.reason?' · <span class="rsn">&ldquo;'+esc(a.reason)+"&rdquo;</span>":"")+"</div></div>";
+  }).join(""):'<div class="emptyday">Nothing logged yet.</div>';
+}
+function loadRoster(){
+  var s=getSession();
+  authRest("markets?organizer_id=eq."+encodeURIComponent(s.user_id)+"&select=id,name,join_code")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(markets){
+    if(!markets.length)return;
+    var ids=markets.map(function(m){return m.id;}).join(",");
+    return authRest("market_checkins?market_id=in.("+ids+")&market_date=eq."+dstr(new Date())+"&select=market_id,vendor_id")
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(cks){
+      if(!cks.length){
+        $("oRosterCard").classList.remove("hidden");
+        $("oRoster").innerHTML='<div class="emptyday">No vendors checked in today.</div>';
+        return;
+      }
+      var vids=cks.map(function(c){return c.vendor_id;}).join(",");
+      return authRest("profiles?id=in.("+vids+")&select=id,business_name")
+      .then(function(r){return r.ok?r.json():[];})
+      .then(function(profs){
+        var names={};profs.forEach(function(p){names[p.id]=p.business_name;});
+        $("oRosterCard").classList.remove("hidden");
+        $("oRoster").innerHTML=cks.map(function(c){
+          return '<div class="ae">'+esc(names[c.vendor_id]||"A stand")+"</div>";
+        }).join("");
+      });
+    });
+  }).catch(function(){});
+}
+
+/* ---------- wiring ---------- */
+function enter(view){
+  localStorage.setItem("ss-account-view",view);
+  if(view==="organizer"){show("v-organizer");loadOrganizer();}
+  else{show("v-vendor");loadVendorHeader();loadVendorDay();}
+}
+$("tabVendor").addEventListener("click",function(){enter("vendor");});
+$("tabOrganizer").addEventListener("click",function(){enter("organizer");});
+$("signOut").addEventListener("click",function(){setSession(null);show("v-login");});
+$("vPrev").addEventListener("click",function(){vDay.setDate(vDay.getDate()-1);loadVendorDay();});
+$("vNext").addEventListener("click",function(){vDay.setDate(vDay.getDate()+1);loadVendorDay();});
+$("vToday").addEventListener("click",function(){vDay=new Date();loadVendorDay();});
+$("vDate").addEventListener("change",function(){if(this.value){vDay=parseDstr(this.value);loadVendorDay();}});
+$("oPrev").addEventListener("click",function(){oDay.setDate(oDay.getDate()-1);renderOrganizerDay();});
+$("oNext").addEventListener("click",function(){oDay.setDate(oDay.getDate()+1);renderOrganizerDay();});
+$("oToday").addEventListener("click",function(){oDay=new Date();renderOrganizerDay();});
+$("oDate").addEventListener("change",function(){if(this.value){oDay=parseDstr(this.value);renderOrganizerDay();}});
+$("expBtn").addEventListener("click",exportCSV);
+function startOAuth(provider){
+  location.href=SUPA+"/auth/v1/authorize?provider="+provider+
+    "&redirect_to="+encodeURIComponent("https://getsugarsnapp.com/account.html");
+}
+$("oauthApple").addEventListener("click",function(){startOAuth("apple");});
+$("oauthGoogle").addEventListener("click",function(){startOAuth("google");});
+$("loginForm").addEventListener("submit",function(ev){
+  ev.preventDefault();
+  var err=$("loginErr");err.style.display="none";
+  var btn=$("loginBtn");btn.disabled=true;btn.textContent="Signing in…";
+  fetch(SUPA+"/auth/v1/token?grant_type=password",{
+    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({email:$("loginEmail").value.trim(),password:$("loginPass").value})
+  }).then(function(r){
+    return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
+      setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
+      boot();
+    });
+  }).catch(function(e){
+    err.textContent=(e instanceof TypeError)?"No signal here — try again in a moment.":e.message;
+    err.style.display="block";
+  }).finally(function(){btn.disabled=false;btn.textContent="Sign in";});
+});
+
+/* ---------- boot ---------- */
+function boot(){
+  var today=dstr(new Date());
+  $("expFrom").value=today;$("expTo").value=today;
+  if(oauthError){
+    var msg=oauthError;oauthError=null;
+    show("v-login");
+    var e=$("loginErr");e.textContent=msg;e.style.display="block";
+    return;
+  }
+  if(!getSession()){show("v-login");return;}
+  var view=localStorage.getItem("ss-account-view")||"vendor";
+  enter(view);
+}
+boot();
+</script>
+</body>
+</html>
