@@ -58,6 +58,21 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .step .q{min-width:26px;text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:.98rem;font-variant-numeric:tabular-nums}
 .item.in-cart{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
 
+/* custom amount */
+.custom-amt{margin-bottom:26px;padding:18px 20px}
+.ca-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.ca-cur{font-family:Georgia,serif;font-weight:700;font-size:1.1rem;color:var(--muted)}
+.ca-row input{padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+.ca-row input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+#caAmount{width:96px;font-variant-numeric:tabular-nums}
+#caNote{flex:1;min-width:150px}
+.ca-row .ghost{padding:11px 22px}
+.ca-line{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-top:1px dashed var(--line);font-size:.95rem}
+.ca-lines{margin-top:12px}
+.ca-line .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;color:var(--muted)}
+.ca-line .amt{font-family:Georgia,serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ca-line button{color:#8a3b2e;font-size:1.05rem;line-height:1;padding:0 6px}
+
 /* sticky pay bar */
 .paybar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 -12px 30px rgba(31,42,29,.08)}
 .paybar .tot{font-family:Georgia,serif;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
@@ -180,6 +195,18 @@ footer a{margin:0 8px;color:var(--muted)}
         </div>
       </div>
       <div class="items" id="shopItems"></div>
+      <!-- custom amount — only when the vendor allows it -->
+      <div class="card custom-amt hidden" id="customCard">
+        <div class="kicker">Something not listed?</div>
+        <div class="ca-row">
+          <span class="ca-cur">$</span>
+          <input id="caAmount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" aria-label="Custom amount in dollars">
+          <input id="caNote" type="text" maxlength="60" placeholder="What&rsquo;s it for? (optional)" autocomplete="off" aria-label="Note for the vendor">
+          <button class="ghost" id="caAdd" type="button">Add</button>
+        </div>
+        <div class="payerr" id="caErr"></div>
+        <div class="ca-lines hidden" id="caLines"></div>
+      </div>
       <div class="trust">
         <div class="row"><img src="mark.svg" alt=""><span><strong>Powered by SugarSnapp</strong></span></div>
         <p id="trustLine">Payments are processed by Stripe on this vendor&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — the vendor pays only Stripe&rsquo;s standard card fee.</p>
@@ -192,7 +219,18 @@ footer a{margin:0 8px;color:var(--muted)}
     <section id="v-login" class="card login hidden" style="margin:30px 0">
       <div class="kicker">Vendor sign in</div>
       <h2 style="text-align:left;font-size:1.35rem;margin-top:8px">Run your register <em style="color:var(--accent)">from this browser</em></h2>
-      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Use the same email and password as the SugarSnapp app.</p>
+      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Use the same sign-in as the SugarSnapp app.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <button type="button" id="oauthApple" style="display:flex;align-items:center;justify-content:center;gap:9px;background:#000;color:#fff;border:none;border-radius:999px;min-height:46px;font-size:1rem;font-family:inherit;cursor:pointer">
+          <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.44 9.56c.02 2.42 2.12 3.23 2.14 3.24-.02.06-.34 1.15-1.1 2.28-.67.98-1.36 1.95-2.45 1.97-1.07.02-1.42-.63-2.64-.63-1.23 0-1.61.61-2.62.65-1.05.04-1.85-1.05-2.52-2.02C1.87 13.06.83 9.44 2.24 6.99c.7-1.22 1.95-1.99 3.3-2.01 1.03-.02 2.01.7 2.64.7.63 0 1.81-.86 3.05-.73.52.02 1.98.21 2.92 1.58-.08.05-1.74 1.02-1.71 3.03zM10.41 3.65c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.97 1.56-.85 2.48.9.07 1.82-.46 2.39-1.13z"/></svg>
+          Continue with Apple
+        </button>
+        <button type="button" id="oauthGoogle" style="display:flex;align-items:center;justify-content:center;gap:9px;background:#fff;color:#1f1f20;border:1px solid #747775;border-radius:999px;min-height:46px;font-size:1rem;font-family:inherit;cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+          Continue with Google
+        </button>
+        <div style="display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.85rem;margin:4px 0"><span style="flex:1;height:1px;background:var(--line)"></span>or<span style="flex:1;height:1px;background:var(--line)"></span></div>
+      </div>
       <form id="loginForm">
         <label for="loginEmail">Email</label>
         <input id="loginEmail" type="email" autocomplete="email" required>
@@ -530,7 +568,31 @@ function $(id){return document.getElementById(id);}
 
 /* ---------- state ---------- */
 var slug=new URLSearchParams(location.search).get("v");
-var vendor=null,items=[],cart={};      // guest
+
+/* OAuth return leg: Supabase bounces back here with tokens (or an error)
+   in the hash. Adopt the session, restore the stand slug stashed before
+   the hop, and scrub the URL before anything renders. */
+var oauthError=null,oauthReturned=false;
+(function(){
+  var hash=location.hash||"";
+  if(hash.indexOf("access_token")<0&&hash.indexOf("error")<0)return;
+  var h=new URLSearchParams(hash.slice(1));
+  var saved=localStorage.getItem("ss-oauth-slug");
+  localStorage.removeItem("ss-oauth-slug");
+  if(!slug&&saved)slug=saved;
+  var at=h.get("access_token"),rt=h.get("refresh_token");
+  if(at&&rt){
+    var uid="";
+    try{uid=JSON.parse(atob(at.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(e){}
+    setSession({access_token:at,refresh_token:rt,user_id:uid});
+    oauthReturned=true;
+  }else{
+    oauthError=h.get("error_description")||"Sign-in didn't complete. Try again.";
+    oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));
+  }
+  history.replaceState(null,"",location.pathname+(slug?"?v="+encodeURIComponent(slug):""));
+})();
+var vendor=null,items=[],cart={},customLines=[]; // guest
 var regProfile=null,regItems=[],tape=[],accounts=[]; // vendor
 var pollTimer=null,activeSale=null,activeProc=null;
 
@@ -538,6 +600,13 @@ var pollTimer=null,activeSale=null,activeProc=null;
 function boot(){
   if(!slug){show("v-missing");return;}
   show("v-loading");
+  if(oauthError){
+    var msg=oauthError;oauthError=null;
+    return guestBoot().then(function(){
+      show("v-login");
+      var e=$("loginErr");e.textContent=msg;e.style.display="block";
+    });
+  }
   var s=getSession();
   var tryVendor=s
     ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug")
@@ -547,6 +616,17 @@ function boot(){
     :Promise.resolve(null);
   tryVendor.then(function(own){
     if(own)return enterRegister(own);
+    if(oauthReturned){
+      // Signed in fine, but this account doesn't own this stand — say so
+      // instead of silently dropping to the guest shopfront.
+      oauthReturned=false;
+      return guestBoot().then(function(){
+        show("v-login");
+        var e=$("loginErr");
+        e.textContent="You're signed in, but that account doesn't own this stand's checkout.";
+        e.style.display="block";
+      });
+    }
     return guestBoot();
   });
 }
@@ -579,8 +659,27 @@ function loadCart(){
   });
 }
 function saveCart(){localStorage.setItem("ss-cart-"+slug,JSON.stringify(cart));}
+/* Custom amounts mirror the server's rules: $1–$5,000 each, at most 5,
+   note ≤60 chars. Anything saved that no longer fits is dropped on load. */
+var CA_MIN=100,CA_MAX=500000,CA_LINES=5,CA_NOTE=60;
+function customAllowed(){return !!vendor&&vendor.custom_amount_enabled!==false;}
+function loadCustom(){
+  var saved=[];
+  try{saved=JSON.parse(localStorage.getItem("ss-custom-"+slug))||[];}catch(e){}
+  customLines=[];
+  if(!customAllowed()||!Array.isArray(saved))return;
+  saved.forEach(function(l){
+    if(customLines.length>=CA_LINES)return;
+    var cents=l&&l.amount_cents;
+    if(typeof cents!=="number"||cents%1!==0||cents<CA_MIN||cents>CA_MAX)return;
+    var note=typeof l.note==="string"?l.note.slice(0,CA_NOTE):"";
+    customLines.push({amount_cents:cents,note:note});
+  });
+}
+function saveCustom(){localStorage.setItem("ss-custom-"+slug,JSON.stringify(customLines));}
 function cartTotal(){
-  return items.reduce(function(sum,it){return sum+(cart[it.id]||0)*it.price_cents;},0);
+  return items.reduce(function(sum,it){return sum+(cart[it.id]||0)*it.price_cents;},0)+
+    customLines.reduce(function(sum,l){return sum+l.amount_cents;},0);
 }
 function renderShop(){
   var name=vendor.business_name||"This stand";
@@ -597,10 +696,15 @@ function renderShop(){
     "&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — "+
     esc(name)+" pays only Stripe&rsquo;s standard card fee.";
   loadCart();
+  loadCustom();
+  $("customCard").classList.toggle("hidden",!customAllowed());
+  renderCustom();
   var grid=$("shopItems");
   grid.innerHTML="";
   if(!items.length){
-    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>No items listed yet — pay at the stand.</p></div>';
+    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>'+
+      (customAllowed()?'No items listed — enter what you owe below.':'No items listed yet — pay at the stand.')+
+      '</p></div>';
   }
   items.forEach(function(it){
     var el=document.createElement("div");
@@ -627,6 +731,38 @@ function renderShop(){
   syncPaybar();
   show("v-shop");
 }
+function renderCustom(){
+  var box=$("caLines");
+  box.innerHTML="";
+  box.classList.toggle("hidden",!customLines.length);
+  customLines.forEach(function(l,i){
+    var el=document.createElement("div");
+    el.className="ca-line";
+    el.innerHTML='<span class="nm"></span><span class="amt"></span>'+
+      '<button type="button" aria-label="Remove">&times;</button>';
+    el.querySelector(".nm").textContent=l.note||"Custom amount";
+    el.querySelector(".amt").textContent=money(l.amount_cents);
+    el.querySelector("button").onclick=function(){
+      customLines.splice(i,1);
+      saveCustom();renderCustom();syncPaybar();
+    };
+    box.appendChild(el);
+  });
+}
+$("caAdd").onclick=function(){
+  var errEl=$("caErr");
+  errEl.style.display="none";
+  var raw=$("caAmount").value.replace(",",".").trim();
+  var cents=Math.round((parseFloat(raw)||0)*100);
+  var msg=null;
+  if(cents<CA_MIN)msg="Enter at least $1.00.";
+  else if(cents>CA_MAX)msg="Custom amounts are capped at $5,000.";
+  else if(customLines.length>=CA_LINES)msg="Up to "+CA_LINES+" custom amounts per checkout.";
+  if(msg){errEl.textContent=msg;errEl.style.display="block";return;}
+  customLines.push({amount_cents:cents,note:$("caNote").value.trim().slice(0,CA_NOTE)});
+  $("caAmount").value="";$("caNote").value="";
+  saveCustom();renderCustom();syncPaybar();
+};
 function syncPaybar(){
   var total=cartTotal();
   $("payTotal").textContent=money(total);
@@ -638,6 +774,9 @@ function syncPaybar(){
 $("payBtn").onclick=function(){
   var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
     .filter(function(l){return l.quantity>0;});
+  customLines.forEach(function(l){
+    lines.push(l.note?{amount_cents:l.amount_cents,note:l.note}:{amount_cents:l.amount_cents});
+  });
   if(!lines.length)return;
   var errEl=$("payErr");
   if(lines.length>50){errEl.textContent="That's a lot! Split into two checkouts, or see the vendor.";errEl.style.display="block";return;}
@@ -649,6 +788,7 @@ $("payBtn").onclick=function(){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error||"Checkout didn't go through. Try again, or pay at the stand.");
       localStorage.removeItem("ss-cart-"+slug);
+      localStorage.removeItem("ss-custom-"+slug);
       location.href=j.pay_url;
     });
   })
@@ -662,6 +802,15 @@ $("payBtn").onclick=function(){
 
 /* ---------- vendor login ---------- */
 $("navVendor").onclick=function(){show("v-login");};
+/* Same doors as the app: Apple and Google ride Supabase's authorize
+   redirect; the return leg is handled above, next to the slug. */
+function startOAuth(provider){
+  if(slug)localStorage.setItem("ss-oauth-slug",slug);
+  location.href=SUPA+"/auth/v1/authorize?provider="+provider+
+    "&redirect_to="+encodeURIComponent("https://getsugarsnapp.com/shop.html");
+}
+$("oauthApple").onclick=function(){startOAuth("apple");};
+$("oauthGoogle").onclick=function(){startOAuth("google");};
 $("loginBack").onclick=function(){show("v-shop");};
 $("navSignout").onclick=function(){
   setSession(null);
