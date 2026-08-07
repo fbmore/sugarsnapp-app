@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KGAGf0GSusQPrG0wIHLgzZPAlSIqdY2kyHZBvZQIvt8='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-K/+u/J2dqdI91ltq1JPSiykb+aRm0z7o9mi02Lfs1Bw='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -80,6 +80,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .sale .amt{font-family:Georgia,serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sale .st{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
 .sale.dead .amt,.sale.dead .p{text-decoration:line-through;color:var(--muted)}
+.sale .st{white-space:nowrap;margin-right:10px}
 .sale .st.refunded,.sale .st.canceled{color:var(--bad)}
 .sale .st.pending,.sale .st.in_progress{color:var(--muted)}
 .lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
@@ -386,7 +387,7 @@ function loadVendorDay(){
     renderVendorDay(sales);
     if(!sales.length)return;
     var ids=sales.map(function(x){return x.id;}).join(",");
-    return authRest("sale_items?sale_id=in.("+ids+")&select=sale_id,name_snapshot,quantity,line_total_cents")
+    return authRest("sale_items?sale_id=in.("+ids+")&select=sale_id,name_snapshot,quantity,unit_price_cents,line_total_cents")
       .then(function(r){return r.ok?r.json():[];})
       .then(function(items){renderSaleLines(items);})
       .catch(function(){});
@@ -417,10 +418,14 @@ function renderVendorDay(sales){
   var html="";
   sales.forEach(function(x){
     var dead=x.status==="refunded"||x.status==="canceled";
+    // Status chip sits OUTSIDE the struck span: the struck amount already
+    // says "void" — striking the word CANCELED itself just looks broken.
     var st=x.status==="paid"?"":'<span class="st '+esc(x.status)+'">'+esc(x.status.replace("_"," "))+"</span>";
+    // No "—" placeholder: a canceled sale never picked a processor.
+    var proc=PROC_NAMES[x.processor]||x.processor||"";
     html+='<div class="sale'+(dead?" dead":"")+'">'
       +'<div class="top"><span class="t">'+esc(timeOf(x.created_at))+"</span>"
-      +'<span class="p">'+esc(PROC_NAMES[x.processor]||x.processor||"—")+" "+st+"</span>"
+      +'<span class="p">'+esc(proc)+"</span>"+st
       +'<span class="amt">'+money(x.total_cents)+"</span></div>"
       +'<div class="lines" data-sale="'+esc(x.id)+'"></div>'
       +"</div>";
@@ -434,7 +439,10 @@ function renderSaleLines(items){
     var el=document.querySelector('.lines[data-sale="'+sid+'"]');
     if(!el)return;
     el.innerHTML=by[sid].map(function(it){
-      var nm=(it.name_snapshot||"Item")+(it.quantity>1?" ×"+it.quantity:"");
+      // Multi-quantity lines spell out the arithmetic ("2 × $2.50") so the
+      // right-hand line total can never be misread as a unit price.
+      var nm=(it.name_snapshot||"Item")
+        +(it.quantity>1?" · "+it.quantity+" × "+money(it.unit_price_cents):"");
       return '<div class="ln"><span>'+esc(nm)+"</span><span>"+money(it.line_total_cents)+"</span></div>";
     }).join("");
   });
