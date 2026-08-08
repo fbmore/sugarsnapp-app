@@ -52,6 +52,21 @@ h1 em{font-style:italic;color:var(--accent)}
 .dot.on{background:var(--accent)}
 section.features{padding:72px 0 8px}
 section.gallery{padding:72px 0 0}
+section.audiences{padding:72px 0 8px}
+.aud-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-top:34px}
+.aud{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px;display:flex;flex-direction:column;text-align:left}
+.aud h3{font-size:1.2rem;margin:4px 0 14px}
+.aud h3 em{font-style:italic;color:var(--accent)}
+.aud ol{margin:0 0 16px 20px;font-size:.95rem}
+.aud ol li{margin:6px 0}
+.aud ul{list-style:none;margin:0 0 18px;padding:0;color:var(--muted);font-size:.92rem}
+.aud ul li{margin:5px 0}
+.aud ul li::before{content:"✓  ";color:var(--accent)}
+.aud video{width:100%;border-radius:12px;border:1px solid var(--line);margin:2px 0 16px;background:#171d12;aspect-ratio:16/9}
+.aud .cta-badge{margin-top:auto}
+.aud .cta-badge img{height:48px}
+.aud .note{color:var(--muted);font-size:.92rem;font-style:italic;margin-top:auto}
+.aud .note a{color:var(--accent)}
 .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;margin-top:34px}
 .shots figure{margin:0;text-align:center}
 .shots img{width:100%;max-width:300px;border-radius:24px;border:1px solid var(--line);box-shadow:0 12px 30px rgba(31,42,29,.12)}
@@ -137,6 +152,69 @@ footer a{margin:0 10px;color:var(--muted)}
     <div class="shots shots-wide">
       <figure><img src="shots/05-ipad-register.webp" alt="iPad in landscape: register keypad beside a live receipt preview" loading="lazy"><figcaption>Roomier on iPad — receipt included</figcaption></figure>
       <figure><img src="shots/06-ipad-ledger.webp" alt="iPad in landscape: daily ledger with totals by payment type" loading="lazy"><figcaption>The day&rsquo;s take on the big screen</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="audiences">
+    <h2>Which one <em>are you?</em></h2>
+    <div class="aud-grid">
+
+      <article class="aud">
+        <div class="kicker">I sell at markets</div>
+        <h3>Ring up your stall <em>in seconds</em></h3>
+        <ol>
+          <li>Type an amount — or tap your items.</li>
+          <li>Show one QR. They pay with Stripe, Venmo, or PayPal.</li>
+          <li>Cash and EBT? Logged in one tap.</li>
+          <li>Every sale lands in one honest daily ledger.</li>
+        </ol>
+        <ul>
+          <li>No hardware, no dongle, no cut — ever</li>
+          <li>Money settles straight to your own accounts</li>
+          <li>Web ledger &amp; CSV export from any browser</li>
+          <li>Offline sales sync when the signal returns</li>
+        </ul>
+        <video controls preload="none" poster="media/pitch-vendor-poster.webp" src="media/pitch-feature-tour.mp4" title="SugarSnapp feature tour"></video>
+        <a class="cta-badge" href="https://apps.apple.com/app/id6796169333"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+      </article>
+
+      <article class="aud">
+        <div class="kicker">I&rsquo;m shopping at a stand</div>
+        <h3>Skip the line — pay <em>from your phone</em></h3>
+        <ol>
+          <li>Scan the stand&rsquo;s QR — it opens in your browser.</li>
+          <li>Add items while you browse the actual stand.</li>
+          <li>Pay with the app or card you already use.</li>
+          <li>Show your <em>PAID</em> receipt — stamped live.</li>
+        </ol>
+        <ul>
+          <li>No app download, no account — nothing to install</li>
+          <li>Your card never changes hands</li>
+          <li>Payments processed by Stripe on the vendor&rsquo;s own account</li>
+          <li>Email yourself a copy of any receipt</li>
+        </ul>
+        <video controls preload="none" poster="media/pitch-shopper-poster.webp" src="media/pitch-one-sale.mp4" title="One sale, two sides"></video>
+        <p class="note">Nothing to set up — just scan the QR at the stand.</p>
+      </article>
+
+      <article class="aud">
+        <div class="kicker">I run a market</div>
+        <h3>The manager&rsquo;s tent, <em>squared</em></h3>
+        <ol>
+          <li>Log EBT swipes and issue SNAP &amp; match tokens.</li>
+          <li>Vendors check in with a six-letter code.</li>
+          <li>Eligibility and per-card match caps, tracked for you.</li>
+          <li>Reconcile in minutes — issued vs. redeemed, per stall.</li>
+        </ol>
+        <ul>
+          <li>Free organizer account — running the tent costs the market nothing</li>
+          <li>Append-only audit trail that survives resets</li>
+          <li>Everything backs up to your account</li>
+          <li>View the tent from any browser after the market</li>
+        </ul>
+        <p class="note">Get the app and choose &ldquo;I organize a market&rdquo; — or <a href="account.html">see the web tent view</a>.</p>
+      </article>
+
     </div>
   </section>
 
