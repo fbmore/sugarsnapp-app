@@ -5,18 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SugarSnapp — One ledger for every sale</title>
 <meta name="description" content="The point of sale for market vendors: type an amount, show a QR, get paid. Stripe, PayPal, Venmo, cash, and EBT in one clean daily ledger.">
+<link rel="canonical" href="https://getsugarsnapp.com/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="SugarSnapp — One ledger for every sale">
 <meta property="og:description" content="The point of sale for market vendors: type an amount, show a QR, get paid. Stripe, PayPal, Venmo, cash, and EBT in one clean daily ledger.">
-<meta property="og:url" content="https://fbmore.github.io/sugarsnapp-app/">
-<meta property="og:image" content="https://fbmore.github.io/sugarsnapp-app/og-card.png">
+<meta property="og:url" content="https://getsugarsnapp.com/">
+<meta property="og:image" content="https://getsugarsnapp.com/og-card.png">
 <meta property="og:image:width" content="1220">
 <meta property="og:image:height" content="641">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://fbmore.github.io/sugarsnapp-app/og-card.png">
+<meta name="twitter:image" content="https://getsugarsnapp.com/og-card.png">
 <style>
 :root{
   --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
@@ -62,11 +63,10 @@ section.audiences{padding:72px 0 8px}
 .aud ul{list-style:none;margin:0 0 18px;padding:0;color:var(--muted);font-size:.92rem}
 .aud ul li{margin:5px 0}
 .aud ul li::before{content:"✓  ";color:var(--accent)}
-.aud video{width:100%;border-radius:12px;border:1px solid var(--line);margin:2px 0 16px;background:#171d12;aspect-ratio:16/9}
-.aud .cta-badge{margin-top:auto}
-.aud .cta-badge img{height:48px}
-.aud .note{color:var(--muted);font-size:.92rem;font-style:italic;margin-top:auto}
-.aud .note a{color:var(--accent)}
+.aud .more{margin-top:auto;align-self:flex-start;text-decoration:none;font-size:.95rem;border-bottom:1px solid var(--line);padding-bottom:2px}
+.film{margin:64px auto 0;max-width:760px}
+.film video{width:100%;border-radius:16px;border:1px solid var(--line);background:#171d12;aspect-ratio:16/9;display:block}
+.film figcaption{margin-top:12px;text-align:center;color:var(--muted);font-size:.92rem;font-style:italic}
 .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:22px;margin-top:34px}
 .shots figure{margin:0;text-align:center}
 .shots img{width:100%;max-width:300px;border-radius:24px;border:1px solid var(--line);box-shadow:0 12px 30px rgba(31,42,29,.12)}
@@ -155,6 +155,11 @@ footer a{margin:0 10px;color:var(--muted)}
     </div>
   </section>
 
+  <figure class="film">
+    <video controls preload="none" poster="media/pitch-shopper-poster.webp" src="media/pitch-one-sale.mp4" title="One sale, two sides"></video>
+    <figcaption>One sale, two sides &mdash; 42 seconds.</figcaption>
+  </figure>
+
   <section class="audiences">
     <h2>Which one <em>are you?</em></h2>
     <div class="aud-grid">
@@ -162,57 +167,37 @@ footer a{margin:0 10px;color:var(--muted)}
       <article class="aud">
         <div class="kicker">I sell at markets</div>
         <h3>Ring up your stall <em>in seconds</em></h3>
-        <ol>
-          <li>Type an amount — or tap your items.</li>
-          <li>Show one QR. They pay with Stripe, Venmo, or PayPal.</li>
-          <li>Cash and EBT? Logged in one tap.</li>
-          <li>Every sale lands in one honest daily ledger.</li>
-        </ol>
         <ul>
           <li>No hardware, no dongle, no cut — ever</li>
           <li>Money settles straight to your own accounts</li>
           <li>Web ledger &amp; CSV export from any browser</li>
           <li>Offline sales sync when the signal returns</li>
         </ul>
-        <video controls preload="none" poster="media/pitch-vendor-poster.webp" src="media/pitch-feature-tour.mp4" title="SugarSnapp feature tour"></video>
-        <a class="cta-badge" href="https://apps.apple.com/app/id6796169333"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+        <a class="more" href="vendors.html">The vendor page &rarr;</a>
       </article>
 
       <article class="aud">
         <div class="kicker">I&rsquo;m shopping at a stand</div>
         <h3>Skip the line — pay <em>from your phone</em></h3>
-        <ol>
-          <li>Scan the stand&rsquo;s QR — it opens in your browser.</li>
-          <li>Add items while you browse the actual stand.</li>
-          <li>Pay with the app or card you already use.</li>
-          <li>Show your <em>PAID</em> receipt — stamped live.</li>
-        </ol>
         <ul>
           <li>No app download, no account — nothing to install</li>
           <li>Your card never changes hands</li>
           <li>Payments processed by Stripe on the vendor&rsquo;s own account</li>
           <li>Email yourself a copy of any receipt</li>
         </ul>
-        <video controls preload="none" poster="media/pitch-shopper-poster.webp" src="media/pitch-one-sale.mp4" title="One sale, two sides"></video>
-        <p class="note">Nothing to set up — just scan the QR at the stand.</p>
+        <a class="more" href="shoppers.html">The shopper page &rarr;</a>
       </article>
 
       <article class="aud">
         <div class="kicker">I run a market</div>
         <h3>The manager&rsquo;s tent, <em>squared</em></h3>
-        <ol>
-          <li>Log EBT swipes and issue SNAP &amp; match tokens.</li>
-          <li>Vendors check in with a six-letter code.</li>
-          <li>Eligibility and per-card match caps, tracked for you.</li>
-          <li>Reconcile in minutes — issued vs. redeemed, per stall.</li>
-        </ol>
         <ul>
           <li>Free organizer account — running the tent costs the market nothing</li>
           <li>Append-only audit trail that survives resets</li>
           <li>Everything backs up to your account</li>
           <li>View the tent from any browser after the market</li>
         </ul>
-        <p class="note">Get the app and choose &ldquo;I organize a market&rdquo; — or <a href="account.html">see the web tent view</a>.</p>
+        <a class="more" href="organizers.html">The organizer page &rarr;</a>
       </article>
 
     </div>
@@ -251,6 +236,11 @@ footer a{margin:0 10px;color:var(--muted)}
 
 <footer>
   <div>Made by Francesco Bertocci LLC · © 2026</div>
+  <div style="margin-top:8px">
+    <a href="vendors.html">For vendors</a> ·
+    <a href="shoppers.html">For shoppers</a> ·
+    <a href="organizers.html">For organizers</a>
+  </div>
   <div style="margin-top:8px">
     <a href="account.html">Vendor &amp; organizer sign-in</a> ·
     <a href="support.html">Support</a> ·
