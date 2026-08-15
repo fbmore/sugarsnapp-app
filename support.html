@@ -55,6 +55,33 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   <h3>Cash and EBT</h3>
   <p>Tap Cash or EBT on the charge screen to log the sale instantly. EBT is recorded in your ledger for complete bookkeeping — SugarSnapp does not process EBT/SNAP payments.</p>
 
+  <h2>Your Stripe account, in plain terms</h2>
+  <p>Card payments run on <em>your own</em> Stripe account, not ours. That one fact answers most of the questions below.</p>
+
+  <h3>Whose Stripe account is it?</h3>
+  <p>Yours. Connecting from SugarSnapp creates a standard Stripe account in your name, and you get the full Stripe Dashboard at <a href="https://dashboard.stripe.com">dashboard.stripe.com</a> — payments, payouts, disputes, receipts, the lot. SugarSnapp can create a charge on your account when you ring up a sale, and nothing else. We never hold your money, and we can't move it.</p>
+
+  <h3>Who pays Stripe's fees?</h3>
+  <p>You do, and Stripe bills you directly at their standard rate. SugarSnapp adds nothing on top — no commission, no per-transaction fee, no markup. You'll see the fee on each payment in your own Stripe Dashboard, not on a bill from us.</p>
+
+  <h3>Where do my payouts go, and when?</h3>
+  <p>To the bank account on your Stripe account, on Stripe's payout schedule — typically a couple of business days after the sale. The money never passes through SugarSnapp. If a payout is late or paused, that's between you and Stripe, and their Dashboard will say why.</p>
+
+  <h3>Who verifies my identity?</h3>
+  <p>Stripe does, directly with you. They'll email you if they need a document or more detail, and you upload it on their site. SugarSnapp never sees, collects, or stores your ID, bank details, or tax information.</p>
+
+  <h3>What happens if a customer disputes a charge?</h3>
+  <p>The dispute is between you, your customer, and Stripe. Stripe takes the disputed amount from your Stripe balance while it's investigated and emails you with a deadline to respond; you contest it in your own Stripe Dashboard, where you can upload evidence. SugarSnapp is not the merchant of record and can't contest a dispute for you — but your ledger and the customer's stamped receipt are usually the evidence you need, and you can export both.</p>
+
+  <h3>Can I refund a sale?</h3>
+  <p>Yes. Open the sale in your Ledger and use the row's refund action. For a card sale, the refund is issued on your Stripe account and the money comes out of your Stripe balance — same as refunding from Stripe's own Dashboard. For cash, Venmo, PayPal, or EBT, there's nothing for us to reverse: the ledger marks the sale refunded so your books stay straight, and you hand the money back the way you took it.</p>
+
+  <h3>Can I set my own fraud rules?</h3>
+  <p>Yes — fraud screening runs on your account with your settings. Open Radar in your Stripe Dashboard to tighten or loosen the rules. Our settings don't apply to your sales.</p>
+
+  <h3>What if I stop using SugarSnapp?</h3>
+  <p>Your Stripe account is yours and stays exactly as it is, with your history and your money. Disconnecting in Settings only stops SugarSnapp from creating new charges on it; you can also revoke access from your Stripe Dashboard. Deleting your SugarSnapp account removes our records, not your Stripe ones.</p>
+
   <h2>Common issues</h2>
   <h3>The QR won't scan in bright sun</h3>
   <p>SugarSnapp automatically boosts brightness during checkout. If it's still hard to scan, check Settings → Display &amp; Brightness on your device and make sure auto-brightness isn't capped by Low Power Mode.</p>
