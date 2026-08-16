@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RhG1LruSY1ltfEqsPiHIdmyOXV40a4N/iXjaUIidYa0='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Ops — SugarSnapp</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.png" type="image/png">
+<style>
+:root{
+  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
+  --surface:#ffffff; --line:#dde4d6; --bad:#8a3b2e; --warn:#8a6a2e;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
+nav .title{font-size:1.05rem;font-weight:700}
+nav button{font-size:.92rem;color:var(--muted)}
+nav button:hover{color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
+.card h2{font-size:1.1rem;margin-bottom:10px}
+.hidden{display:none!important}
+.cta{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;border:none;cursor:pointer}
+.cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
+.note{color:var(--muted);font-size:.92rem}
+.err{color:var(--bad);font-size:.92rem;margin-top:12px;display:none}
+label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
+input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.obtn{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;min-height:46px;font-size:1rem;width:100%;margin-top:10px}
+.obtn.apple{background:#000;color:#fff}
+.obtn.google{background:#fff;color:#1f1f20;border:1px solid #747775}
+.verdict{font-size:2.4rem;font-weight:700;letter-spacing:.04em;margin:6px 0 2px}
+.verdict.live{color:var(--accent)}
+.verdict.test{color:var(--warn)}
+.verdict.unknown{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:8px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:400;font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.flag{color:var(--bad);font-weight:700}
+.ok{color:var(--accent)}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.84rem;word-break:break-all}
+.qr{display:block;margin:16px auto;width:190px;height:190px;background:#fff;border:1px solid var(--line);border-radius:10px}
+ul.plain{list-style:none;margin-top:8px}
+ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav>
+  <span class="title">SugarSnapp <span class="note">ops</span></span>
+  <button id="signOut" class="hidden" type="button">Sign out</button>
+</nav>
+
+<div id="v-loading" class="card"><p class="note">Loading…</p></div>
+
+<!-- sign in -->
+<div id="v-login" class="hidden">
+  <div class="card">
+    <p class="kicker">Restricted</p>
+    <h2>Ops sign-in</h2>
+    <p class="note">Allowlisted accounts only. A second factor is required.</p>
+    <form id="loginForm">
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" autocomplete="username" required>
+      <label for="loginPass">Password</label>
+      <input id="loginPass" type="password" autocomplete="current-password" required>
+      <button id="loginBtn" class="cta" type="submit" style="width:100%;margin-top:20px">Sign in</button>
+      <p id="loginErr" class="err"></p>
+    </form>
+    <button id="oauthApple" class="obtn apple" type="button">Continue with Apple</button>
+    <button id="oauthGoogle" class="obtn google" type="button">Continue with Google</button>
+  </div>
+</div>
+
+<!-- not an admin -->
+<div id="v-denied" class="hidden">
+  <div class="card">
+    <h2>Not an ops account</h2>
+    <p class="note">This account is not on the admin allowlist. Nothing here is available to it.</p>
+  </div>
+</div>
+
+<!-- MFA enrol -->
+<div id="v-enrol" class="hidden">
+  <div class="card">
+    <p class="kicker">Step 2 of 2</p>
+    <h2>Add an authenticator</h2>
+    <p class="note">The ops surface only accepts MFA-verified sessions, so this is required once. Scan this with any authenticator app, then enter the six-digit code.</p>
+    <img id="enrolQr" class="qr" alt="Authenticator QR code">
+    <p class="note mono" id="enrolSecret"></p>
+    <label for="enrolCode">Six-digit code</label>
+    <input id="enrolCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+    <button id="enrolBtn" class="cta" type="button" style="width:100%;margin-top:18px">Verify and finish</button>
+    <p id="enrolErr" class="err"></p>
+  </div>
+</div>
+
+<!-- MFA challenge -->
+<div id="v-mfa" class="hidden">
+  <div class="card">
+    <p class="kicker">Step 2 of 2</p>
+    <h2>Second factor</h2>
+    <p class="note">Enter the current code from your authenticator.</p>
+    <label for="mfaCode">Six-digit code</label>
+    <input id="mfaCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
+    <button id="mfaBtn" class="cta" type="button" style="width:100%;margin-top:18px">Verify</button>
+    <p id="mfaErr" class="err"></p>
+  </div>
+</div>
+
+<!-- admin -->
+<div id="v-admin" class="hidden">
+  <div class="card">
+    <p class="kicker">Stripe</p>
+    <h2>Live-mode self-test</h2>
+    <p class="note">Read-only. Asks the deployment which Stripe account, mode, and webhook configuration it is actually running against. Nothing is charged and nothing is written.</p>
+    <button id="probeBtn" class="cta" type="button" style="margin-top:16px">Run self-test</button>
+    <p id="probeErr" class="err"></p>
+  </div>
+  <div id="probeOut"></div>
+</div>
+
+</div>
+<script>
+"use strict";
+/* ---------- plumbing (mirrors account.html) ---------- */
+var SUPA="https://psiattienhrooetmjvue.supabase.co";
+var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
+
+/* Deliberately a different storage key from account.html: signing out of ops
+   must not sign you out of the vendor view, and vice versa. */
+var KEY="ss-admin-session";
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+  return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function getSession(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
+function setSession(s){if(s)localStorage.setItem(KEY,JSON.stringify(s));else localStorage.removeItem(KEY);}
+
+function api(path,opts){
+  opts=opts||{};
+  var s=getSession();
+  var headers={apikey:ANON,"Content-Type":"application/json"};
+  headers.Authorization="Bearer "+((s&&s.access_token)||ANON);
+  for(var h in (opts.headers||{}))headers[h]=opts.headers[h];
+  return fetch(SUPA+path,{method:opts.method||"GET",headers:headers,body:opts.body});
+}
+function json(r){return r.json().catch(function(){return{};});}
+function failMsg(e){return (e instanceof TypeError)?"No signal — try again in a moment.":e.message;}
+
+var VIEWS=["v-loading","v-login","v-denied","v-enrol","v-mfa","v-admin"];
+function show(id){
+  VIEWS.forEach(function(v){$(v).classList.toggle("hidden",v!==id);});
+  $("signOut").classList.toggle("hidden",id==="v-login"||id==="v-loading");
+}
+function showErr(id,msg){var e=$(id);e.textContent=msg;e.style.display="block";}
+function clearErr(id){$(id).style.display="none";}
+
+/* ---------- MFA ----------
+   GoTrue reports the factor list on the user object. An allowlisted admin with
+   no verified factor is sent to enrolment; one with a factor is challenged.
+   is_admin() reads the aal claim, so only the post-verify token opens the door. */
+var pendingFactorId=null;
+
+function loadUserFactors(){
+  return api("/auth/v1/user").then(function(r){
+    if(!r.ok)throw new Error("Session expired — sign in again.");
+    return json(r);
+  }).then(function(u){
+    return (u.factors||[]).filter(function(f){return f.status==="verified";});
+  });
+}
+
+function beginEnrol(){
+  return api("/auth/v1/factors",{
+    method:"POST",
+    body:JSON.stringify({factor_type:"totp",friendly_name:"SugarSnapp ops "+Date.now()})
+  }).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.msg||j.error_description||"Could not start enrolment.");
+      pendingFactorId=j.id;
+      if(j.totp&&j.totp.qr_code)$("enrolQr").src=j.totp.qr_code;
+      if(j.totp&&j.totp.secret)$("enrolSecret").textContent="Or type this secret: "+j.totp.secret;
+      show("v-enrol");
+    });
+  });
+}
+
+function verifyFactor(factorId,code,errId){
+  return api("/auth/v1/factors/"+factorId+"/challenge",{method:"POST"})
+    .then(function(r){
+      return json(r).then(function(j){
+        if(!r.ok)throw new Error(j.msg||"Could not start the challenge.");
+        return j.id;
+      });
+    })
+    .then(function(challengeId){
+      return api("/auth/v1/factors/"+factorId+"/verify",{
+        method:"POST",
+        body:JSON.stringify({challenge_id:challengeId,code:code})
+      }).then(function(r){
+        return json(r).then(function(j){
+          if(!r.ok)throw new Error(j.msg||j.error_description||"That code didn't match.");
+          /* The verify response carries an AAL2 access token — keep it. */
+          setSession({access_token:j.access_token,refresh_token:j.refresh_token});
+          return boot();
+        });
+      });
+    })
+    .catch(function(e){showErr(errId,failMsg(e));});
+}
+
+/* ---------- Stripe self-test rendering ---------- */
+function renderProbe(rep){
+  var mode=rep.mode||"UNKNOWN";
+  var cls=mode==="LIVE"?"live":(mode==="TEST"?"test":"unknown");
+  var h="";
+
+  h+='<div class="card"><p class="kicker">Mode</p>';
+  h+='<div class="verdict '+cls+'">'+esc(mode)+'</div>';
+  if(rep.mode_error)h+='<p class="note">'+esc(rep.mode_error)+'</p>';
+  var pa=rep.platform_account;
+  if(pa){
+    h+='<p class="note">Platform account <span class="mono">'+esc(pa.id)+'</span>';
+    if(pa.business_name)h+=' &middot; '+esc(pa.business_name);
+    h+='</p>';
+  }
+  var sp=rep.secrets_present||{};
+  h+='<ul class="plain">';
+  ["STRIPE_SECRET_KEY","STRIPE_WEBHOOK_SECRET","STRIPE_CONNECT_CLIENT_ID"].forEach(function(k){
+    h+='<li>'+esc(k)+' &middot; '+(sp[k]?'<span class="ok">set</span>':'<span class="flag">MISSING</span>')+'</li>';
+  });
+  h+='</ul>';
+  h+='<p class="note" style="margin-top:10px">OAuth redirect URI this deployment sends: <span class="mono">'+esc(rep.expected_oauth_redirect_uri)+'</span> — it must be registered in the Stripe Dashboard for <em>this</em> mode.</p>';
+  h+='</div>';
+
+  /* Webhooks */
+  h+='<div class="card"><p class="kicker">Webhooks</p><h2>Endpoints</h2>';
+  if(rep.webhook_endpoints_error){
+    h+='<p class="err" style="display:block">'+esc(rep.webhook_endpoints_error)+'</p>';
+  }else{
+    var eps=rep.webhook_endpoints||[];
+    if(!eps.length){
+      h+='<p class="flag">No webhook endpoints at all. Every sale will stay unpaid.</p>';
+    }else{
+      h+='<table><tr><th>URL</th><th>Mode</th><th>Status</th><th>Connect</th><th>Missing events</th></tr>';
+      eps.forEach(function(ep){
+        var miss=(ep.missing_required_events||[]);
+        h+='<tr><td class="mono">'+esc(ep.url)+'</td>'+
+           '<td>'+(ep.livemode?"live":"test")+'</td>'+
+           '<td>'+esc(ep.status)+'</td>'+
+           '<td>'+esc(String(ep.connect))+'</td>'+
+           '<td>'+(miss.length?'<span class="flag">'+esc(miss.join(", "))+'</span>':'<span class="ok">none</span>')+'</td></tr>';
+      });
+      h+='</table>';
+      h+='<p class="note" style="margin-top:10px">Stripe does not reliably report the <em>Events on connected accounts</em> flag over the API, so a “Connect” of <span class="mono">unknown</span> means confirm it by eye in the Dashboard. Charges are direct on connected accounts, so a non-Connect endpoint receives nothing.</p>';
+    }
+  }
+  h+='</div>';
+
+  /* Accounts */
+  var ca=rep.connected_accounts;
+  h+='<div class="card"><p class="kicker">Connected accounts</p>';
+  if(rep.connected_accounts_error){
+    h+='<p class="err" style="display:block">'+esc(rep.connected_accounts_error)+'</p>';
+  }else if(ca){
+    h+='<table>'+
+       '<tr><th>As Stripe sees them</th><th class="num">Count</th></tr>'+
+       '<tr><td>Total'+(ca.has_more?" (first 100)":"")+'</td><td class="num">'+ca.count+'</td></tr>'+
+       '<tr><td>charges_enabled</td><td class="num">'+ca.charges_enabled+'</td></tr>'+
+       '<tr><td>payouts_enabled</td><td class="num">'+ca.payouts_enabled+'</td></tr>'+
+       '<tr><td>details_submitted</td><td class="num">'+ca.details_submitted+'</td></tr>'+
+       '</table>';
+  }
+  var sa=rep.stored_payment_accounts;
+  if(sa){
+    h+='<table style="margin-top:14px">'+
+       '<tr><th>Rows stored in Supabase</th><th class="num">Count</th></tr>'+
+       '<tr><td>Probed</td><td class="num">'+sa.probed+'</td></tr>'+
+       '<tr><td>Resolve under this key</td><td class="num">'+sa.resolvable+'</td></tr>'+
+       '<tr><td'+(sa.unresolvable?' class="flag"':'')+'>Do NOT resolve (must re-run OAuth)</td>'+
+       '<td class="num'+(sa.unresolvable?' flag':'')+'">'+sa.unresolvable+'</td></tr>'+
+       '<tr><td'+(sa.with_terminal_location?' class="flag"':'')+'>Carry a Terminal location id</td>'+
+       '<td class="num">'+sa.with_terminal_location+'</td></tr>'+
+       '</table>';
+    if(sa.unresolvable){
+      h+='<p class="note" style="margin-top:10px">Those vendors are silently gated off: the KYC gate logs the failed lookup and returns false with no user-facing reason.</p>';
+    }
+    if(sa.with_terminal_location){
+      h+='<p class="note">Terminal location ids are mode-specific. If the mode above changed since they were minted, they must be nulled — the connection-token function re-mints one on demand.</p>';
+    }
+  }
+  h+='</div>';
+
+  h+='<p class="note">Probed '+esc(rep.probed_at)+'</p>';
+  $("probeOut").innerHTML=h;
+}
+
+/* ---------- actions ---------- */
+$("probeBtn").addEventListener("click",function(){
+  var b=$("probeBtn");b.disabled=true;b.textContent="Running…";clearErr("probeErr");
+  $("probeOut").innerHTML="";
+  api("/functions/v1/stripe-selftest",{method:"POST"}).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.error||"The self-test could not run.");
+      renderProbe(j);
+    });
+  }).catch(function(e){
+    showErr("probeErr",failMsg(e));
+  }).finally(function(){b.disabled=false;b.textContent="Run self-test";});
+});
+
+$("loginForm").addEventListener("submit",function(ev){
+  ev.preventDefault();
+  clearErr("loginErr");
+  var b=$("loginBtn");b.disabled=true;b.textContent="Signing in…";
+  fetch(SUPA+"/auth/v1/token?grant_type=password",{
+    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({email:$("loginEmail").value.trim(),password:$("loginPass").value})
+  }).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
+      setSession({access_token:j.access_token,refresh_token:j.refresh_token});
+      return boot();
+    });
+  }).catch(function(e){
+    showErr("loginErr",failMsg(e));
+  }).finally(function(){b.disabled=false;b.textContent="Sign in";});
+});
+
+function startOAuth(provider){
+  location.href=SUPA+"/auth/v1/authorize?provider="+provider+
+    "&redirect_to="+encodeURIComponent("https://getsugarsnapp.com/admin.html");
+}
+$("oauthApple").addEventListener("click",function(){startOAuth("apple");});
+$("oauthGoogle").addEventListener("click",function(){startOAuth("google");});
+
+$("enrolBtn").addEventListener("click",function(){
+  clearErr("enrolErr");
+  if(!pendingFactorId)return showErr("enrolErr","Enrolment expired — reload the page.");
+  verifyFactor(pendingFactorId,$("enrolCode").value.trim(),"enrolErr");
+});
+$("mfaBtn").addEventListener("click",function(){
+  clearErr("mfaErr");
+  if(!pendingFactorId)return showErr("mfaErr","Reload the page and try again.");
+  verifyFactor(pendingFactorId,$("mfaCode").value.trim(),"mfaErr");
+});
+$("signOut").addEventListener("click",function(){setSession(null);pendingFactorId=null;show("v-login");});
+
+/* ---------- boot ----------
+   OAuth returns the tokens in the URL fragment; capture them before anything
+   else reads the session. */
+(function captureOAuthFragment(){
+  if(!location.hash)return;
+  var p=new URLSearchParams(location.hash.slice(1));
+  var at=p.get("access_token"),rt=p.get("refresh_token");
+  if(at&&rt)setSession({access_token:at,refresh_token:rt});
+  history.replaceState(null,"",location.pathname);
+})();
+
+function boot(){
+  show("v-loading");
+  if(!getSession()){show("v-login");return Promise.resolve();}
+  return api("/rest/v1/rpc/admin_status",{method:"POST",body:"{}"}).then(function(r){
+    if(r.status===401){setSession(null);show("v-login");return;}
+    return json(r).then(function(st){
+      if(!st||!st.allowlisted){show("v-denied");return;}
+      if(st.is_admin){show("v-admin");return;}
+      /* Allowlisted but aal1: enrol a factor, or challenge an existing one. */
+      return loadUserFactors().then(function(factors){
+        if(!factors.length)return beginEnrol();
+        pendingFactorId=factors[0].id;
+        show("v-mfa");
+      });
+    });
+  }).catch(function(e){
+    show("v-login");
+    showErr("loginErr",failMsg(e));
+  });
+}
+boot();
+</script>
+</body>
+</html>
