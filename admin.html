@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WvpfTjrButwEbiNRv9MpNlrmIQTiYGz6jQsSvzul4Nc='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3gIa0M9V58oqBXrrsvCXuOcG/a/UI79mA6p+4bdCfVs='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -174,6 +174,15 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
     <button id="sweepBtn" class="cta" type="button" style="margin-top:10px">Repair stranded sales</button>
     <p id="sweepErr" class="err"></p>
     <p id="sweepOut" class="note"></p>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Billing</p>
+    <h2>Subscription plans</h2>
+    <p class="note">Creates the SugarSnapp Standard product and both prices in Stripe — $10/month and $100/year. Idempotent: it finds existing prices by lookup key rather than making duplicates, so re-running is safe.</p>
+    <button id="planBtn" class="cta" type="button" style="margin-top:14px">Create / verify plans</button>
+    <p id="planErr" class="err"></p>
+    <div id="planOut"></div>
   </div>
 
   <div class="card">
@@ -602,6 +611,26 @@ $("sweepBtn").addEventListener("click",function(){
   }).catch(function(e){
     showErr("sweepErr",failMsg(e));
   }).finally(function(){b.disabled=false;b.textContent="Repair stranded sales";});
+});
+
+$("planBtn").addEventListener("click",function(){
+  var b=$("planBtn");b.disabled=true;b.textContent="Talking to Stripe…";
+  clearErr("planErr");$("planOut").innerHTML="";
+  api("/functions/v1/billing?action=setup",{method:"POST"}).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.error||"Could not set up the plans.");
+      var h='<table><tr><th>Plan</th><th>Price</th><th class="num">Amount</th><th>Mode</th></tr>';
+      Object.keys(j.plans||{}).forEach(function(k){
+        var p=j.plans[k];
+        h+='<tr><td>'+esc(k)+'</td><td class="mono">'+esc(p.price_id)+'</td>'+
+           '<td class="num">'+money(p.unit_amount)+'</td>'+
+           '<td>'+(p.livemode?'<span class="ok">live</span>':'<span class="flag">test</span>')+'</td></tr>';
+      });
+      $("planOut").innerHTML=h+'</table>';
+    });
+  }).catch(function(e){
+    showErr("planErr",failMsg(e));
+  }).finally(function(){b.disabled=false;b.textContent="Create / verify plans";});
 });
 
 $("probeBtn").addEventListener("click",function(){
