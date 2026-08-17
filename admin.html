@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-RhG1LruSY1ltfEqsPiHIdmyOXV40a4N/iXjaUIidYa0='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WATmjsU3ZrfRabap6+Rc6E9O67yTDG+J4ggCuJetHTw='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -170,6 +170,19 @@ function clearErr(id){$(id).style.display="none";}
    is_admin() reads the aal claim, so only the post-verify token opens the door. */
 var pendingFactorId=null;
 
+/* Supabase returns totp.qr_code as `data:image/svg+xml;utf-8,<svg …>` with the
+   SVG left raw and unescaped. The '#' in its colour values terminates the URI,
+   so the browser renders a broken image. Re-serialise it correctly rather than
+   inlining a QR library just to redraw what the server already sent. */
+function svgDataUri(raw){
+  if(!raw)return "";
+  var i=raw.indexOf(",");
+  if(i<0||raw.slice(0,i).indexOf("svg")<0)return raw;
+  var svg=raw.slice(i+1);
+  if(/^%3[Cc]/.test(svg)){try{svg=decodeURIComponent(svg);}catch(e){}}
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+}
+
 function loadUserFactors(){
   return api("/auth/v1/user").then(function(r){
     if(!r.ok)throw new Error("Session expired — sign in again.");
@@ -180,6 +193,18 @@ function loadUserFactors(){
 }
 
 function beginEnrol(){
+  /* A factor's secret is only ever returned at enrolment, so an abandoned
+     attempt can't be resumed — it can only be replaced. Clear any unverified
+     leftovers first, otherwise every reload strands another one and the
+     enrolment cap fills up with dead factors. */
+  return api("/auth/v1/user").then(function(r){return r.ok?json(r):{};})
+  .then(function(u){
+    var stale=(u.factors||[]).filter(function(f){return f.status!=="verified";});
+    return Promise.all(stale.map(function(f){
+      return api("/auth/v1/factors/"+f.id,{method:"DELETE"}).catch(function(){});
+    }));
+  })
+  .then(function(){
   return api("/auth/v1/factors",{
     method:"POST",
     body:JSON.stringify({factor_type:"totp",friendly_name:"SugarSnapp ops "+Date.now()})
@@ -187,10 +212,11 @@ function beginEnrol(){
     return json(r).then(function(j){
       if(!r.ok)throw new Error(j.msg||j.error_description||"Could not start enrolment.");
       pendingFactorId=j.id;
-      if(j.totp&&j.totp.qr_code)$("enrolQr").src=j.totp.qr_code;
+      if(j.totp&&j.totp.qr_code)$("enrolQr").src=svgDataUri(j.totp.qr_code);
       if(j.totp&&j.totp.secret)$("enrolSecret").textContent="Or type this secret: "+j.totp.secret;
       show("v-enrol");
     });
+  });
   });
 }
 
