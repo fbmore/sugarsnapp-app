@@ -45,7 +45,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
 
   <div class="pills">
     <span class="pill">No ads</span>
-    <span class="pill">No third-party trackers or SDKs</span>
+    <span class="pill">No analytics or advertising SDKs</span>
     <span class="pill">No card numbers — ever</span>
     <span class="pill">No selling of data</span>
     <span class="pill">Delete your account in-app</span>
@@ -110,6 +110,8 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
     <li><strong>Supabase</strong> hosts the database and sign-in infrastructure.</li>
     <li><strong>Apple / Google</strong> provide sign-in; they share your email, name, and avatar with us when you consent at sign-in.</li>
     <li><strong>Stripe / PayPal / Venmo</strong> receive only the sale amount (and for Stripe, a sale reference) when a customer pays. Their handling of payments is governed by their own privacy policies. Money flows directly to your account — SugarSnapp is never in the flow of funds.</li>
+    <li><strong>Stripe’s Terminal SDK</strong> is included in the app so contactless card payments can work. It is a payments library, not an analytics or advertising one, but it is Stripe’s code running inside the app and it reports its own diagnostic and fraud-prevention information to Stripe under <a href="https://stripe.com/privacy">Stripe’s privacy policy</a>. Besides the Supabase client, which talks only to our own backend described above, it is the only bundled library that sends anything to a third party; the rest are Apple and open-source utility libraries that make no network calls of their own.</li>
+
   </ul>
 
   <h2>EBT</h2>
