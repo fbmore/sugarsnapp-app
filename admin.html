@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WATmjsU3ZrfRabap6+Rc6E9O67yTDG+J4ggCuJetHTw='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QJpdwRbBId+cHZQ3nWmtEgmf4QpFWI9czr+vTfvGjq8='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -170,17 +170,24 @@ function clearErr(id){$(id).style.display="none";}
    is_admin() reads the aal claim, so only the post-verify token opens the door. */
 var pendingFactorId=null;
 
-/* Supabase returns totp.qr_code as `data:image/svg+xml;utf-8,<svg …>` with the
-   SVG left raw and unescaped. The '#' in its colour values terminates the URI,
-   so the browser renders a broken image. Re-serialise it correctly rather than
-   inlining a QR library just to redraw what the server already sent. */
-function svgDataUri(raw){
+/* totp.qr_code is RAW SVG MARKUP, not a data URI — auth-js documents it as
+   "you can convert it to a URL by prepending data:image/svg+xml;utf-8,". That
+   documented prefix is itself not quite enough: the markup is unescaped, so the
+   '#' in its colour values terminates the URI. Percent-encode the payload.
+   Cheaper and more faithful than inlining a QR library to redraw what the
+   server already rendered. */
+function qrSrc(raw){
   if(!raw)return "";
-  var i=raw.indexOf(",");
-  if(i<0||raw.slice(0,i).indexOf("svg")<0)return raw;
-  var svg=raw.slice(i+1);
-  if(/^%3[Cc]/.test(svg)){try{svg=decodeURIComponent(svg);}catch(e){}}
-  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg);
+  var s=String(raw).trim();
+  if(/^data:/i.test(s)){            /* already a URI — normalise, don't re-wrap */
+    var i=s.indexOf(",");
+    if(i<0)return s;
+    if(/base64/i.test(s.slice(0,i)))return s;
+    var body=s.slice(i+1);
+    if(/%3[Cc]/.test(body)){try{body=decodeURIComponent(body);}catch(e){}}
+    return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(body);
+  }
+  return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(s);
 }
 
 function loadUserFactors(){
@@ -212,8 +219,14 @@ function beginEnrol(){
     return json(r).then(function(j){
       if(!r.ok)throw new Error(j.msg||j.error_description||"Could not start enrolment.");
       pendingFactorId=j.id;
-      if(j.totp&&j.totp.qr_code)$("enrolQr").src=svgDataUri(j.totp.qr_code);
+      if(j.totp&&j.totp.qr_code)$("enrolQr").src=qrSrc(j.totp.qr_code);
       if(j.totp&&j.totp.secret)$("enrolSecret").textContent="Or type this secret: "+j.totp.secret;
+      /* Never leave a broken-image icon as the only feedback: if the SVG still
+         fails to decode, hide it and point at the secret, which always works. */
+      $("enrolQr").addEventListener("error",function(){
+        this.style.display="none";
+        showErr("enrolErr","Couldn't draw the QR code — type the secret below into your authenticator instead.");
+      },{once:true});
       show("v-enrol");
     });
   });
