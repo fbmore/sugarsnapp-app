@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dyarljegw7OAP8hJ+BEljynW8IbdwFPUd27yEhpdrP4='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CKLtKTFcVlz7P18q/L8IVdO50QurMKM+qw6WaKBRrMo='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -914,7 +914,19 @@ function boot(){
     var view="vendor";
     if(org.any&&saved==="organizer")view="organizer";        // their explicit choice
     else if(org.owns&&!saved)view="organizer";               // an organizer's home side
+    /* Arriving from the app's "See all plans": that lives on the vendor side,
+       so honour the anchor over a remembered organizer view. */
+    if(location.hash==="#planCard")view="vendor";
     enter(view);
+    /* Native anchor scrolling fires before this script reveals the section, so
+       the browser finds a hidden element and does nothing. Scroll once the view
+       is actually on screen. */
+    if(location.hash==="#planCard"){
+      setTimeout(function(){
+        var el=$("planCard");
+        if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+      },300);
+    }
   });
   /* Back from Stripe. Entitlement is written by WEBHOOK, not by this redirect,
      so it can trail the return by a few seconds. Poll briefly rather than
