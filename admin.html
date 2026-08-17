@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QJpdwRbBId+cHZQ3nWmtEgmf4QpFWI9czr+vTfvGjq8='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5hnv15v3XEOg0doNWJreNZMAeLR75OI56ADd4yqpTWc='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -20,8 +20,19 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:760px;margin:0 auto;padding:0 20px 60px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
 nav .title{font-size:1.05rem;font-weight:700}
+nav .navside{display:flex;align-items:center;gap:14px}
 nav button{font-size:.92rem;color:var(--muted)}
 nav button:hover{color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:6px}
+.stat{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat .n{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .l{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.stat.warn .n{color:var(--warn)}
+.stat.bad .n{color:var(--bad)}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tiny{font-size:.78rem;color:var(--muted)}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:.76rem;color:var(--muted);margin-right:4px}
+.linkbtn{color:var(--accent);font-size:.85rem;text-decoration:underline}
 .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
 .card h2{font-size:1.1rem;margin-bottom:10px}
@@ -57,7 +68,10 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
 
 <nav>
   <span class="title">SugarSnapp <span class="note">ops</span></span>
-  <button id="signOut" class="hidden" type="button">Sign out</button>
+  <span class="navside">
+    <button id="refreshBtn" class="hidden" type="button">Refresh</button>
+    <button id="signOut" class="hidden" type="button">Sign out</button>
+  </span>
 </nav>
 
 <div id="v-loading" class="card"><p class="note">Loading…</p></div>
@@ -119,6 +133,45 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
 
 <!-- admin -->
 <div id="v-admin" class="hidden">
+
+  <div class="card">
+    <p class="kicker">At a glance</p>
+    <h2>Overview</h2>
+    <div id="ovOut"><p class="note">Loading…</p></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Adoption</p>
+    <h2>Funnel</h2>
+    <div id="funnelOut"></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Accounts</p>
+    <h2>Who is actually here</h2>
+    <div id="acctOut"></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Money</p>
+    <h2>Tracked volume by month</h2>
+    <div id="volOut"></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Money</p>
+    <h2>Payment rail mix</h2>
+    <p class="note">Whether the payment-agnostic thesis is real, or whether everyone just uses one rail.</p>
+    <div id="railOut"></div>
+  </div>
+
+  <div class="card">
+    <p class="kicker">Pilot</p>
+    <h2>Health</h2>
+    <p class="note">The card that catches a broken pilot before the vendor does.</p>
+    <div id="healthOut"></div>
+  </div>
+
   <div class="card">
     <p class="kicker">Stripe</p>
     <h2>Live-mode self-test</h2>
@@ -160,6 +213,24 @@ var VIEWS=["v-loading","v-login","v-denied","v-enrol","v-mfa","v-admin"];
 function show(id){
   VIEWS.forEach(function(v){$(v).classList.toggle("hidden",v!==id);});
   $("signOut").classList.toggle("hidden",id==="v-login"||id==="v-loading");
+  $("refreshBtn").classList.toggle("hidden",id!=="v-admin");
+}
+function money(cents){return "$"+((cents||0)/100).toFixed(2);}
+function num(n){return (n==null?0:n).toLocaleString();}
+function stat(label,value,cls){
+  return '<div class="stat'+(cls?" "+cls:"")+'"><div class="n">'+esc(value)+
+         '</div><div class="l">'+esc(label)+'</div></div>';
+}
+/* Postgres RPCs. Errors come back as {message} from PostgREST; is_admin()
+   raising 42501 surfaces here as a real message rather than a blank card. */
+function rpc(name,body){
+  return api("/rest/v1/rpc/"+name,{method:"POST",body:JSON.stringify(body||{})})
+    .then(function(r){
+      return json(r).then(function(j){
+        if(!r.ok)throw new Error(j.message||j.hint||j.error||("rpc "+name+" failed"));
+        return j;
+      });
+    });
 }
 function showErr(id,msg){var e=$(id);e.textContent=msg;e.style.display="block";}
 function clearErr(id){$(id).style.display="none";}
@@ -343,7 +414,175 @@ function renderProbe(rep){
   $("probeOut").innerHTML=h;
 }
 
+/* ---------- dashboard cards ---------- */
+
+function bag(o){ /* {key:n} object -> chips, biggest first */
+  var ks=Object.keys(o||{});
+  if(!ks.length)return '<span class="tiny">none</span>';
+  ks.sort(function(a,b){return o[b]-o[a];});
+  return ks.map(function(k){
+    return '<span class="chip">'+esc(k)+' &middot; '+num(o[k])+'</span>';
+  }).join("");
+}
+
+function renderOverview(d){
+  var h='<div class="grid">';
+  h+=stat("accounts",num(d.accounts_total));
+  h+=stat("active 30d",num(d.active_30d));
+  h+=stat("never sold",num(d.never_recorded_a_sale),d.never_recorded_a_sale?"warn":"");
+  h+=stat("volume 30d",money(d.volume_paid_cents_30d));
+  h+=stat("sales all time",num(d.sales_total));
+  h+=stat("owns a market",num(d.owns_a_market));
+  h+='</div>';
+
+  /* The distinction the app currently hides: a Stripe row exists vs Stripe will
+     actually let them charge. The KYC gate makes these look identical in-app. */
+  h+='<div class="grid" style="margin-top:14px">';
+  h+=stat("stripe connected",num(d.stripe_connected));
+  h+=stat("can actually charge",num(d.stripe_charges_enabled),
+          (d.stripe_connected>d.stripe_charges_enabled)?"bad":"");
+  h+=stat("terms accepted",num(d.terms_accepted),d.terms_accepted<d.accounts_total?"warn":"");
+  h+=stat("apple relay addrs",num(d.apple_relay_addresses),d.apple_relay_addresses?"warn":"");
+  h+='</div>';
+
+  h+='<p class="tiny" style="margin-top:14px">Sign-in '+bag(d.signin_providers)+'</p>';
+  h+='<p class="tiny">Category '+bag(d.business_categories)+'</p>';
+  h+='<p class="tiny">Persona '+bag(d.personas)+'</p>';
+  h+='<p class="tiny">Rails on file '+bag(d.payment_accounts)+'</p>';
+  h+='<p class="tiny">Plans '+bag(d.entitlements)+'</p>';
+
+  if(d.stripe_connected>d.stripe_charges_enabled){
+    h+='<p class="note" style="margin-top:10px"><span class="flag">'+
+       num(d.stripe_connected-d.stripe_charges_enabled)+
+       ' account(s) have a Stripe row but cannot take card payments.</span> The server gate 409s them and the app does not say why.</p>';
+  }
+  if(d.terms_accepted<d.accounts_total){
+    h+='<p class="tiny">No stored terms acceptance for '+num(d.accounts_total-d.terms_accepted)+
+       ' account(s) — Table-Stakes A1b, a launch gate.</p>';
+  }
+  $("ovOut").innerHTML=h;
+}
+
+function renderFunnel(d){
+  var steps=[
+    ["app_first_launch","opened the app"],
+    ["account_created","created an account"],
+    ["first_product_added","added a product"],
+    ["first_sale_recorded","recorded a sale"],
+    ["stripe_connected","connected Stripe"]
+  ];
+  var any=steps.some(function(s){return d[s[0]];});
+  if(!any){
+    $("funnelOut").innerHTML='<p class="note">No events yet. Milestone logging ships with the next app build; until then this card is empty by design, not broken.</p>';
+    return;
+  }
+  var first=d[steps[0][0]]||0;
+  var h='<table><tr><th>Step</th><th class="num">Installs</th><th class="num">Of first step</th></tr>';
+  steps.forEach(function(s){
+    var n=d[s[0]]||0;
+    h+='<tr><td>'+esc(s[1])+'</td><td class="num">'+num(n)+'</td><td class="num">'+
+       (first?Math.round(n*100/first)+"%":"—")+'</td></tr>';
+  });
+  h+='</table>';
+  h+='<p class="tiny" style="margin-top:8px">The gap between creating an account and recording a first sale is the single most important number in the product.</p>';
+  $("funnelOut").innerHTML=h;
+}
+
+function renderAccounts(rows){
+  if(!rows.length){$("acctOut").innerHTML='<p class="note">No accounts.</p>';return;}
+  var h='<div class="scroll"><table><tr>'+
+    '<th>Business</th><th>Category</th><th>Sign-in</th><th>Rails</th>'+
+    '<th class="num">Sales</th><th class="num">30d</th><th>Plan</th><th></th></tr>';
+  rows.forEach(function(r){
+    var rails=[];
+    if(r.has_stripe)rails.push(r.charges_enabled?'<span class="ok">stripe</span>':'<span class="flag">stripe (gated)</span>');
+    (r.other_rails||[]).forEach(function(x){rails.push(esc(x));});
+    h+='<tr>'+
+      '<td>'+esc(r.business_name||"—")+
+        (r.is_apple_relay?'<br><span class="tiny">apple relay</span>':'')+'</td>'+
+      '<td>'+esc(r.category)+'</td>'+
+      '<td>'+esc(r.signin_provider)+'</td>'+
+      '<td>'+(rails.length?rails.join(", "):'<span class="tiny">none</span>')+'</td>'+
+      '<td class="num">'+num(r.sales_count)+'</td>'+
+      '<td class="num'+(r.over_free_line?" flag":"")+'">'+money(r.volume_cents_30d)+'</td>'+
+      '<td>'+esc(r.plan)+(r.plan_status!=="active"?" / "+esc(r.plan_status):"")+'</td>'+
+      '<td><button class="linkbtn comp" data-id="'+esc(r.account_id)+'" data-on="'+
+        (r.plan==="comped"?"1":"0")+'" type="button">'+
+        (r.plan==="comped"?"un-comp":"comp")+'</button></td>'+
+      '</tr>';
+  });
+  h+='</table></div>';
+  h+='<p class="tiny" style="margin-top:8px">30d is tracked paid volume; red is past the $300 free-tier line. Comped accounts bypass it.</p>';
+  $("acctOut").innerHTML=h;
+
+  [].forEach.call(document.querySelectorAll("button.comp"),function(b){
+    b.addEventListener("click",function(){
+      var on=b.getAttribute("data-on")==="1";
+      b.disabled=true;b.textContent="…";
+      rpc("admin_set_comp",{p_account_id:b.getAttribute("data-id"),p_comped:!on,
+                            p_reason:on?null:"pilot"})
+        .then(loadAll)
+        .catch(function(e){b.disabled=false;b.textContent="failed";console.error(e);});
+    });
+  });
+}
+
+function renderVolume(rows){
+  if(!rows.length){$("volOut").innerHTML='<p class="note">No paid sales yet.</p>';return;}
+  var h='<table><tr><th>Month</th><th class="num">Accounts</th><th class="num">Sales</th>'+
+        '<th class="num">Gross</th><th class="num">Over $300</th></tr>';
+  rows.forEach(function(r){
+    h+='<tr><td>'+esc(r.month)+'</td><td class="num">'+num(r.accounts)+'</td>'+
+       '<td class="num">'+num(r.sales_count)+'</td><td class="num">'+money(r.gross_cents)+'</td>'+
+       '<td class="num'+(r.over_line?" flag":"")+'">'+num(r.over_line)+'</td></tr>';
+  });
+  $("volOut").innerHTML=h+'</table>';
+}
+
+function renderRails(rows){
+  if(!rows.length){$("railOut").innerHTML='<p class="note">No paid sales yet.</p>';return;}
+  var total=rows.reduce(function(a,r){return a+(r.gross_cents||0);},0);
+  var h='<table><tr><th>Rail</th><th class="num">Sales</th><th class="num">Gross</th><th class="num">Share</th></tr>';
+  rows.forEach(function(r){
+    h+='<tr><td>'+esc(r.rail)+'</td><td class="num">'+num(r.sales_count)+'</td>'+
+       '<td class="num">'+money(r.gross_cents)+'</td>'+
+       '<td class="num">'+(total?Math.round(r.gross_cents*100/total)+"%":"—")+'</td></tr>';
+  });
+  $("railOut").innerHTML=h+'</table>';
+}
+
+function renderHealth(d){
+  var h='<div class="grid">';
+  h+=stat("stuck in progress",num(d.sales_stuck_in_progress),d.sales_stuck_in_progress?"bad":"");
+  h+=stat("pending",num(d.sales_pending));
+  h+=stat("paid, no webhook",num(d.paid_without_webhook),d.paid_without_webhook?"warn":"");
+  h+=stat("quiet 14d",num(d.accounts_no_activity_14d),d.accounts_no_activity_14d?"warn":"");
+  h+=stat("email suppressions",num(d.email_suppressions),d.email_suppressions?"warn":"");
+  h+='</div>';
+  if(d.sales_stuck_in_progress){
+    h+='<p class="note" style="margin-top:10px">Oldest stuck since '+esc(d.oldest_stuck_at||"?")+
+       '. A sale stranded in progress is either an abandoned checkout or a webhook that never arrived, and those are currently indistinguishable: there is no <span class="mono">checkout.session.expired</span> handler and no reconciliation sweep.</p>';
+  }
+  $("healthOut").innerHTML=h;
+}
+
+function loadAll(){
+  var fail=function(el){return function(e){
+    $(el).innerHTML='<p class="err" style="display:block">'+esc(e.message)+'</p>';
+  };};
+  return Promise.all([
+    rpc("admin_overview").then(renderOverview).catch(fail("ovOut")),
+    rpc("admin_funnel").then(renderFunnel).catch(fail("funnelOut")),
+    rpc("admin_accounts").then(renderAccounts).catch(fail("acctOut")),
+    rpc("admin_volume_by_month").then(renderVolume).catch(fail("volOut")),
+    rpc("admin_rail_mix").then(renderRails).catch(fail("railOut")),
+    rpc("admin_health").then(renderHealth).catch(fail("healthOut"))
+  ]);
+}
+
 /* ---------- actions ---------- */
+$("refreshBtn").addEventListener("click",function(){loadAll();});
+
 $("probeBtn").addEventListener("click",function(){
   var b=$("probeBtn");b.disabled=true;b.textContent="Running…";clearErr("probeErr");
   $("probeOut").innerHTML="";
@@ -412,7 +651,7 @@ function boot(){
     if(r.status===401){setSession(null);show("v-login");return;}
     return json(r).then(function(st){
       if(!st||!st.allowlisted){show("v-denied");return;}
-      if(st.is_admin){show("v-admin");return;}
+      if(st.is_admin){show("v-admin");return loadAll();}
       /* Allowlisted but aal1: enrol a factor, or challenge an existing one. */
       return loadUserFactors().then(function(factors){
         if(!factors.length)return beginEnrol();
