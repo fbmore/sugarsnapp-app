@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5hnv15v3XEOg0doNWJreNZMAeLR75OI56ADd4yqpTWc='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WvpfTjrButwEbiNRv9MpNlrmIQTiYGz6jQsSvzul4Nc='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -170,6 +170,10 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
     <h2>Health</h2>
     <p class="note">The card that catches a broken pilot before the vendor does.</p>
     <div id="healthOut"></div>
+    <p class="note" style="margin-top:12px">Ask Stripe what actually happened to sales stranded over 30 minutes, and repair the ones that were paid. Only ever moves a sale forward; never invents a payment.</p>
+    <button id="sweepBtn" class="cta" type="button" style="margin-top:10px">Repair stranded sales</button>
+    <p id="sweepErr" class="err"></p>
+    <p id="sweepOut" class="note"></p>
   </div>
 
   <div class="card">
@@ -582,6 +586,23 @@ function loadAll(){
 
 /* ---------- actions ---------- */
 $("refreshBtn").addEventListener("click",function(){loadAll();});
+
+$("sweepBtn").addEventListener("click",function(){
+  var b=$("sweepBtn");b.disabled=true;b.textContent="Asking Stripe…";
+  clearErr("sweepErr");$("sweepOut").textContent="";
+  api("/functions/v1/reconcile-sales",{method:"POST"}).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.error||"The sweep could not run.");
+      $("sweepOut").innerHTML="Examined "+num(j.examined)+" &middot; <strong>repaired "+
+        num(j.repaired)+"</strong> &middot; expired "+num(j.expired)+
+        " &middot; still open "+num(j.unresolved)+" &middot; skipped "+num(j.skipped)+
+        (j.repaired?' <span class="flag">A repair means a webhook was missed — that is a configuration problem, not routine.</span>':"");
+      return loadAll();
+    });
+  }).catch(function(e){
+    showErr("sweepErr",failMsg(e));
+  }).finally(function(){b.disabled=false;b.textContent="Repair stranded sales";});
+});
 
 $("probeBtn").addEventListener("click",function(){
   var b=$("probeBtn");b.disabled=true;b.textContent="Running…";clearErr("probeErr");
