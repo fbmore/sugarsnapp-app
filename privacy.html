@@ -45,7 +45,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
 
   <div class="pills">
     <span class="pill">No ads</span>
-    <span class="pill">No tracking or analytics SDKs</span>
+    <span class="pill">No third-party trackers or SDKs</span>
     <span class="pill">No card numbers — ever</span>
     <span class="pill">No selling of data</span>
     <span class="pill">Delete your account in-app</span>
@@ -83,7 +83,26 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
     <li>Card numbers or any payment credentials — customers pay on Stripe's, PayPal's, or Venmo's own pages, or by a contactless tap that goes directly to Stripe</li>
     <li>Contacts, photos, microphone, camera — the app doesn't request these permissions</li>
     <li>Location tracking of any kind — the only location use is Stripe's fraud check during a Tap to Pay tap, and only if you enable that feature</li>
-    <li>Advertising identifiers, cross-app tracking, analytics events</li>
+    <li>Advertising identifiers, cross-app tracking, third-party analytics SDKs &mdash; we use none, and nothing about you is shared with an analytics company</li>
+    <li>Anything about your customers in our product analytics &mdash; no names, emails, phone numbers or purchase details ever go into it (see below)</li>
+  </ul>
+
+  <h2>Product analytics — what we do record</h2>
+  <p>To know whether the app actually works for people, SugarSnapp records a small, fixed set of
+    milestones: the app was opened for the first time, an account was created, a first product was
+    added, a first sale was recorded, Stripe was connected, and a sale happened on a given payment
+    rail (cash, Venmo, PayPal, card, EBT tokens). That is the entire list. The single number we
+    care most about is how many people who create an account go on to record a first sale.</p>
+  <p>Three things are worth stating plainly:</p>
+  <ul>
+    <li><strong>It runs on our own servers.</strong> No third-party analytics SDK, no advertising
+      identifier, no cross-app tracking. Your activity is never sent to a company we don't control.</li>
+    <li><strong>Never anything about your customers.</strong> No names, emails, phone numbers, card
+      details or what anyone bought. Our server actively rejects any attempt to record such a field
+      rather than quietly dropping it.</li>
+    <li><strong>An anonymous install identifier</strong> generated on your device links these
+      milestones together so a funnel can be read end to end. It is never shown in the app, never
+      shared, and is removed when you delete your account.</li>
   </ul>
 
   <h2>Third-party services</h2>
