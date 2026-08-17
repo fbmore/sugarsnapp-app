@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WyM6qkE4wwi6vhs/5yBNIGY0jfdDp8ZKbMdvu1YtZAM='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-lR/VZxRyQ2ZSVUm6r23H76jJ6kgdKgkEBozXECTgzE8='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -93,6 +93,26 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas)}
 .exp label.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted)}
 .expmsg{font-size:.88rem;color:var(--muted);margin-top:8px}
+
+/* pricing cards */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:640px){.plans{grid-template-columns:1fr}}
+.plan{border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;background:var(--canvas);display:flex;flex-direction:column}
+/* The one you're on is the loudest thing in the row — the whole point of the
+   card layout is answering "which am I on?" before "what else is there?". */
+.plan.current{border-color:var(--accent);border-width:2px;background:var(--surface);padding:15px 15px 17px}
+.plan .pname{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.plan.current .pname{color:var(--accent)}
+.plan .pprice{font-family:Georgia,serif;font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
+.plan .pper{font-size:.82rem;color:var(--muted);margin-bottom:10px}
+.plan ul{list-style:none;margin:0 0 14px;font-size:.88rem}
+.plan ul li{padding:3px 0 3px 16px;position:relative;color:var(--muted)}
+.plan ul li::before{content:"\2713";position:absolute;left:0;color:var(--accent)}
+.plan .pbtn{margin-top:auto}
+.plan .pbtn button{width:100%;text-align:center}
+.plan .badge{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+.plan .oncard{font-size:.82rem;color:var(--muted);text-align:center;padding:10px 0 2px}
+.plan .save{font-size:.78rem;color:var(--accent);margin-top:-6px;margin-bottom:8px}
 
 /* organizer */
 .ro-banner{background:#f2f7ef;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
@@ -203,18 +223,12 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            revenue line we fully control. -->
       <div class="card" id="planCard">
         <div class="kicker">Your plan</div>
-        <div id="planState" class="expmsg" style="margin-top:6px">Checking…</div>
-        <div class="exp" id="planActions" style="margin-top:12px;display:none">
-          <button class="cta" id="subMonthly" type="button">$10 / month</button>
-          <button class="ghost" id="subAnnual" type="button">$100 / year</button>
-        </div>
-        <div class="exp" id="planManage" style="margin-top:12px;display:none">
-          <button class="ghost" id="manageBtn" type="button">Manage billing</button>
-        </div>
-        <div class="expmsg" id="planNote" style="margin-top:10px">
-          Free while you&rsquo;re under $300 a month in tracked sales. Past that, $10 flat &mdash;
-          still no cut of any sale. Cancel any month: your records stay readable and
-          exportable, always. Nobody should pay a subscription to read their own history.
+        <div id="planState" class="expmsg" style="margin-top:6px">Checking&hellip;</div>
+        <div class="plans" id="planGrid"></div>
+        <div class="expmsg" id="planNote" style="margin-top:14px">
+          No cut of any sale, ever &mdash; on any plan. No per-device or per-location fees.
+          Cancel any month: your records stay readable and exportable, always. Nobody
+          should pay a subscription to read their own history.
         </div>
         <div class="payerr" id="planErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
       </div>
@@ -649,42 +663,96 @@ function fnPost(name,body){
     });
   });
 }
+/* Every claim here has to survive the claim-check: no cut, no per-device or
+   per-location fees, export always, records readable after cancelling. Nothing
+   about Pro — it does not exist yet, and advertising an absent tier is the same
+   mistake as the old "$5/month" banner for a purchase that was not in the app. */
+var PLAN_CARDS=[
+  {key:"free", name:"Free", price:"$0", per:"under $300/mo in tracked sales",
+   points:["Every rail in one ledger — cash, Venmo, PayPal, card, EBT tokens",
+           "Unlimited items, devices and markets",
+           "Export to CSV whenever you like"]},
+  {key:"monthly", name:"Standard", price:"$10", per:"per month",
+   points:["Everything in Free, with no volume ceiling",
+           "Still no cut of any sale",
+           "Cancel any month"]},
+  {key:"annual", name:"Standard", price:"$100", per:"per year", save:"Two months free",
+   points:["Everything in Standard",
+           "One charge a season, not twelve",
+           "Same flat deal, cheaper"]}
+];
+
+function renderPlans(e){
+  var plan=e.plan||"free";
+  var subscribed=!!e.entitled&&plan!=="comped";
+  var current=plan==="comped"?"comped":(subscribed?plan:"free");
+  var h="";
+  PLAN_CARDS.forEach(function(p){
+    var isCurrent=(p.key===current);
+    h+='<div class="plan'+(isCurrent?" current":"")+'">';
+    h+='<div class="pname">'+esc(p.name)+'</div>';
+    h+='<div class="pprice">'+esc(p.price)+'</div>';
+    h+='<div class="pper">'+esc(p.per)+'</div>';
+    if(p.save)h+='<div class="save">'+esc(p.save)+'</div>';
+    h+='<ul>'+p.points.map(function(t){return "<li>"+esc(t)+"</li>";}).join("")+'</ul>';
+    h+='<div class="pbtn">';
+    if(isCurrent){
+      h+='<div class="oncard">'+(current==="comped"?"Comped — nothing to pay":"You’re on this plan")+'</div>';
+      if(subscribed)h+='<button class="ghost act-manage" type="button">Manage billing</button>';
+    }else if(p.key==="free"){
+      // Downgrading is a cancel, and cancelling lives in Stripe's portal where
+      // it means STOPPING PAYMENT — never losing books.
+      h+=subscribed?'<button class="ghost act-manage" type="button">Cancel in portal</button>':'';
+    }else if(subscribed){
+      // Already subscribed: switching must go through the PORTAL. A second
+      // Checkout Session would create a SECOND subscription and bill twice.
+      h+='<button class="ghost act-manage" type="button">Switch plan</button>';
+    }else{
+      h+='<button class="'+(p.key==="monthly"?"cta":"ghost")+' act-sub" data-plan="'+
+         esc(p.key)+'" type="button">Choose '+esc(p.name)+'</button>';
+    }
+    h+='</div></div>';
+  });
+  $("planGrid").innerHTML=h;
+
+  [].forEach.call(document.querySelectorAll(".act-sub"),function(b){
+    b.addEventListener("click",function(){subscribe(b.getAttribute("data-plan"),b);});
+  });
+  [].forEach.call(document.querySelectorAll(".act-manage"),function(b){
+    b.addEventListener("click",function(){openPortal(b);});
+  });
+}
+
 function loadPlan(){
-  var st=$("planState"),act=$("planActions"),man=$("planManage");
+  var st=$("planState");
   authRest("rpc/my_entitlement",{method:"POST",body:"{}"}).then(function(r){
     return r.json();
   }).then(function(e){
     e=e||{};
     var plan=e.plan||"free";
     if(plan==="comped"){
-      st.textContent="Comped — full access, nothing to pay.";
-      act.style.display="none";man.style.display="none";return;
-    }
-    if(e.entitled){
+      st.textContent="Comped account — full access, nothing to pay.";
+    }else if(e.entitled){
       var until=e.current_period_end
         ? new Date(e.current_period_end).toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"})
         : null;
-      st.textContent=(plan==="annual"?"Annual":"Monthly")+" plan · "+
-        (e.cancel_at_period_end
-          ? "ends "+(until||"at the end of this period")+" — your records stay yours after that"
-          : (until?"renews "+until:"active"));
-      act.style.display="none";man.style.display="flex";
+      st.textContent=e.cancel_at_period_end
+        ? "Ends "+(until||"at the end of this period")+" — you keep the time you paid for, and your records after that."
+        : (until?"Renews "+until+".":"Active.");
+    }else if(e.status==="past_due"){
+      st.textContent="Payment failed — you still have full read access and export while it sorts out.";
     }else{
-      st.textContent="Free plan.";
-      act.style.display="flex";
-      /* Only offer "manage" once Stripe actually knows them; otherwise the
-         portal 409s and reads as a broken button. */
-      man.style.display=(plan!=="free"||e.status==="past_due")?"flex":"none";
+      st.textContent="You’re on the free plan.";
     }
+    renderPlans(e);
   }).catch(function(){
     /* Never let a billing lookup make the ledger look broken. */
-    st.textContent="Free plan.";
-    $("planActions").style.display="flex";
+    st.textContent="You’re on the free plan.";
+    renderPlans({plan:"free",entitled:false});
   });
 }
-function subscribe(plan){
+function subscribe(plan,b){
   var err=$("planErr");err.style.display="none";
-  var b=plan==="annual"?$("subAnnual"):$("subMonthly");
   var label=b.textContent;b.disabled=true;b.textContent="Opening…";
   fnPost("billing?action=checkout",{plan:plan}).then(function(j){
     if(!j.url)throw new Error("Couldn't start checkout.");
@@ -694,19 +762,17 @@ function subscribe(plan){
     b.disabled=false;b.textContent=label;
   });
 }
-$("subMonthly").addEventListener("click",function(){subscribe("monthly");});
-$("subAnnual").addEventListener("click",function(){subscribe("annual");});
-$("manageBtn").addEventListener("click",function(){
+function openPortal(b){
   var err=$("planErr");err.style.display="none";
-  var b=$("manageBtn");b.disabled=true;b.textContent="Opening…";
+  var label=b.textContent;b.disabled=true;b.textContent="Opening…";
   fnPost("billing?action=portal").then(function(j){
     if(!j.url)throw new Error("Couldn't open the billing portal.");
     location.href=j.url;
   }).catch(function(e){
     err.textContent=e.message;err.style.display="block";
-    b.disabled=false;b.textContent="Manage billing";
+    b.disabled=false;b.textContent=label;
   });
-});
+}
 $("tabVendor").addEventListener("click",function(){enter("vendor");});
 $("tabOrganizer").addEventListener("click",function(){enter("organizer");});
 $("signOut").addEventListener("click",function(){setSession(null);show("v-login");});
