@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-lR/VZxRyQ2ZSVUm6r23H76jJ6kgdKgkEBozXECTgzE8='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-dyarljegw7OAP8hJ+BEljynW8IbdwFPUd27yEhpdrP4='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -233,6 +233,10 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div class="payerr" id="planErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
       </div>
       <div class="payerr" id="vErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
+      <p class="expmsg hidden" id="orgHint" style="text-align:center">
+        Run a market? <a href="organizers.html">Organizer mode</a> is free — set it up in the
+        SugarSnapp app and your tent shows up here.
+      </p>
     </section>
 
     <!-- organizer (read-only) -->
@@ -243,7 +247,8 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
           <div class="sub">Manager&rsquo;s tent · view only</div>
         </div>
       </div>
-      <div class="ro-banner">View-only mirror of the tent. Log swipes and spends in the SugarSnapp app at the market — everything here updates from your account backup.</div>
+      <div class="ro-banner" id="oDemoBanner" style="display:none">Demo data — this is the seeded Pleasantville market from the app, not your own records. Clear it in the app under Settings.</div>
+      <div class="ro-banner" id="oRealBanner">View-only mirror of the tent. Log swipes and spends in the SugarSnapp app at the market — everything here updates from your account backup.</div>
       <div class="daynav">
         <button class="step" id="oPrev" type="button" aria-label="Previous day">&lsaquo;</button>
         <input type="date" id="oDate" aria-label="Tent day">
@@ -339,13 +344,65 @@ function $(id){return document.getElementById(id);}
 
 /* ---------- views ---------- */
 var VIEWS=["v-loading","v-login","v-vendor","v-organizer"];
+/* Does this account actually have an organizer side?
+   The app treats persona as an EXCLUSIVE mode — organizer mode hides the whole
+   vendor world and vice versa (RootView.swift) — so offering both doors here to
+   everyone contradicted it, and for a plain vendor the Market tab was a dead end
+   asserting a market they do not have. Gate on server-side evidence instead:
+   owning a market, or having tent state. A genuine both-user passes this and
+   sees both tabs automatically, which is why no 'both' persona is needed. */
+var hasOrganizerSide=false,organizerPrimary=false;
+/* Two different questions, deliberately separated:
+   - owns: they created a market. The migration calls this "the only thing
+     that actually proves someone organises", so it is what makes the organizer
+     side PRIMARY.
+   - hasOrganizerSide: the above, or any tent state at all. Enough to offer the
+     switch, not enough to assume it is their main view — a vendor who once
+     tapped "Load Pleasantville demo" has tent state and is not an organizer. */
+function detectOrganizerSide(){
+  var s=getSession();
+  if(!s)return Promise.resolve({any:false,owns:false});
+  var owns=false;
+  return authRest("markets?organizer_id=eq."+encodeURIComponent(s.user_id)+"&select=id&limit=1")
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(rows){
+      owns=rows.length>0;
+      /* Plain `select=snapshot` rather than a PostgREST json-path alias: the
+         page loads this same row in full a moment later anyway, and a mistyped
+         path would 400 and silently disable demo detection instead of failing
+         loudly. */
+      return authRest("organizer_state?select=snapshot&limit=1");
+    })
+    .then(function(r){return r.ok?r.json():[];})
+    .then(function(st){
+      var hasState=st.length>0;
+      var demoOnly=hasState&&!!(st[0].snapshot&&st[0].snapshot.demoMode);
+      /* Tapping "Load Pleasantville demo" once writes tent state. That is not
+         evidence of running a market, so demo-only state does NOT open the
+         organizer side — otherwise a curious vendor gets a Market tab full of
+         seeded data. Owning a market always counts, demo or not. */
+      return {
+        any: owns||(hasState&&!demoOnly),
+        /* Only make organizer the landing view when the tent holds something
+           real. Someone with 17 sales and a demo tent is a vendor. */
+        owns: owns&&!demoOnly
+      };
+    })
+    .catch(function(){return {any:owns,owns:false};});
+}
+
 function show(id){
   VIEWS.forEach(function(v){$(v).classList.toggle("hidden",v!==id);});
   var authed=id==="v-vendor"||id==="v-organizer";
-  $("viewToggle").classList.toggle("hidden",!authed);
+  /* Only offer the switch when there is something on the other side. */
+  $("viewToggle").classList.toggle("hidden",!authed||!hasOrganizerSide);
   $("signOut").classList.toggle("hidden",!authed);
   $("tabVendor").classList.toggle("on",id==="v-vendor");
   $("tabOrganizer").classList.toggle("on",id==="v-organizer");
+  /* Discovery without the dead end: vendors who don't run a market still learn
+     organizer mode exists, but are sent to the page that explains it rather than
+     to an empty tent. */
+  $("orgHint").classList.toggle("hidden",!(id==="v-vendor"&&!hasOrganizerSide));
   window.scrollTo(0,0);
 }
 
@@ -564,6 +621,12 @@ function renderOrganizerDay(){
   var has=snap&&((snap.conversions||[]).length||(snap.tokenSpends||[]).length||(snap.vendors||[]).length||snap.marketName);
   $("oEmpty").classList.toggle("hidden",!!has);
   $("oData").classList.toggle("hidden",!has);
+  /* The app honours snapshot.demoMode (RootView.swift:186); this page did not,
+     so seeded Pleasantville data was rendered as if it were the user's real
+     market. Say which it is. */
+  var demo=!!(snap&&snap.demoMode);
+  $("oDemoBanner").style.display=(has&&demo)?"":"none";
+  $("oRealBanner").style.display=(has&&demo)?"none":"";
   if(!has)return;
   $("oName").textContent=snap.marketName||"Your market";
   var convs=(snap.conversions||[]).filter(function(c){return sameLocalDay(c.date,oDay);});
@@ -619,22 +682,25 @@ function loadRoster(){
   .then(function(markets){
     if(!markets.length)return;
     var ids=markets.map(function(m){return m.id;}).join(",");
-    return authRest("market_checkins?market_id=in.("+ids+")&market_date=eq."+dstr(new Date())+"&select=market_id,vendor_id")
+    /* market_checkins identifies the vendor by user_id. This asked for
+       vendor_id, which does not exist — PostgREST 400'd, r.ok was false, and
+       the code fell through to "No vendors checked in today." every time. The
+       roster had therefore never worked for a real organizer. */
+    return authRest("market_checkins?market_id=in.("+ids+")&market_date=eq."+dstr(new Date())+"&select=market_id,user_id")
     .then(function(r){return r.ok?r.json():[];})
     .then(function(cks){
+      $("oRosterCard").classList.remove("hidden");
       if(!cks.length){
-        $("oRosterCard").classList.remove("hidden");
         $("oRoster").innerHTML='<div class="emptyday">No vendors checked in today.</div>';
         return;
       }
-      var vids=cks.map(function(c){return c.vendor_id;}).join(",");
+      var vids=cks.map(function(c){return c.user_id;}).join(",");
       return authRest("profiles?id=in.("+vids+")&select=id,business_name")
       .then(function(r){return r.ok?r.json():[];})
       .then(function(profs){
         var names={};profs.forEach(function(p){names[p.id]=p.business_name;});
-        $("oRosterCard").classList.remove("hidden");
         $("oRoster").innerHTML=cks.map(function(c){
-          return '<div class="ae">'+esc(names[c.vendor_id]||"A stand")+"</div>";
+          return '<div class="ae">'+esc(names[c.user_id]||"A stand")+"</div>";
         }).join("");
       });
     });
@@ -725,7 +791,26 @@ function renderPlans(e){
 
 function loadPlan(){
   var st=$("planState");
-  authRest("rpc/my_entitlement",{method:"POST",body:"{}"}).then(function(r){
+  /* Organizer accounts are free — "a growth/goodwill channel, not a revenue
+     line" (Organizer_Mode_PRD). Someone who runs a market and has never rung up
+     a sale is not a vendor, and selling them a vendor subscription breaks that
+     promise. A market organizer who ALSO sells sees the plans normally. */
+  if(organizerPrimary){
+    return authRest("sales?select=id&limit=1").then(function(r){
+      return r.ok?r.json():[];
+    }).then(function(rows){
+      if(rows.length)return renderPaidPlanUI();
+      st.textContent="Organizer account — free, no subscription.";
+      $("planGrid").innerHTML="";
+      $("planNote").innerHTML="Running a market costs nothing on SugarSnapp, and it always will. "+
+        "The plans below only apply to selling at a stall — if you start selling too, they show up here.";
+    }).catch(renderPaidPlanUI);
+  }
+  return renderPaidPlanUI();
+}
+function renderPaidPlanUI(){
+  var st=$("planState");
+  return authRest("rpc/my_entitlement",{method:"POST",body:"{}"}).then(function(r){
     return r.json();
   }).then(function(e){
     e=e||{};
@@ -821,8 +906,16 @@ function boot(){
     return;
   }
   if(!getSession()){show("v-login");return;}
-  var view=localStorage.getItem("ss-account-view")||"vendor";
-  enter(view);
+  /* Resolve which sides exist BEFORE choosing a view, so we never land someone
+     on an empty tent or flash a toggle that then disappears. */
+  detectOrganizerSide().then(function(org){
+    hasOrganizerSide=org.any;organizerPrimary=org.owns;
+    var saved=localStorage.getItem("ss-account-view");
+    var view="vendor";
+    if(org.any&&saved==="organizer")view="organizer";        // their explicit choice
+    else if(org.owns&&!saved)view="organizer";               // an organizer's home side
+    enter(view);
+  });
   /* Back from Stripe. Entitlement is written by WEBHOOK, not by this redirect,
      so it can trail the return by a few seconds. Poll briefly rather than
      showing "Free plan" to someone who just paid — and never write entitlement
