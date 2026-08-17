@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-K/+u/J2dqdI91ltq1JPSiykb+aRm0z7o9mi02Lfs1Bw='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-WyM6qkE4wwi6vhs/5yBNIGY0jfdDp8ZKbMdvu1YtZAM='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -196,6 +196,27 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
           <button class="ghost" id="expBtn" type="button">Download</button>
         </div>
         <div class="expmsg" id="expMsg">Same columns as the app&rsquo;s export — open it in Numbers, Excel, or hand it to your accountant.</div>
+      </div>
+      <!-- Subscribing happens HERE, on the web, never in the iOS app. The app
+           contains no purchase and no link out to one, so App Store 3.1.1 has
+           nothing to bite, and we keep the 15% Apple would take on the one
+           revenue line we fully control. -->
+      <div class="card" id="planCard">
+        <div class="kicker">Your plan</div>
+        <div id="planState" class="expmsg" style="margin-top:6px">Checking…</div>
+        <div class="exp" id="planActions" style="margin-top:12px;display:none">
+          <button class="cta" id="subMonthly" type="button">$10 / month</button>
+          <button class="ghost" id="subAnnual" type="button">$100 / year</button>
+        </div>
+        <div class="exp" id="planManage" style="margin-top:12px;display:none">
+          <button class="ghost" id="manageBtn" type="button">Manage billing</button>
+        </div>
+        <div class="expmsg" id="planNote" style="margin-top:10px">
+          Free while you&rsquo;re under $300 a month in tracked sales. Past that, $10 flat &mdash;
+          still no cut of any sale. Cancel any month: your records stay readable and
+          exportable, always. Nobody should pay a subscription to read their own history.
+        </div>
+        <div class="payerr" id="planErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
       </div>
       <div class="payerr" id="vErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
     </section>
@@ -610,8 +631,82 @@ function loadRoster(){
 function enter(view){
   localStorage.setItem("ss-account-view",view);
   if(view==="organizer"){show("v-organizer");loadOrganizer();}
-  else{show("v-vendor");loadVendorHeader();loadVendorDay();}
+  else{show("v-vendor");loadVendorHeader();loadVendorDay();loadPlan();}
 }
+
+/* ---------- subscription (web-first; the iOS app never sells) ---------- */
+function fnPost(name,body){
+  var s=getSession();
+  return fetch(SUPA+"/functions/v1/"+name,{
+    method:"POST",
+    headers:{apikey:ANON,Authorization:"Bearer "+(s?s.access_token:ANON),
+             "Content-Type":"application/json"},
+    body:body?JSON.stringify(body):undefined
+  }).then(function(r){
+    return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok)throw new Error(j.error||"That didn't go through. Try again in a moment.");
+      return j;
+    });
+  });
+}
+function loadPlan(){
+  var st=$("planState"),act=$("planActions"),man=$("planManage");
+  authRest("rpc/my_entitlement",{method:"POST",body:"{}"}).then(function(r){
+    return r.json();
+  }).then(function(e){
+    e=e||{};
+    var plan=e.plan||"free";
+    if(plan==="comped"){
+      st.textContent="Comped — full access, nothing to pay.";
+      act.style.display="none";man.style.display="none";return;
+    }
+    if(e.entitled){
+      var until=e.current_period_end
+        ? new Date(e.current_period_end).toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"})
+        : null;
+      st.textContent=(plan==="annual"?"Annual":"Monthly")+" plan · "+
+        (e.cancel_at_period_end
+          ? "ends "+(until||"at the end of this period")+" — your records stay yours after that"
+          : (until?"renews "+until:"active"));
+      act.style.display="none";man.style.display="flex";
+    }else{
+      st.textContent="Free plan.";
+      act.style.display="flex";
+      /* Only offer "manage" once Stripe actually knows them; otherwise the
+         portal 409s and reads as a broken button. */
+      man.style.display=(plan!=="free"||e.status==="past_due")?"flex":"none";
+    }
+  }).catch(function(){
+    /* Never let a billing lookup make the ledger look broken. */
+    st.textContent="Free plan.";
+    $("planActions").style.display="flex";
+  });
+}
+function subscribe(plan){
+  var err=$("planErr");err.style.display="none";
+  var b=plan==="annual"?$("subAnnual"):$("subMonthly");
+  var label=b.textContent;b.disabled=true;b.textContent="Opening…";
+  fnPost("billing?action=checkout",{plan:plan}).then(function(j){
+    if(!j.url)throw new Error("Couldn't start checkout.");
+    location.href=j.url;
+  }).catch(function(e){
+    err.textContent=e.message;err.style.display="block";
+    b.disabled=false;b.textContent=label;
+  });
+}
+$("subMonthly").addEventListener("click",function(){subscribe("monthly");});
+$("subAnnual").addEventListener("click",function(){subscribe("annual");});
+$("manageBtn").addEventListener("click",function(){
+  var err=$("planErr");err.style.display="none";
+  var b=$("manageBtn");b.disabled=true;b.textContent="Opening…";
+  fnPost("billing?action=portal").then(function(j){
+    if(!j.url)throw new Error("Couldn't open the billing portal.");
+    location.href=j.url;
+  }).catch(function(e){
+    err.textContent=e.message;err.style.display="block";
+    b.disabled=false;b.textContent="Manage billing";
+  });
+});
 $("tabVendor").addEventListener("click",function(){enter("vendor");});
 $("tabOrganizer").addEventListener("click",function(){enter("organizer");});
 $("signOut").addEventListener("click",function(){setSession(null);show("v-login");});
@@ -662,6 +757,24 @@ function boot(){
   if(!getSession()){show("v-login");return;}
   var view=localStorage.getItem("ss-account-view")||"vendor";
   enter(view);
+  /* Back from Stripe. Entitlement is written by WEBHOOK, not by this redirect,
+     so it can trail the return by a few seconds. Poll briefly rather than
+     showing "Free plan" to someone who just paid — and never write entitlement
+     from the client, which would make the success_url a way to grant yourself
+     a plan. */
+  if(new URLSearchParams(location.search).get("subscribed")==="1"){
+    history.replaceState(null,"",location.pathname);
+    $("planState").textContent="Payment received — activating…";
+    var tries=0;
+    var poll=setInterval(function(){
+      tries++;
+      authRest("rpc/my_entitlement",{method:"POST",body:"{}"})
+        .then(function(r){return r.json();})
+        .then(function(e){
+          if((e&&e.entitled)||tries>=10){clearInterval(poll);loadPlan();}
+        }).catch(function(){if(tries>=10){clearInterval(poll);loadPlan();}});
+    },2000);
+  }
 }
 boot();
 </script>
