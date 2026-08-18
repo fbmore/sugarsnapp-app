@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KDPJ1/OA1oSPoznlB91ib/NwHABq/BYcOEikuEUjpd4='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-iXybsp3Scu36MvZ3TvJHDxIqgy2bplo1tVbd/A73SC0='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -784,11 +784,13 @@ function renderPlans(e){
       // Already subscribed: switching must go through the PORTAL. A second
       // Checkout Session would create a SECOND subscription and bill twice.
       h+='<button class="ghost act-manage" data-flow="update" type="button">Switch plan</button>';
-      // Billing is configured with NO proration, deliberately: a surprise
-      // mid-period charge at an odd amount is the opposite of a flat
-      // predictable fee. Say so, or "two months free" reads as if it starts
-      // today when it starts at renewal.
-      h+='<div class="oncard">Starts at your next renewal — nothing charged today</div>';
+      // Switching mid-period IS charged, and saying otherwise was wrong: with
+      // proration Stripe credits the unused part of the current period and
+      // charges the difference, so nobody pays twice for the same days. That
+      // credit is the honest thing to name — "nothing charged today" was
+      // simply false, and under the no-proration setting it was worse: full
+      // price now with no credit at all.
+      h+='<div class="oncard">Switch now and we credit the rest of this month — you never pay twice for the same days</div>';
     }else{
       h+='<button class="'+(p.key==="monthly"?"cta":"ghost")+' act-sub" data-plan="'+
          esc(p.key)+'" type="button">Choose '+esc(p.name)+'</button>';
