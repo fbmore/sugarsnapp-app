@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3gIa0M9V58oqBXrrsvCXuOcG/a/UI79mA6p+4bdCfVs='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5Hz1CQoEN6SVz/bVRckMUI71XDQgPcGAfAAi8vcZgpI='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -174,6 +174,10 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
     <button id="sweepBtn" class="cta" type="button" style="margin-top:10px">Repair stranded sales</button>
     <p id="sweepErr" class="err"></p>
     <p id="sweepOut" class="note"></p>
+    <p class="note" style="margin-top:16px">Ask Stripe what every subscription really is, and correct any entitlement that drifted. This is what catches a missed billing webhook — without it a vendor who paid can sit on &ldquo;free&rdquo; indefinitely.</p>
+    <button id="entBtn" class="cta" type="button" style="margin-top:10px">Reconcile entitlements</button>
+    <p id="entErr" class="err"></p>
+    <p id="entOut" class="note"></p>
   </div>
 
   <div class="card">
@@ -631,6 +635,23 @@ $("planBtn").addEventListener("click",function(){
   }).catch(function(e){
     showErr("planErr",failMsg(e));
   }).finally(function(){b.disabled=false;b.textContent="Create / verify plans";});
+});
+
+$("entBtn").addEventListener("click",function(){
+  var b=$("entBtn");b.disabled=true;b.textContent="Asking Stripe…";
+  clearErr("entErr");$("entOut").textContent="";
+  api("/functions/v1/reconcile-entitlements",{method:"POST"}).then(function(r){
+    return json(r).then(function(j){
+      if(!r.ok)throw new Error(j.error||"The sweep could not run.");
+      $("entOut").innerHTML="Examined "+num(j.examined)+" &middot; <strong>corrected "+
+        num(j.corrected)+"</strong> &middot; already agreed "+num(j.agreed)+
+        " &middot; skipped "+num(j.skipped)+
+        (j.corrected?' <span class="flag">A correction means a billing webhook was missed.</span>':"");
+      return loadAll();
+    });
+  }).catch(function(e){
+    showErr("entErr",failMsg(e));
+  }).finally(function(){b.disabled=false;b.textContent="Reconcile entitlements";});
 });
 
 $("probeBtn").addEventListener("click",function(){
