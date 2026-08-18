@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+L+0d3tSHDc/tw3xt75ilz2eo1xAqRpLlGpivdlJEDc='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hq+DVMrCutL3d/kyes9zeMNribuNYQ8k/3v+chu+kIA='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -452,6 +452,10 @@ function clampFuture(d){
 }
 function loadVendorHeader(){
   var s=getSession();
+  /* Defence in depth: boot re-checks the session, but any caller reaching here
+     without one should bail rather than throw on s.user_id and kill the rest of
+     the page's loaders. */
+  if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=business_name,logo_url")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
@@ -920,6 +924,12 @@ function boot(){
   /* Resolve which sides exist BEFORE choosing a view, so we never land someone
      on an empty tent or flash a toggle that then disappears. */
   detectOrganizerSide().then(function(org){
+    /* detectOrganizerSide catches its own failures so a probe error cannot
+       block the page — but that also swallows "the session just expired", and
+       authRest clears the session when a refresh fails. Re-check before
+       entering, or we render a signed-in view against no session and every
+       loader throws on getSession().user_id. */
+    if(!getSession()){show("v-login");return;}
     hasOrganizerSide=org.any;organizerPrimary=org.owns;
     var saved=localStorage.getItem("ss-account-view");
     var view="vendor";
