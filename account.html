@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CKLtKTFcVlz7P18q/L8IVdO50QurMKM+qw6WaKBRrMo='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+L+0d3tSHDc/tw3xt75ilz2eo1xAqRpLlGpivdlJEDc='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -724,7 +724,14 @@ function fnPost(name,body){
     body:body?JSON.stringify(body):undefined
   }).then(function(r){
     return r.json().catch(function(){return{};}).then(function(j){
-      if(!r.ok)throw new Error(j.error||"That didn't go through. Try again in a moment.");
+      if(!r.ok){
+        var e=new Error(j.error||"That didn't go through. Try again in a moment.");
+        /* Carry the payload so callers can react to a KNOWN condition rather
+           than only showing text — an already-subscribed 409 is not a failure,
+           it is a correction. */
+        e.payload=j;
+        throw e;
+      }
       return j;
     });
   });
@@ -845,6 +852,10 @@ function subscribe(plan,b){
   }).catch(function(e){
     err.textContent=e.message;err.style.display="block";
     b.disabled=false;b.textContent=label;
+    /* The server found an existing subscription and re-synced entitlement from
+       Stripe, so re-render: the cards should now show the plan they are really
+       on instead of still offering to sell it to them. */
+    if(e.payload&&e.payload.already_subscribed)loadPlan();
   });
 }
 function openPortal(b){
