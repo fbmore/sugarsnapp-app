@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hq+DVMrCutL3d/kyes9zeMNribuNYQ8k/3v+chu+kIA='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-lY10tyunI6xL7X4CDJLVXKLonWov7WQ6iCViQuAAqf0='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -775,15 +775,15 @@ function renderPlans(e){
     h+='<div class="pbtn">';
     if(isCurrent){
       h+='<div class="oncard">'+(current==="comped"?"Comped — nothing to pay":"You’re on this plan")+'</div>';
-      if(subscribed)h+='<button class="ghost act-manage" type="button">Manage billing</button>';
+      if(subscribed)h+='<button class="ghost act-manage" data-flow="" type="button">Manage billing</button>';
     }else if(p.key==="free"){
       // Downgrading is a cancel, and cancelling lives in Stripe's portal where
       // it means STOPPING PAYMENT — never losing books.
-      h+=subscribed?'<button class="ghost act-manage" type="button">Cancel in portal</button>':'';
+      h+=subscribed?'<button class="ghost act-manage" data-flow="cancel" type="button">Cancel in portal</button>':'';
     }else if(subscribed){
       // Already subscribed: switching must go through the PORTAL. A second
       // Checkout Session would create a SECOND subscription and bill twice.
-      h+='<button class="ghost act-manage" type="button">Switch plan</button>';
+      h+='<button class="ghost act-manage" data-flow="update" type="button">Switch plan</button>';
     }else{
       h+='<button class="'+(p.key==="monthly"?"cta":"ghost")+' act-sub" data-plan="'+
          esc(p.key)+'" type="button">Choose '+esc(p.name)+'</button>';
@@ -796,7 +796,7 @@ function renderPlans(e){
     b.addEventListener("click",function(){subscribe(b.getAttribute("data-plan"),b);});
   });
   [].forEach.call(document.querySelectorAll(".act-manage"),function(b){
-    b.addEventListener("click",function(){openPortal(b);});
+    b.addEventListener("click",function(){openPortal(b,b.getAttribute("data-flow"));});
   });
 }
 
@@ -862,10 +862,13 @@ function subscribe(plan,b){
     if(e.payload&&e.payload.already_subscribed)loadPlan();
   });
 }
-function openPortal(b){
+/* flow deep-links the portal into the action the button names: "" lands on the
+   portal home, "cancel" opens the cancel confirmation, "update" opens the
+   plan picker. Without it all three buttons went to the same place. */
+function openPortal(b,flow){
   var err=$("planErr");err.style.display="none";
   var label=b.textContent;b.disabled=true;b.textContent="Opening…";
-  fnPost("billing?action=portal").then(function(j){
+  fnPost("billing?action=portal"+(flow?"&flow="+encodeURIComponent(flow):"")).then(function(j){
     if(!j.url)throw new Error("Couldn't open the billing portal.");
     location.href=j.url;
   }).catch(function(e){
