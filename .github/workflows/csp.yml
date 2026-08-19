@@ -1,0 +1,17 @@
+# GitHub Pages deploys this repo straight off main with no build step, so a
+# stale CSP hash ships a blank page with no error anywhere. This is the check
+# that turns that silent failure into a loud one.
+name: CSP hashes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  csp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify each page's CSP hash matches its inline script
+        run: python3 scripts/csp-hash.py --check
