@@ -289,7 +289,7 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="tape" id="tape"></div>
       <div class="reg-actions">
         <button class="ghost" id="cashBtn">Log cash</button>
-        <button class="cta" id="chargeBtn">Get paid</button>
+        <button class="cta" id="chargeBtn">Charge</button>
       </div>
       <div class="payerr" id="regErr"></div>
       <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.</p>
@@ -998,7 +998,9 @@ function renderTape(){
   var has=tape.length>0;
   $("chargeBtn").disabled=!has||!accounts.length;
   $("cashBtn").disabled=!has;
-  $("chargeBtn").textContent=accounts.length?"Get paid":"Get paid (no accounts)";
+  var t=tapeTotal();
+  $("chargeBtn").textContent=!accounts.length?"Charge (no accounts)"
+    :(t===0?"Charge":"Charge "+money(t));
   $("regErr").style.display="none";
 }
 function regError(msg){
@@ -1035,7 +1037,7 @@ $("chargeBtn").onclick=function(){
     showCharge(sale);
   })
   .catch(function(){regError("No signal — the sale couldn't be created. Log cash instead, or try again.");})
-  .finally(function(){btn.disabled=false;btn.textContent="Get paid";});
+  .finally(function(){btn.disabled=false;renderTape();});
 };
 $("cashBtn").onclick=function(){
   if(!tape.length)return;
