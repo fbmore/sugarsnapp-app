@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-6YMaEKXRe8FJ1teNcZ83syY6YjlDFbS9oas9zgqb+a0='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-OE2usgcfI7pOvF4yoAEWc+p0Q6Nf/UTJm3AmWkAdbPw='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -124,6 +124,16 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .sale .st{white-space:nowrap;margin-right:10px}
 .sale .st.refunded,.sale .st.canceled{color:var(--bad)}
 .sale .st.pending,.sale .st.in_progress{color:var(--muted)}
+.sale .acts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:.85rem}
+.sale .lnk{background:none;border:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.85rem;text-decoration:underline;text-underline-offset:2px}
+.sale .lnk:disabled{color:var(--muted);cursor:default;text-decoration:none}
+.sale .actmsg{color:var(--muted)}
+.sale .actmsg.bad{color:var(--bad)}
+.sale .inl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.sale .inl input[type=email]{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.9rem;background:var(--canvas);color:var(--ink);min-width:200px}
+.sale .inl .confirm{color:var(--bad)}
+.danger{border-color:#e0b9b9}
+.danger .cta{background:var(--bad)}
 .lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:var(--font-mono)}
 .lines .ln{display:flex;justify-content:space-between;gap:8px}
 .lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -433,6 +443,30 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div class="payerr" id="planErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
       </div>
       <div class="payerr" id="vErr" style="color:var(--bad);font-size:.9rem;display:none"></div>
+      <!-- Account deletion. The app has had this since 1.0 (App Store 5.1.1(v));
+           a web-only vendor had no self-serve path at all — they would have had
+           to email us, which for a "delete my data" request is the wrong answer.
+           Same function, same promise as AccountSettingsView. -->
+      <div class="card danger" id="deleteCard">
+        <div class="kicker">Delete account</div>
+        <div class="expmsg" style="margin-top:6px">
+          This permanently removes your account, ledger, and connected payment apps.
+          Sales already in your Stripe, PayPal, or Venmo accounts are unaffected.
+          Export your CSV first if you want to keep a copy.
+        </div>
+        <div class="saverow" id="delStep1">
+          <button class="ghost" id="delStart" type="button">Delete my account&hellip;</button>
+        </div>
+        <div class="hidden" id="delStep2">
+          <label class="fld"><span>Type <strong>DELETE</strong> to confirm</span>
+            <input type="text" id="delWord" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+          <div class="saverow">
+            <button class="cta" id="delGo" type="button" disabled>Delete everything</button>
+            <button class="ghost" id="delCancel" type="button">Keep my account</button>
+          </div>
+        </div>
+        <div id="delErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
       <p class="expmsg hidden" id="orgHint" style="text-align:center">
         Run a market? <a href="organizers.html">Organizer mode</a> is free — set it up in the
         SugarSnapp app and your tent shows up here.
@@ -1207,15 +1241,131 @@ function renderVendorDay(sales){
     var st=x.status==="paid"?"":'<span class="st '+esc(x.status)+'">'+esc(x.status.replace("_"," "))+"</span>";
     // No "—" placeholder: a canceled sale never picked a processor.
     var proc=PROC_NAMES[x.processor]||x.processor||"";
-    html+='<div class="sale'+(dead?" dead":"")+'">'
+    /* Paid rows get the two things a vendor actually needs to do to a past
+       sale from a browser: send the receipt, or take it back. Mirrors the
+       app's SaleDetailView — same verbs, same copy, same server functions. */
+    var acts="";
+    if(x.status==="paid"){
+      var stripeRail=x.processor==="stripe"||x.processor==="tap_to_pay";
+      acts='<div class="acts" data-sale="'+esc(x.id)+'">'
+        +'<button class="lnk" type="button" data-act="receipt">Email receipt</button>'
+        +'<button class="lnk" type="button" data-act="refund" data-cents="'+(x.total_cents|0)+'" data-stripe="'+(stripeRail?1:0)+'" data-proc="'+esc(proc)+'">'
+        +(stripeRail?"Refund via Stripe":"Mark refunded")+'</button>'
+        +'<span class="actmsg"></span></div>';
+    }
+    html+='<div class="sale'+(dead?" dead":"")+'" data-sale="'+esc(x.id)+'">'
       +'<div class="top"><span class="t">'+esc(timeOf(x.created_at))+"</span>"
       +'<span class="p">'+esc(proc)+"</span>"+st
       +'<span class="amt">'+money(x.total_cents)+"</span></div>"
       +'<div class="lines" data-sale="'+esc(x.id)+'"></div>'
+      +acts
       +"</div>";
   });
   $("vSales").innerHTML=html;
 }
+/* ---------- delete account ---------- */
+/* Two steps and a typed word, no confirm() dialog. The app's alert is one tap
+   past a menu; on a page with an address bar a stray click is cheaper, so the
+   bar is a little higher here. Same server function, same scope of deletion. */
+function deleteAccount(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("delErr");err.style.display="none";
+  $("delGo").disabled=true;$("delGo").textContent="Deleting…";
+  authFn("delete-account",{method:"POST",body:"{}"})
+  .then(function(r){
+    if(!r.ok)throw new Error("failed");
+    return r.json();
+  }).then(function(j){
+    if(!j||j.deleted!==true)throw new Error("failed");
+    /* The JWT is now for a user who does not exist. Drop it and say so; a
+       refresh attempt would just 401 into the login screen anyway. */
+    setSession(null);
+    localStorage.removeItem("ss-account-view");
+    show("v-login");
+    var e=$("loginErr");e.textContent="Your account and all its data have been deleted.";e.style.display="block";
+  }).catch(function(){
+    $("delGo").disabled=false;$("delGo").textContent="Delete everything";
+    err.textContent="Couldn't delete the account. Nothing was removed — try again in a moment.";
+    err.style.display="block";
+  });
+}
+
+/* ---------- per-sale actions: receipt, refund ---------- */
+/* Both happen inline, in the row, with no modal dialog: a window.confirm() here
+   would block the page, and the app already sets the precedent of a two-step
+   inline confirmation. The second click carries the amount so the vendor reads
+   what they are about to take back. */
+function saleEl(id){return document.querySelector('.sale[data-sale="'+id+'"]');}
+function actMsg(id,text,bad){
+  var m=saleEl(id)&&saleEl(id).querySelector(".actmsg");
+  if(!m)return;m.textContent=text||"";m.classList.toggle("bad",!!bad);
+}
+function closeInline(id){
+  var el=saleEl(id);if(!el)return;
+  var inl=el.querySelector(".inl");if(inl)inl.remove();
+  el.querySelectorAll(".acts .lnk").forEach(function(b){b.disabled=false;});
+}
+function openReceipt(id){
+  var el=saleEl(id);if(!el||el.querySelector(".inl"))return;
+  actMsg(id,"");
+  var row=document.createElement("div");row.className="inl";
+  row.innerHTML='<input type="email" placeholder="customer@example.com" autocomplete="off" aria-label="Customer email">'
+    +'<button class="ghost" type="button" data-act="receipt-send" style="padding:6px 14px;font-size:.85rem">Send</button>'
+    +'<button class="lnk" type="button" data-act="cancel">Cancel</button>';
+  el.querySelector(".acts").after(row);
+  row.querySelector("input").focus();
+}
+function sendReceipt(id){
+  var el=saleEl(id);if(!el)return;
+  var input=el.querySelector(".inl input");
+  var email=(input&&input.value||"").trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){actMsg(id,"That doesn't look like an email address.",true);return;}
+  var btn=el.querySelector('[data-act="receipt-send"]');btn.disabled=true;btn.textContent="Sending…";
+  /* email-receipt is the same anon-callable, rate-limited function shop.html
+     and the app use. It stores a hash of the address, never the address. */
+  fetch(fnUrl("email-receipt"),{method:"POST",
+    headers:{apikey:ANON,Authorization:"Bearer "+ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({sale:id,email:email})})
+  .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+  .then(function(x){
+    if(!x.ok)throw new Error(x.j&&x.j.error||"failed");
+    closeInline(id);actMsg(id,"Receipt sent.");
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent="Send";
+    actMsg(id,e.message==="failed"?"Couldn't send. Try again in a moment.":e.message,true);
+  });
+}
+function openRefund(id,cents,stripe,proc){
+  var el=saleEl(id);if(!el||el.querySelector(".inl"))return;
+  actMsg(id,"");
+  var row=document.createElement("div");row.className="inl";
+  /* Copy lifted from SaleActionCopy.refundDialogMessage so a vendor who uses
+     both clients reads the same promise in both. */
+  var why=stripe
+    ?"Stripe returns the full amount to the customer's card. This can't be undone."
+    :"This marks the sale refunded — it drops out of your totals. Returning the money in "+(proc||"the app you were paid in")+" or cash is up to you.";
+  row.innerHTML='<span class="expmsg" style="flex-basis:100%">'+esc(why)+'</span>'
+    +'<button class="ghost confirm" type="button" data-act="refund-go" style="padding:6px 14px;font-size:.85rem">Refund '+money(cents)+'</button>'
+    +'<button class="lnk" type="button" data-act="cancel">Keep it</button>';
+  el.querySelector(".acts").after(row);
+}
+function doRefund(id){
+  var el=saleEl(id);if(!el)return;
+  var btn=el.querySelector('[data-act="refund-go"]');btn.disabled=true;btn.textContent="Refunding…";
+  authFn("refund-sale",{method:"POST",body:JSON.stringify({sale_id:id})})
+  .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
+  .then(function(x){
+    if(!x.ok)throw new Error(x.j&&x.j.error||"failed");
+    /* Re-read the day rather than patching the row locally: the server is the
+       one that decided the status, and the totals above the list must agree
+       with the row. */
+    loadVendorDay();
+  }).catch(function(e){
+    btn.disabled=false;btn.textContent="Try again";
+    actMsg(id,e.message==="failed"?"Couldn't refund. Try again in a moment.":e.message,true);
+  });
+}
+
 function renderSaleLines(items){
   var by={};
   items.forEach(function(it){(by[it.sale_id]=by[it.sale_id]||[]).push(it);});
@@ -1585,6 +1735,31 @@ $("oNext").addEventListener("click",function(){oDay.setDate(oDay.getDate()+1);re
 $("oToday").addEventListener("click",function(){oDay=new Date();renderOrganizerDay();});
 $("oDate").addEventListener("change",function(){if(this.value){oDay=parseDstr(this.value);renderOrganizerDay();}});
 $("expBtn").addEventListener("click",exportCSV);
+$("delStart").addEventListener("click",function(){
+  $("delStep1").classList.add("hidden");$("delStep2").classList.remove("hidden");$("delWord").focus();
+});
+$("delCancel").addEventListener("click",function(){
+  $("delStep2").classList.add("hidden");$("delStep1").classList.remove("hidden");$("delWord").value="";$("delGo").disabled=true;
+});
+$("delWord").addEventListener("input",function(){$("delGo").disabled=this.value.trim()!=="DELETE";});
+$("delGo").addEventListener("click",deleteAccount);
+$("vSales").addEventListener("click",function(ev){
+  var b=ev.target.closest("[data-act]");if(!b)return;
+  var row=b.closest(".sale");if(!row)return;
+  var id=row.getAttribute("data-sale");
+  switch(b.getAttribute("data-act")){
+    case "receipt":openReceipt(id);break;
+    case "receipt-send":sendReceipt(id);break;
+    case "refund":openRefund(id,parseInt(b.getAttribute("data-cents"),10)||0,b.getAttribute("data-stripe")==="1",b.getAttribute("data-proc"));break;
+    case "refund-go":doRefund(id);break;
+    case "cancel":closeInline(id);break;
+  }
+});
+$("vSales").addEventListener("keydown",function(ev){
+  if(ev.key==="Enter"&&ev.target.matches(".inl input[type=email]")){
+    ev.preventDefault();sendReceipt(ev.target.closest(".sale").getAttribute("data-sale"));
+  }
+});
 
 /* --- the Android path: stand, card rail, catalog --- */
 $("sfSave").addEventListener("click",saveStand);
