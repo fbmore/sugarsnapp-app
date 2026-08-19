@@ -25,6 +25,7 @@
    the older green/serif identity — do not "re-sync" the two blocks.
    ──────────────────────────────────────────────────────────────────────── */
 :root{
+  color-scheme:light;
   --accent:#d95421;            /* Color.vermillion */
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
@@ -39,12 +40,12 @@
 }
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}

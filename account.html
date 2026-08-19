@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-pfNJQvdutbePQ1yK4x5/wTvsDoWrfuYKhaGgpvf4Lmk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-pXepLMWdu7yjQnGUgTzL2J8loIINOxfl11M6cTM3qY4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -25,7 +25,8 @@
 <div class="wrap wide">
   <nav>
     <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
-    <div class="navside">
+    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
+    <div class="navside" id="navSide">
       <div class="toggle hidden" id="viewToggle">
         <button id="tabVendor" type="button">Stand</button>
         <button id="tabOrganizer" type="button">Market</button>
@@ -1609,6 +1610,18 @@ function boot(){
     },2000);
   }
 }
+
+/* Header "⋯" menu (phone widths only; the button is display:none above 640px).
+   Closes on outside click, on Escape, and after Sign out or a view switch. */
+(function(){
+  var btn=document.getElementById("moreBtn"),side=document.getElementById("navSide");
+  if(!btn||!side)return;
+  function setOpen(on){side.classList.toggle("open",on);btn.setAttribute("aria-expanded",on?"true":"false");}
+  btn.addEventListener("click",function(ev){ev.stopPropagation();setOpen(!side.classList.contains("open"));});
+  document.addEventListener("click",function(ev){if(side.classList.contains("open")&&!side.contains(ev.target))setOpen(false);});
+  document.addEventListener("keydown",function(ev){if(ev.key==="Escape")setOpen(false);});
+  side.addEventListener("click",function(ev){if(ev.target.closest("button"))setOpen(false);});
+})();
 boot();
 </script>
 </body>

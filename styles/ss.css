@@ -16,7 +16,7 @@
    it is opened (see showSection). Below 900px the rail becomes a drawer. */
 .acctwrap{display:grid;grid-template-columns:210px minmax(0,1fr);gap:34px;align-items:start}
 .acctnav{position:sticky;top:22px}
-.acctnav nav{display:flex;flex-direction:column;gap:2px}
+.acctnav nav{display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:2px;padding:0;text-align:left}
 .navgrp{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;padding:0 10px}
 .navgrp:first-child{margin-top:0}
 .acctnav a{display:block;padding:7px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.94rem;line-height:1.35}
@@ -29,7 +29,7 @@
 @media(max-width:900px){
   .acctwrap{display:block}
   .navtoggle{display:inline-flex}
-  .acctnav{position:fixed;z-index:40;top:0;left:0;bottom:0;width:250px;padding:22px 14px;background:var(--bg);border-right:1px solid var(--line);overflow-y:auto;transform:translateX(-100%);transition:transform .18s ease}
+  .acctnav{position:fixed;z-index:40;top:0;left:0;bottom:0;width:250px;padding:22px 14px;background:var(--surface);border-right:1px solid var(--line);overflow-y:auto;transform:translateX(-100%);transition:transform .18s ease}
   .acctnav.open{transform:none}
   .navscrim{display:block;position:fixed;z-index:39;inset:0;background:rgba(0,0,0,.5)}
   .navscrim[hidden]{display:none}
@@ -42,6 +42,7 @@
    the older green/serif identity — do not "re-sync" the two blocks.
    ──────────────────────────────────────────────────────────────────────── */
 :root{
+  color-scheme:light;
   --accent:#d95421;            /* Color.vermillion */
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
@@ -56,20 +57,34 @@
 }
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
+/* Every text-like control gets ink-on-field by default, so a rule that sets a
+   background without a colour (which is how the date fields went black on
+   black) can no longer produce an illegible field. Buttons are left alone:
+   they carry their own palette. Placeholder opacity is forced to 1 because
+   WebKit otherwise fades it on top of --muted and it vanishes in dark mode. */
+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),select,textarea{
+  color:var(--ink);background:var(--field);font:inherit;caret-color:var(--accent)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+/* The picker glyph Chrome draws inside date inputs is a black bitmap; with
+   color-scheme:dark the browser inverts it, but only when the input's own
+   colour is set — which the baseline above now guarantees. */
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
 body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
 a{color:var(--accent)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
-nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px;position:relative}
+
 .brand-logo{height:26px;width:auto;display:block}
 :root[data-theme="dark"] .brand-logo{filter:invert(1)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
@@ -77,6 +92,21 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .navside button{font-size:.92rem;color:var(--muted)}
 .navside select{font:inherit;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
 .navside button:hover{color:var(--accent)}
+/* The header has four controls (view toggle, theme, sign out, and the logo).
+   At phone width they stacked over each other. Below 640px everything but the
+   logo lives behind one "⋯" button and drops down as a column; one set of
+   controls, one set of ids, nothing duplicated — the DOM node is the same,
+   only where it renders changes. */
+.morebtn{display:none;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.3rem;line-height:1;cursor:pointer;flex:none}
+@media(max-width:640px){
+  .morebtn{display:inline-flex}
+  .navside{display:none}
+  .navside.open{display:flex;flex-direction:column;align-items:stretch;gap:12px;position:absolute;right:0;top:calc(100% - 10px);min-width:220px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:45}
+  .navside.open .toggle{align-self:stretch;justify-content:stretch}
+  .navside.open .toggle button{flex:1}
+  .navside.open select{width:100%}
+  .navside.open button#signOut{text-align:left;padding:6px 4px}
+}
 .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
 .note-card{text-align:center;margin:34px 0}
@@ -118,7 +148,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .daynav{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .daynav button.step{width:38px;height:38px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:1.1rem;color:var(--accent);line-height:1}
 .daynav button.step:disabled{color:var(--line)}
-.daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)}
+.daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
 
 /* totals */
 .bigtot{font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
@@ -145,7 +175,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .sale .actmsg{color:var(--muted)}
 .sale .actmsg.bad{color:var(--bad)}
 .sale .inl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
-.sale .inl input[type=email]{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.9rem;background:var(--canvas);color:var(--ink);min-width:200px}
+.sale .inl input[type=email]{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.9rem;background:var(--field);color:var(--ink);min-width:200px}
 .sale .inl .confirm{color:var(--bad)}
 .danger{border-color:#e0b9b9}
 .danger .cta{background:var(--bad)}
@@ -156,7 +186,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 
 /* export */
 .exp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-.exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas)}
+.exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
 .exp label.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted)}
 /* Setup surfaces: the stand, the money rail, and the catalog. These are new to
    the web because an Android vendor had no other way to author any of them —
