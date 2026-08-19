@@ -286,6 +286,17 @@ footer a{margin:0 8px;color:var(--muted)}
         <h1>Register — <em id="regName"></em></h1>
       </div>
       <div class="reg-items" id="regItems"></div>
+      <!-- amount entry — the web twin of the iOS keypad; always on for the
+           vendor (custom_amount_enabled only governs what SHOPPERS may do) -->
+      <div class="card custom-amt" id="regCustom">
+        <div class="ca-row">
+          <span class="ca-cur">$</span>
+          <input id="regAmt" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" aria-label="Amount in dollars">
+          <input id="regNote" type="text" maxlength="60" placeholder="Note (optional)" autocomplete="off" aria-label="Line note">
+          <button class="ghost" id="regAdd" type="button">Add</button>
+        </div>
+        <div class="payerr" id="regAmtErr"></div>
+      </div>
       <div class="tape" id="tape"></div>
       <div class="reg-actions">
         <button class="ghost" id="cashBtn">Log cash</button>
@@ -969,6 +980,27 @@ function addTape(it){
   else tape.push({item:it,qty:1});
   renderTape();
 }
+/* Typed amounts ride the tape as one-off lines: item_id null, the note (or
+   "Custom amount") as the snapshot name — the same row shape the iOS register
+   writes, so the ledger and receipts render them identically. Never merged
+   like catalog items: two $5 lines are two sales lines, as on the keypad. */
+$("regAdd").onclick=function(){
+  var errEl=$("regAmtErr");
+  errEl.style.display="none";
+  var raw=$("regAmt").value.replace(",",".").trim();
+  var cents=Math.round((parseFloat(raw)||0)*100);
+  var msg=null;
+  if(cents<50)msg="Enter at least $0.50.";
+  else if(cents>500000)msg="Amounts are capped at $5,000.";
+  if(msg){errEl.textContent=msg;errEl.style.display="block";return;}
+  tape.push({item:{id:null,name:$("regNote").value.trim().slice(0,60)||"Custom amount",price_cents:cents},qty:1});
+  $("regAmt").value="";$("regNote").value="";
+  $("regAmt").focus();
+  renderTape();
+};
+$("regAmt").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){e.preventDefault();$("regAdd").onclick();}
+});
 function tapeTotal(){
   return tape.reduce(function(s,l){return s+l.item.price_cents*l.qty;},0);
 }
