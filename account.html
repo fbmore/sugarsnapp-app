@@ -19,7 +19,7 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=8c07e69e5a">
+<link rel="stylesheet" href="styles/ss.css?v=6e58ddcc8b">
 </head>
 <body>
 <div class="wrap wide">
@@ -116,6 +116,7 @@
         <input type="date" id="vDate" aria-label="Ledger day">
         <button class="step" id="vNext" type="button" aria-label="Next day">&rsaquo;</button>
         <button class="ghost" id="vToday" type="button">Today</button>
+        <a class="cta" id="vNewCharge" hidden>New charge</a>
       </div>
       <div class="card" data-sec="ledger">
         <div class="bigtot"><span class="lbl" id="vTotLbl">Total</span><span id="vTotal">$0.00</span></div>
@@ -435,9 +436,18 @@ function clampFuture(d){
    until then the mark keeps pointing home. */
 function pointLogoAtRegister(slug){
   var a=document.querySelector("nav a.brandlink")||document.querySelector("nav > a");
-  if(!a)return;
-  a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
-  a.title=slug?"Open your register":"";
+  if(a){
+    a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
+    a.title=slug?"Open your register":"";
+  }
+  /* The "New charge" button at the top of the ledger is the same destination
+     made visible — it only appears once self-checkout has minted a slug,
+     because the register IS the public shop page in the vendor's hands. */
+  var b=document.getElementById("vNewCharge");
+  if(b){
+    if(slug){b.href="shop.html?v="+encodeURIComponent(slug);b.hidden=false;}
+    else b.hidden=true;
+  }
 }
 function loadVendorHeader(){
   var s=getSession();
