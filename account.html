@@ -3,27 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5mBTjhZMNBNgZyXzgdisjacfvEEfuPpWfh+VEbLKUlo='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-6YMaEKXRe8FJ1teNcZ83syY6YjlDFbS9oas9zgqb+a0='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+/* Runs before first paint so a stored choice never flashes the wrong theme.
+   Kept tiny and dependency-free; hashed into the CSP like every inline
+   script here (see scripts/csp-hash.py). */
+(function(){try{
+  var t=localStorage.getItem('ss-theme')||'dark';   /* vendor tool: dark, like the app */
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
+}catch(e){}})();
+</script>
 <style>
+/* ── App theme ───────────────────────────────────────────────────────────
+   Mirrors the iOS app (SugarSnapp/Core/Theme.swift): vermillion enamel,
+   warm ink, monospaced numerals. The MARKETING pages (index, vendors,
+   shoppers, organizers, pricing, support, terms, privacy) deliberately keep
+   the older green/serif identity — do not "re-sync" the two blocks.
+   ──────────────────────────────────────────────────────────────────────── */
 :root{
-  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
-  --surface:#ffffff; --line:#dde4d6; --bad:#8a3b2e;
+  --accent:#d95421;            /* Color.vermillion */
+  --ink:#2b211c;               /* Color.keyInk    */
+  --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
+  --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
+  --key-cream:#f4ead5;         /* Color.keyCream  */
+  /* Fixed in EVERY theme. Theme.swift: the total window is "the one
+     deliberately fixed-contrast surface besides the QR itself" — and a QR
+     rendered on a dark surface simply stops scanning. */
+  --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
+  --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  }
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
 a{color:var(--accent)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
 .brand-logo{height:26px;width:auto;display:block}
+:root[data-theme="dark"] .brand-logo{filter:invert(1)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
 .navside{display:flex;align-items:center;gap:14px}
 .navside button{font-size:.92rem;color:var(--muted)}
+.navside select{font:inherit;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
 .navside button:hover{color:var(--accent)}
 .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
@@ -35,6 +72,8 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer}
 .cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
 .ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer}
+.linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.linkrow code{font-family:var(--font-mono);font-size:.88rem;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px;word-break:break-all;flex:1;min-width:0}
 .pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:.85rem;color:var(--muted)}
 
 /* view toggle */
@@ -44,12 +83,14 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 
 /* login */
 .login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
-.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
 .login input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
 .login .err{color:var(--bad);font-size:.9rem;margin-top:12px;display:none}
 .login .cta{width:100%;margin-top:20px;text-align:center}
 .obtn{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;min-height:46px;font-size:1rem;width:100%}
 .obtn.apple{background:#000;color:#fff}
+:root[data-theme="dark"] .obtn.apple{background:#fff;color:#000}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .obtn.apple{background:#fff;color:#000}}
 .obtn.google{background:#fff;color:#1f1f20;border:1px solid #747775}
 
 /* header */
@@ -65,11 +106,11 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)}
 
 /* totals */
-.bigtot{font-family:Georgia,serif;font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
+.bigtot{font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
 .bigtot .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
 .brk{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;font-size:.92rem}
 .brk .r{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)}
-.brk .r b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:Georgia,serif}
+.brk .r b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
 
 /* sale rows */
 .sale{border-top:1px solid var(--line);padding:12px 0}
@@ -77,13 +118,13 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .sale .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .sale .t{color:var(--muted);font-size:.85rem;white-space:nowrap}
 .sale .p{flex:1}
-.sale .amt{font-family:Georgia,serif;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sale .amt{font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .sale .st{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
 .sale.dead .amt,.sale.dead .p{text-decoration:line-through;color:var(--muted)}
 .sale .st{white-space:nowrap;margin-right:10px}
 .sale .st.refunded,.sale .st.canceled{color:var(--bad)}
 .sale .st.pending,.sale .st.in_progress{color:var(--muted)}
-.lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+.lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:var(--font-mono)}
 .lines .ln{display:flex;justify-content:space-between;gap:8px}
 .lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .emptyday{color:var(--muted);font-style:italic;text-align:center;padding:8px 0}
@@ -97,7 +138,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
    the register shipped before the things it rings up did. */
 .fld{display:block;margin-top:12px}
 .fld>span{display:block;font-size:.82rem;color:var(--muted);margin-bottom:5px}
-.fld input[type=text],.fld input[type=number],.fld select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
+.fld input[type=text],.fld input[type=number],.fld select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
 .fld.row{display:flex;gap:10px;align-items:flex-end}
 .saverow{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
 .saved{font-size:.85rem;color:var(--accent);opacity:0;transition:opacity .2s}
@@ -105,9 +146,9 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .itm{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .itm:first-child{border-top:none}
 .itm .nm{flex:1;min-width:0}
-.itm .nm input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--canvas);color:var(--ink)}
-.itm .pr input{width:96px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--canvas);color:var(--ink);text-align:right}
-.itm .un input{width:88px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--canvas);color:var(--ink)}
+.itm .nm input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
+.itm .pr input{width:96px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink);text-align:right}
+.itm .un input{width:88px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
 .itm .rm{border:none;background:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;line-height:1}
 .itm .rm:hover{color:var(--bad)}
 .itm.off .nm input,.itm.off .pr input,.itm.off .un input{opacity:.5}
@@ -130,7 +171,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .plan.current{border-color:var(--accent);border-width:2px;background:var(--surface);padding:15px 15px 17px}
 .plan .pname{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .plan.current .pname{color:var(--accent)}
-.plan .pprice{font-family:Georgia,serif;font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
+.plan .pprice{font-family:var(--font-mono);font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
 .plan .pper{font-size:.82rem;color:var(--muted);margin-bottom:10px}
 .plan ul{list-style:none;margin:0 0 14px;font-size:.88rem}
 .plan ul li{padding:3px 0 3px 16px;position:relative;color:var(--muted)}
@@ -142,10 +183,10 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .plan .save{font-size:.78rem;color:var(--accent);margin-top:-6px;margin-bottom:8px}
 
 /* organizer */
-.ro-banner{background:#f2f7ef;border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
+.ro-banner{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.grid2{grid-template-columns:1fr}}
-.stat .v{font-family:Georgia,serif;font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.stat .v{font-family:var(--font-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
 .stat .k{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
 .stat .sub2{font-size:.85rem;color:var(--muted);margin-top:2px}
 .delta-ok{color:var(--accent)}
@@ -153,7 +194,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 table.tal{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:6px}
 table.tal th{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:4px 6px 6px 0}
 table.tal td{border-top:1px solid var(--line);padding:7px 6px 7px 0}
-table.tal td.n,table.tal th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:Georgia,serif}
+table.tal td.n,table.tal th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
 .flagged{color:var(--bad);font-size:.8rem}
 .audit .ae{border-top:1px solid var(--line);padding:9px 0;font-size:.9rem}
 .audit .ae:first-child{border-top:none}
@@ -171,6 +212,11 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <button id="tabVendor" type="button">Stand</button>
         <button id="tabOrganizer" type="button">Market</button>
       </div>
+      <select id="themeSel" aria-label="Appearance">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+        <option value="system">Match device</option>
+      </select>
       <button id="signOut" class="hidden" type="button">Sign out</button>
     </div>
   </nav>
@@ -250,43 +296,6 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            vendor therefore had a register that could take cash against an
            empty product list, which is not a product. These three cards close
            that, writing through the same per-vendor RLS the app uses. -->
-      <div class="card" id="standCard">
-        <div class="kicker">Your stand</div>
-        <div class="fld"><span>Logo &mdash; shown on receipts and your checkout page</span>
-          <div class="logorow">
-            <img id="sfLogo" alt="" class="hidden">
-            <div id="sfLogoNone" class="logonone">No logo</div>
-            <div>
-              <button class="ghost" id="sfLogoPick" type="button">Choose image</button>
-              <button class="ghost hidden" id="sfLogoDrop" type="button">Remove</button>
-              <input type="file" id="sfLogoFile" accept="image/*" class="hidden">
-            </div>
-          </div>
-          <div class="expmsg" id="sfLogoMsg" style="margin-top:8px"></div>
-        </div>
-        <label class="fld"><span>Stand name</span>
-          <input type="text" id="sfName" maxlength="60" placeholder="Maple Lane Farm Stand"></label>
-        <label class="fld"><span>Sales tax rate (%) &mdash; leave 0 if you don&rsquo;t charge tax</span>
-          <input type="number" id="sfTax" min="0" max="30" step="0.001" placeholder="0"></label>
-        <label class="fld"><span>Business type</span>
-          <select id="sfCat">
-            <option value="">Choose one&hellip;</option>
-            <option value="produce">Produce</option>
-            <option value="bakedGoods">Baked goods</option>
-            <option value="meatEggs">Meat &amp; eggs</option>
-            <option value="dairy">Dairy</option>
-            <option value="preparedFood">Prepared food</option>
-            <option value="flowers">Flowers</option>
-            <option value="crafts">Crafts</option>
-          </select></label>
-        <label class="fld"><span><input type="checkbox" id="sfCustom" style="margin-right:7px">Allow typing a custom amount at the register</span></label>
-        <div class="saverow">
-          <button class="cta" id="sfSave" type="button">Save</button>
-          <span class="saved" id="sfSaved">Saved</span>
-        </div>
-        <div class="payerr" id="sfErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
-      </div>
-
       <div class="card" id="payCard">
         <div class="kicker">Card payments</div>
         <div class="conn" id="payState"><span class="dot no"></span><span class="expmsg">Checking&hellip;</span></div>
@@ -322,6 +331,73 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
           <span class="saved" id="hSaved">Saved</span>
         </div>
         <div class="payerr" id="hErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" id="checkoutCard">
+        <div class="kicker">Self-checkout</div>
+        <div class="expmsg" id="scNote" style="margin:6px 0 10px">Checking&hellip;</div>
+        <label class="fld"><span><input type="checkbox" id="scOn" style="margin-right:7px">Public checkout page</span></label>
+        <div id="scLinkRow" class="hidden">
+          <div class="linkrow"><code id="scLink"></code>
+            <button class="ghost" id="scCopy" type="button">Copy</button></div>
+        </div>
+        <div id="scErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" id="standCard">
+        <div class="kicker">Your stand</div>
+        <div class="fld"><span>Logo &mdash; shown on receipts and your checkout page</span>
+          <div class="logorow">
+            <img id="sfLogo" alt="" class="hidden">
+            <div id="sfLogoNone" class="logonone">No logo</div>
+            <div>
+              <button class="ghost" id="sfLogoPick" type="button">Choose image</button>
+              <button class="ghost hidden" id="sfLogoDrop" type="button">Remove</button>
+              <input type="file" id="sfLogoFile" accept="image/*" class="hidden">
+            </div>
+          </div>
+          <div class="expmsg" id="sfLogoMsg" style="margin-top:8px"></div>
+        </div>
+        <label class="fld"><span>Stand name</span>
+          <input type="text" id="sfName" maxlength="60" placeholder="Maple Lane Farm Stand"></label>
+        <label class="fld"><span>Sales tax rate (%) &mdash; leave 0 if you don&rsquo;t charge tax</span>
+          <input type="number" id="sfTax" min="0" max="30" step="0.001" placeholder="0"></label>
+        <label class="fld"><span>Business type</span>
+          <select id="sfCat">
+            <option value="">Choose one&hellip;</option>
+            <option value="produce">Produce</option>
+            <option value="bakedGoods">Baked goods</option>
+            <option value="meatEggs">Meat &amp; eggs</option>
+            <option value="dairy">Dairy</option>
+            <option value="preparedFood">Prepared food</option>
+            <option value="flowers">Flowers</option>
+            <option value="crafts">Crafts</option>
+          </select></label>
+        <label class="fld"><span><input type="checkbox" id="sfCustom" style="margin-right:7px">Allow typing a custom amount at the register</span></label>
+        <label class="fld"><span><input type="checkbox" id="sfTokens" style="margin-right:7px">Market tokens (SNAP / Match) &mdash; only if your market hands them out</span></label>
+        <div class="saverow">
+          <button class="cta" id="sfSave" type="button">Save</button>
+          <span class="saved" id="sfSaved">Saved</span>
+        </div>
+        <div class="payerr" id="sfErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" id="receiptCard">
+        <div class="kicker">Receipt details</div>
+        <p class="expmsg" style="margin-bottom:6px">Optional, and shown on receipts only &mdash; never on your public checkout page.</p>
+        <label class="fld"><span>Address</span>
+          <input type="text" id="rdAddress" maxlength="160" autocomplete="street-address"></label>
+        <label class="fld"><span>Website</span>
+          <input type="url" id="rdWebsite" maxlength="160" placeholder="example.com"></label>
+        <label class="fld"><span>Contact email</span>
+          <input type="email" id="rdEmail" maxlength="160" autocomplete="email"></label>
+        <label class="fld"><span>Phone</span>
+          <input type="tel" id="rdPhone" maxlength="40" autocomplete="tel"></label>
+        <div class="saverow">
+          <button class="cta" id="rdSave" type="button">Save</button>
+          <span class="saved" id="rdSaved">Saved</span>
+        </div>
+        <div id="rdErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
       <div class="card" id="itemsCard">
@@ -465,6 +541,24 @@ function moneyPlain(cents){return ((cents||0)/100).toFixed(2);}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 function $(id){return document.getElementById(id);}
+
+/* ---------- appearance ---------- */
+/* Three states, matching the app's Settings > Appearance: Dark, Light, or
+   Match device. The head script already applied the stored choice before
+   paint; this only wires the control and persists changes. */
+(function(){
+  var sel=$("themeSel");
+  if(!sel)return;
+  var stored=null;
+  try{stored=localStorage.getItem("ss-theme");}catch(e){}
+  sel.value=stored||"dark";
+  sel.addEventListener("change",function(){
+    var v=sel.value;
+    try{localStorage.setItem("ss-theme",v);}catch(e){}
+    if(v==="system"){document.documentElement.removeAttribute("data-theme");}
+    else{document.documentElement.setAttribute("data-theme",v);}
+  });
+})();
 
 /* ---------- views ---------- */
 var VIEWS=["v-loading","v-login","v-vendor","v-organizer"];
@@ -616,10 +710,21 @@ function recordTermsIfNeeded(){
    later installs the app finds their setup already there rather than a second,
    diverging copy. Logo upload landed later (6d58a80) and goes through the
    upload-logo Edge Function, which is the sole holder of the R2 credentials. */
+/* market_tokens_enabled is nullable ON PURPOSE: the app only pulls it down
+   when the device has no local value (see 20260818000001_restore_device_settings).
+   A checkbox cannot express null, so we remember whether it started null and
+   only ever send the column if the vendor actually touched it. Writing false
+   here would silently overwrite the device's own setting. */
+var mtTokensTouched=false;
+var checkoutSlug=null;
+var stripeReady=false;
+
 function loadStand(){
   var s=getSession();if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
-           "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled")
+           "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled,"+
+           "market_tokens_enabled,address,website,contact_email,contact_phone,"+
+           "checkout_enabled,checkout_slug")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     var p=rows[0]||{};
@@ -629,7 +734,91 @@ function loadStand(){
     $("sfTax").value=(p.sales_tax_rate_percent==null?0:p.sales_tax_rate_percent);
     $("sfCat").value=p.business_category||"";
     $("sfCustom").checked=!!p.custom_amount_enabled;
+    mtTokensTouched=false;
+    $("sfTokens").checked=(p.market_tokens_enabled===true);
+
+    $("rdAddress").value=p.address||"";
+    $("rdWebsite").value=p.website||"";
+    $("rdEmail").value=p.contact_email||"";
+    $("rdPhone").value=p.contact_phone||"";
+
+    checkoutSlug=p.checkout_slug||null;
+    $("scOn").checked=!!p.checkout_enabled;
+    paintCheckout();
   }).catch(function(){});
+}
+
+function saveReceipt(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("rdErr");err.style.display="none";
+  $("rdSave").disabled=true;
+  /* Empty means "not set", not empty-string: receipt.html only renders a line
+     when the field is non-null. */
+  function orNull(v){v=v.trim();return v===""?null:v;}
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
+    method:"PATCH",headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({address:orNull($("rdAddress").value),
+      website:orNull($("rdWebsite").value),
+      contact_email:orNull($("rdEmail").value),
+      contact_phone:orNull($("rdPhone").value)})
+  }).then(function(r){
+    if(!r.ok)throw new Error("save failed");
+    flash("rdSaved");
+  }).catch(function(){
+    err.textContent="Couldn't save. Check your connection and try again.";
+    err.style.display="block";
+  }).then(function(){$("rdSave").disabled=false;});
+}
+
+function paintCheckout(){
+  var on=$("scOn").checked;
+  var note=$("scNote"),link=$("scLinkRow");
+  $("scOn").disabled=!stripeReady;
+  if(!stripeReady){
+    note.textContent="Connect Stripe first \u2014 guest payments run on your own Stripe account.";
+  }else if(on){
+    note.textContent="Shoppers scan this at your stand, pay on their own phone, and show a stamped receipt. Paid sales appear in your ledger instantly.";
+  }else if(checkoutSlug){
+    note.textContent="Your page is off. Re-enabling uses the same link.";
+  }else{
+    note.textContent="Off by default. Turning this on publishes your item list at a public checkout link.";
+  }
+  var haveLink=on&&!!checkoutSlug;
+  link.classList.toggle("hidden",!haveLink);
+  if(haveLink){$("scLink").textContent="https://getsugarsnapp.com/shop.html?v="+checkoutSlug;}
+}
+
+function setCheckout(on){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("scErr");err.style.display="none";
+  $("scOn").disabled=true;
+  var minted;
+  if(on&&!checkoutSlug){
+    /* ONE minting path, and it is server-side: the column is globally unique
+       and a printed QR depends on it for life. See the migration
+       20260819000002_mint_checkout_slug.sql. Never PATCH checkout_slug. */
+    minted=authRest("rpc/mint_checkout_slug",{method:"POST",body:JSON.stringify({})})
+      .then(function(r){
+        if(r.status===404)throw new Error("rpc-missing");
+        if(!r.ok)throw new Error("mint failed");
+        return r.json();
+      }).then(function(slug){checkoutSlug=slug;});
+  }else{minted=Promise.resolve();}
+  minted.then(function(){
+    return authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
+      method:"PATCH",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({checkout_enabled:on})});
+  }).then(function(r){
+    if(!r.ok)throw new Error("save failed");
+    paintCheckout();
+  }).catch(function(e){
+    $("scOn").checked=!on;
+    err.textContent=(e&&e.message==="rpc-missing")
+      ? "Self-checkout can't be switched on from the web yet. Turn it on in the iPhone app and manage it here."
+      : "Couldn't update your page. Check your connection and try again.";
+    err.style.display="block";
+    paintCheckout();
+  }).then(function(){paintCheckout();});
 }
 function flash(id){var e=$(id);e.classList.add("on");setTimeout(function(){e.classList.remove("on");},1600);}
 function saveStand(){
@@ -642,8 +831,13 @@ function saveStand(){
   $("sfSave").disabled=true;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
     method:"PATCH",headers:{Prefer:"return=minimal"},
-    body:JSON.stringify({business_name:name,sales_tax_rate_percent:tax,
-      business_category:$("sfCat").value||null,custom_amount_enabled:$("sfCustom").checked})
+    body:JSON.stringify((function(){
+      var patch={business_name:name,sales_tax_rate_percent:tax,
+        business_category:$("sfCat").value||null,
+        custom_amount_enabled:$("sfCustom").checked};
+      if(mtTokensTouched){patch.market_tokens_enabled=$("sfTokens").checked;}
+      return patch;
+    })())
   }).then(function(r){
     if(!r.ok)throw new Error("save failed");
     $("vName").textContent=name;
@@ -677,6 +871,10 @@ function paintPay(state){
   $("payConnect").classList.toggle("hidden",!!(state.connected&&state.charges_enabled));
   $("payRefresh").classList.toggle("hidden",!state.connected);
   $("payOff").classList.toggle("hidden",!state.connected);
+  /* Self-checkout charges guests on this same connected account, so it cannot
+     be switched on before Stripe can actually take a card. */
+  stripeReady=!!(state.connected&&state.charges_enabled);
+  paintCheckout();
 }
 /* Set when we come back from Stripe's consent screen. The callback already
    wrote the row, but its KYC snapshot can fail silently, so on return we ask
@@ -1390,6 +1588,18 @@ $("expBtn").addEventListener("click",exportCSV);
 
 /* --- the Android path: stand, card rail, catalog --- */
 $("sfSave").addEventListener("click",saveStand);
+$("sfTokens").addEventListener("change",function(){mtTokensTouched=true;});
+$("rdSave").addEventListener("click",saveReceipt);
+$("scOn").addEventListener("change",function(){setCheckout($("scOn").checked);});
+$("scCopy").addEventListener("click",function(){
+  var t=$("scLink").textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){
+      var b=$("scCopy");b.textContent="Copied";
+      setTimeout(function(){b.textContent="Copy";},1600);
+    }).catch(function(){});
+  }
+});
 $("hSave").addEventListener("click",saveHandles);
 $("hPaypal").addEventListener("input",paintPaypalHint);
 $("sfLogoPick").addEventListener("click",function(){$("sfLogoFile").click();});

@@ -14,19 +14,55 @@
 <meta property="og:description" content="Your SugarSnapp receipt — show the PAID stamp to the vendor and keep a copy for your records.">
 <meta property="og:url" content="https://getsugarsnapp.com/receipt.html">
 <meta property="og:image" content="https://getsugarsnapp.com/og-card.png">
+<script>
+/* Applies the stored appearance before first paint so a choice never
+   flashes the wrong theme. "system" leaves the attribute off and lets
+   prefers-color-scheme decide. */
+(function(){try{
+  var t=localStorage.getItem('ss-theme')||'system';
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
+}catch(e){}})();
+</script>
 <style>
+/* ── App theme ───────────────────────────────────────────────────────────
+   Mirrors the iOS app (SugarSnapp/Core/Theme.swift): vermillion enamel,
+   warm ink, monospaced numerals. The MARKETING pages (index, vendors,
+   shoppers, organizers, pricing, support, terms, privacy) deliberately keep
+   the older green/serif identity — do not "re-sync" the two blocks.
+   ──────────────────────────────────────────────────────────────────────── */
 :root{
-  --ink:#1f2a1d; --muted:#6b7a66; --canvas:#f4f6ee; --accent:#3e7a3a;
-  --surface:#ffffff; --line:#dde4d6;
+  --accent:#d95421;            /* Color.vermillion */
+  --ink:#2b211c;               /* Color.keyInk    */
+  --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
+  --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
+  --key-cream:#f4ead5;         /* Color.keyCream  */
+  /* Fixed in EVERY theme. Theme.swift: the total window is "the one
+     deliberately fixed-contrast surface besides the QR itself" — and a QR
+     rendered on a dark surface simply stops scanning. */
+  --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
+  --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  }
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
 a{color:var(--accent)}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:560px;margin:0 auto;padding:0 20px 40px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
 .brand{display:inline-flex;align-items:center}
 .brand-logo{height:26px;width:auto;display:block}
+:root[data-theme="dark"] .brand-logo{filter:invert(1)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
 nav .links a{font-size:.92rem;text-decoration:none;color:var(--muted)}
 nav .links a:hover{color:var(--accent)}
 .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
@@ -47,30 +83,30 @@ nav .links a:hover{color:var(--accent)}
 .paper{position:relative;width:360px;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:6px;padding:26px 24px 20px;box-shadow:0 12px 30px rgba(31,42,29,.12);color:#111}
 .paper .head{text-align:center;margin-bottom:12px}
 .paper .head img{max-width:120px;max-height:72px;border-radius:8px;margin:0 auto 8px;display:block}
-.paper .biz{font-family:ui-monospace,Menlo,monospace;font-weight:600;font-size:1.12rem;color:#000;line-height:1.35}
-.paper .contact{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:#8a8a8a;line-height:1.5;margin-top:4px}
+.paper .biz{font-family:var(--font-mono);font-weight:600;font-size:1.12rem;color:#000;line-height:1.35}
+.paper .contact{font-family:var(--font-mono);font-size:.72rem;color:#8a8a8a;line-height:1.5;margin-top:4px}
 .paper .rule{border-top:1px dashed #bbb;margin:12px 0}
-.paper .li{display:flex;align-items:baseline;gap:10px;font-family:ui-monospace,Menlo,monospace;font-size:.8rem;padding:2px 0}
+.paper .li{display:flex;align-items:baseline;gap:10px;font-family:var(--font-mono);font-size:.8rem;padding:2px 0}
 .paper .li .nm{flex:1;min-width:0;color:rgba(0,0,0,.75);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .paper .li .m{color:#8a8a8a;white-space:nowrap}
 .paper .li .amt{color:#000;font-variant-numeric:tabular-nums;white-space:nowrap}
-.paper .totrow{display:flex;justify-content:space-between;align-items:baseline;font-family:ui-monospace,Menlo,monospace;margin-top:8px}
+.paper .totrow{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--font-mono);margin-top:8px}
 .paper .totrow .lbl{font-size:.8rem;font-weight:600;color:#000}
 .paper .totrow .amt{font-size:1.35rem;font-weight:600;color:#000;font-variant-numeric:tabular-nums}
-.paper .meta{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:.72rem;color:#8a8a8a;line-height:1.6}
+.paper .meta{text-align:center;font-family:var(--font-mono);font-size:.72rem;color:#8a8a8a;line-height:1.6}
 .paper .brandfoot{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:14px;opacity:.6}
 .paper .brandfoot img{height:11px}
-.paper .brandfoot span{font-family:ui-monospace,Menlo,monospace;font-size:.66rem;color:#555}
+.paper .brandfoot span{font-family:var(--font-mono);font-size:.66rem;color:#555}
 
 /* the PAID stamp */
 .stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);text-align:center;color:var(--accent);border:3px solid var(--accent);border-radius:8px;padding:10px 28px 12px;background:rgba(255,255,255,.72);pointer-events:none;mix-blend-mode:multiply;opacity:.3}
 .stamp::after{content:"";position:absolute;inset:3px;border:1.5px solid var(--accent);border-radius:5px}
-.stamp .word{font-family:Georgia,serif;font-weight:700;font-size:2.9rem;letter-spacing:.14em;line-height:1;text-transform:uppercase}
-.stamp .when{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;font-weight:600;letter-spacing:.04em;margin-top:6px;white-space:nowrap}
+.stamp .word{font-family:var(--font-mono);font-weight:700;font-size:2.9rem;letter-spacing:.14em;line-height:1;text-transform:uppercase}
+.stamp .when{font-family:var(--font-mono);font-size:.74rem;font-weight:600;letter-spacing:.04em;margin-top:6px;white-space:nowrap}
 
 /* under the card */
 .after-card{text-align:center;margin-top:18px}
-.clock{font-family:ui-monospace,Menlo,monospace;font-size:.78rem;color:var(--muted)}
+.clock{font-family:var(--font-mono);font-size:.78rem;color:var(--muted)}
 .hint{color:var(--muted);font-size:.85rem;font-style:italic;margin-top:8px;max-width:26em;margin-left:auto;margin-right:auto}
 .awaiting{margin-top:16px}
 .awaiting .dotp{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:7px;animation:pulse 1.2s ease-in-out infinite}

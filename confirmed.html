@@ -8,10 +8,47 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="robots" content="noindex">
+<script>
+/* Applies the stored appearance before first paint so a choice never
+   flashes the wrong theme. "system" leaves the attribute off and lets
+   prefers-color-scheme decide. */
+(function(){try{
+  var t=localStorage.getItem('ss-theme')||'dark';
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
+}catch(e){}})();
+</script>
 <style>
-:root{--ink:#1f2a1d;--muted:#6b7a66;--canvas:#f4f6ee;--accent:#3e7a3a;--surface:#ffffff;--line:#dde4d6}
+/* ── App theme ───────────────────────────────────────────────────────────
+   Mirrors the iOS app (SugarSnapp/Core/Theme.swift): vermillion enamel,
+   warm ink, monospaced numerals. The MARKETING pages (index, vendors,
+   shoppers, organizers, pricing, support, terms, privacy) deliberately keep
+   the older green/serif identity — do not "re-sync" the two blocks.
+   ──────────────────────────────────────────────────────────────────────── */
+:root{
+  --accent:#d95421;            /* Color.vermillion */
+  --ink:#2b211c;               /* Color.keyInk    */
+  --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
+  --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
+  --key-cream:#f4ead5;         /* Color.keyCream  */
+  /* Fixed in EVERY theme. Theme.swift: the total window is "the one
+     deliberately fixed-contrast surface besides the QR itself" — and a QR
+     rendered on a dark surface simply stops scanning. */
+  --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
+  --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  }
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:ui-serif,Georgia,'Times New Roman',serif;background:var(--canvas);color:var(--ink);line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:44px 36px;max-width:440px;text-align:center}
 .card img.logo{height:30px;margin-bottom:26px}
 h1{font-size:1.6rem;margin-bottom:10px}
