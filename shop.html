@@ -161,7 +161,8 @@ body.has-paybar{padding-bottom:110px}
 .charge .amt{font-family:var(--font-mono);font-weight:700;font-size:2.4rem;font-variant-numeric:tabular-nums;margin:6px 0 2px}
 .charge .who{color:var(--muted);font-size:.95rem}
 .proc-tabs{display:flex;justify-content:center;gap:8px;margin:18px 0 14px;flex-wrap:wrap}
-.proc-tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 16px;font-size:.9rem;color:var(--muted)}
+.proc-tabs button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px 6px 8px;font-size:.9rem;color:var(--muted)}
+.proc-tabs .pbadge{width:18px;height:18px;border-radius:50%;flex:none}
 .proc-tabs button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
 .qrbox{display:inline-block;background:var(--qr-surface);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(31,42,29,.12)}
 .qrbox canvas{display:block;width:min(62vw,240px);height:auto;image-rendering:pixelated}
@@ -184,7 +185,7 @@ footer a{margin:0 8px;color:var(--muted)}
 <body>
 <div class="wrap">
   <nav>
-    <a class="brand" href="https://getsugarsnapp.com"><img src="logo.svg" alt="SugarSnapp" class="brand-logo"></a>
+    <a class="brand" id="brandLink" href="https://getsugarsnapp.com"><img src="logo.svg" alt="SugarSnapp" class="brand-logo"></a>
     <div class="links">
       <button id="navVendor" class="hidden">Vendor? Sign in</button>
       <button id="navSignout" class="hidden">Sign out</button>
@@ -283,7 +284,6 @@ footer a{margin:0 8px;color:var(--muted)}
     <section id="v-register" class="hidden">
       <div class="reg-head">
         <h1>Register — <em id="regName"></em></h1>
-        <span class="pill">Web register</span>
       </div>
       <div class="reg-items" id="regItems"></div>
       <div class="tape" id="tape"></div>
@@ -300,6 +300,7 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="kicker">Show this to your customer</div>
       <div class="amt" id="chargeAmt"></div>
       <div class="who" id="chargeWho"></div>
+      <div class="who" style="margin-top:14px">Pay with&hellip;</div>
       <div class="proc-tabs" id="procTabs"></div>
       <div class="qrbox"><canvas id="qrCanvas" width="10" height="10"></canvas></div>
       <div class="wait" id="chargeWait"><span class="dotp"></span>Waiting for payment&hellip;</div>
@@ -528,7 +529,37 @@ function qrMatrix(text){
   return mod;
 }
 
-function drawQR(canvas,text){
+/* Processor marks, mirroring ProcessorBadge in the iOS app: the full-colour
+   Stripe tile clipped to a circle; PayPal and Venmo as white marks on a disc
+   in the brand colour (Theme.swift stripeBrand/paypalBrand/venmoBrand). The
+   PNGs are the app's own assets, copied verbatim. */
+var BRAND={stripe:"#635bff",paypal:"#003087",venmo:"#0085de"};
+var MARKS={};
+["stripe","paypal","venmo"].forEach(function(k){var im=new Image();im.src="img/"+k+".png";MARKS[k]=im;});
+/* Draw one badge of `d` px centred at (cx,cy). `ringed` adds the white halo the
+   app uses when the badge sits on top of a QR. Template marks are tinted via
+   source-in so the PNG's own colour is irrelevant — same as renderingMode(.template). */
+function drawBadge(g,proc,cx,cy,d,ringed){
+  var im=MARKS[proc];
+  if(ringed){g.beginPath();g.arc(cx,cy,d/2+3,0,Math.PI*2);g.fillStyle="#fff";g.fill();}
+  if(proc==="stripe"&&im&&im.complete&&im.naturalWidth){
+    g.save();g.beginPath();g.arc(cx,cy,d/2,0,Math.PI*2);g.clip();
+    g.drawImage(im,cx-d/2,cy-d/2,d,d);g.restore();return;
+  }
+  g.beginPath();g.arc(cx,cy,d/2,0,Math.PI*2);g.fillStyle=BRAND[proc]||"#444";g.fill();
+  if(im&&im.complete&&im.naturalWidth){
+    var t=document.createElement("canvas");t.width=t.height=Math.ceil(d);
+    var tg=t.getContext("2d");var m=d*0.62;
+    tg.drawImage(im,(d-m)/2,(d-m)/2,m,m);
+    tg.globalCompositeOperation="source-in";tg.fillStyle="#fff";tg.fillRect(0,0,d,d);
+    g.drawImage(t,cx-d/2,cy-d/2);
+  }else{
+    g.fillStyle="#fff";g.font="bold "+Math.round(d*0.58)+"px system-ui,sans-serif";
+    g.textAlign="center";g.textBaseline="middle";
+    g.fillText((PROC_NAMES[proc]||proc).charAt(0),cx,cy+d*0.03);
+  }
+}
+function drawQR(canvas,text,proc){
   var m=qrMatrix(text),n=m.length,quiet=4,scale=8;
   var dim=(n+quiet*2)*scale;
   canvas.width=dim;canvas.height=dim;
@@ -537,6 +568,23 @@ function drawQR(canvas,text){
   g.fillStyle="#1a1a1a";
   for(var y=0;y<n;y++)for(var x=0;x<n;x++)
     if(m[y][x])g.fillRect((x+quiet)*scale,(y+quiet)*scale,scale,scale);
+  /* Brand mark centred on the QR, 22% of the image like the app, which is
+     within what level-M error correction absorbs. If the PNG has not loaded
+     yet, draw again once it has — the badge must never be the reason a
+     vendor sees an unbranded code. */
+  if(proc&&BRAND[proc]){
+    var d=dim*0.22,cx=dim/2,cy=dim/2;
+    drawBadge(g,proc,cx,cy,d,true);
+    var im=MARKS[proc];
+    if(im&&!im.complete){im.addEventListener("load",function(){drawQR(canvas,text,proc);},{once:true});}
+  }
+}
+/* Small badge for the picker buttons (the app shows a 40pt ProcessorBadge). */
+function badgeCanvas(proc,px){
+  var c=document.createElement("canvas");c.width=c.height=px;c.className="pbadge";
+  var paint=function(){var g=c.getContext("2d");g.clearRect(0,0,px,px);drawBadge(g,proc,px/2,px/2,px,false);};
+  paint();var im=MARKS[proc];if(im&&!im.complete)im.addEventListener("load",paint,{once:true});
+  return c;
 }
 
 /* ---------- plumbing ---------- */
@@ -1007,7 +1055,9 @@ function showCharge(sale){
   tabs.innerHTML="";
   accounts.forEach(function(a,i){
     var b=document.createElement("button");
-    b.type="button";b.textContent=PROC_NAMES[a.processor]||a.processor;
+    b.type="button";
+    if(BRAND[a.processor])b.appendChild(badgeCanvas(a.processor,36));
+    b.appendChild(document.createTextNode(PROC_NAMES[a.processor]||a.processor));
     b.onclick=function(){selectProc(a.processor);};
     b.setAttribute("data-proc",a.processor);
     tabs.appendChild(b);
@@ -1022,7 +1072,7 @@ function selectProc(proc){
   document.querySelectorAll("#procTabs button").forEach(function(b){
     b.classList.toggle("on",b.getAttribute("data-proc")===proc);
   });
-  drawQR($("qrCanvas"),PAY+activeSale.id+"/"+proc);
+  drawQR($("qrCanvas"),PAY+activeSale.id+"/"+proc,proc);
 }
 function startPoll(saleId){
   stopPoll();
@@ -1059,6 +1109,18 @@ function showPaid(cents,proc){
   show("v-paid");
 }
 $("newSaleBtn").onclick=function(){renderTape();show("v-register");};
+/* In vendor mode the mark is the Register tab: from the QR screen or the paid
+   screen it returns to a fresh sale. A sale still waiting on the QR screen is
+   cancelled, exactly as the Cancel button would — silently walking away from
+   it would leave a pending row the vendor never sees. Guests keep the link to
+   the marketing site. */
+$("brandLink").addEventListener("click",function(ev){
+  if(!regProfile)return;
+  ev.preventDefault();
+  if(activeSale&&!$("v-charge").classList.contains("hidden")){$("cancelBtn").onclick();return;}
+  tape=[];renderTape();show("v-register");
+  window.scrollTo(0,0);
+});
 $("retryBtn").onclick=boot;
 
 boot();

@@ -97,7 +97,10 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
    logo lives behind one "⋯" button and drops down as a column; one set of
    controls, one set of ids, nothing duplicated — the DOM node is the same,
    only where it renders changes. */
-.morebtn{display:none;align-items:center;justify-content:center;width:40px;height:40px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.3rem;line-height:1;cursor:pointer;flex:none}
+/* 44px: Apple's minimum comfortable tap target. Sits at the far right, after
+   Sign out, so the thumb finds it where every other app puts it. */
+.morebtn{display:none;align-items:center;justify-content:center;width:44px;height:44px;margin-left:auto;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.5rem;line-height:1;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
+.morebtn:active{background:var(--line)}
 @media(max-width:640px){
   .morebtn{display:inline-flex}
   .navside{display:none}

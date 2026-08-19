@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-wJxpzOoHvhGo0g8Fou+TsiuQ93nkmDw71O5lUmWUfhY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-BFPwCnFfGQ/eHPzbBca4tDjubeXYNhLv6X5C0chAtCc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your catalog — SugarSnapp</title>
 <meta name="description" content="Edit the items on your SugarSnapp register and self-checkout page.">
 <meta name="robots" content="noindex">
@@ -18,7 +18,7 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=4ab9b11ce0">
+<link rel="stylesheet" href="styles/ss.css?v=f9bd5e3b5d">
 <style>
 /* The catalog gets the full column here — that is the whole point of giving
    it its own page rather than a card in the account stack. */
@@ -31,7 +31,6 @@
 <div class="wrap">
   <nav>
     <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
-    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
     <div class="navside" id="navSide">
       <select id="themeSel" aria-label="Appearance">
         <option value="dark">Dark</option>
@@ -39,6 +38,7 @@
         <option value="system">Match device</option>
       </select>
     </div>
+    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
   </nav>
 
   <main class="catwrap">
@@ -198,6 +198,19 @@ $("itemRows").addEventListener("click",function(ev){
   document.addEventListener("click",function(ev){if(side.classList.contains("open")&&!side.contains(ev.target))setOpen(false);});
   document.addEventListener("keydown",function(ev){if(ev.key==="Escape")setOpen(false);});
   side.addEventListener("click",function(ev){if(ev.target.closest("button"))setOpen(false);});
+})();
+
+/* Same rule as account.html: signed in, the mark opens the register. */
+(function(){
+  var s=getSession(); if(!s) return;
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=checkout_slug")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    var slug=rows[0]&&rows[0].checkout_slug;
+    var a=document.querySelector("nav > a"); if(!a) return;
+    a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
+    if(slug)a.title="Open your register";
+  }).catch(function(){});
 })();
 </script>
 </body>

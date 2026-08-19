@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-pXepLMWdu7yjQnGUgTzL2J8loIINOxfl11M6cTM3qY4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-ivTQrHEdExBqeG7oeXnW+EPnJITOPTT0GBhrDq5gR7s='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -19,13 +19,12 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=4ab9b11ce0">
+<link rel="stylesheet" href="styles/ss.css?v=f9bd5e3b5d">
 </head>
 <body>
 <div class="wrap wide">
   <nav>
     <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
-    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
     <div class="navside" id="navSide">
       <div class="toggle hidden" id="viewToggle">
         <button id="tabVendor" type="button">Stand</button>
@@ -38,6 +37,7 @@
       </select>
       <button id="signOut" class="hidden" type="button">Sign out</button>
     </div>
+    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
   </nav>
   <main>
 
@@ -97,12 +97,12 @@
             <p class="navgrp">Ledger</p>
             <a href="#ledger" data-nav="ledger">Today&rsquo;s ledger</a>
             <a href="#export" data-nav="export">Export CSV</a>
-            <p class="navgrp">Getting paid</p>
+            <p class="navgrp">Get paid</p>
             <a href="#stripe" data-nav="stripe">Stripe</a>
             <a href="#handles" data-nav="handles">PayPal &amp; Venmo</a>
             <a href="#checkout" data-nav="checkout">Self-checkout</a>
-            <p class="navgrp">Your stand</p>
-            <a href="#stand" data-nav="stand">Stand details</a>
+            <p class="navgrp">Selling</p>
+            <a href="#stand" data-nav="stand">Your stand</a>
             <a href="#receipts" data-nav="receipts">Receipt details</a>
             <a href="catalog.html">Catalog &rsaquo;</a>
             <p class="navgrp">Account</p>
@@ -429,18 +429,29 @@ function clampFuture(d){
   var today=new Date();today.setHours(0,0,0,0);
   return d>today?today:d;
 }
+/* Signed in, the SugarSnapp mark is the way back to the register — the same
+   gesture as tapping the Register tab in the app. The register lives at
+   shop.html?v=<slug>, so it only exists once self-checkout has minted a slug;
+   until then the mark keeps pointing home. */
+function pointLogoAtRegister(slug){
+  var a=document.querySelector("nav a.brandlink")||document.querySelector("nav > a");
+  if(!a)return;
+  a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
+  a.title=slug?"Open your register":"";
+}
 function loadVendorHeader(){
   var s=getSession();
   /* Defence in depth: boot re-checks the session, but any caller reaching here
      without one should bail rather than throw on s.user_id and kill the rest of
      the page's loaders. */
   if(!s)return;
-  authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=business_name,logo_url")
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=business_name,logo_url,checkout_slug")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     var p=rows[0]||{};
     if(p.business_name)$("vName").textContent=p.business_name;
     if(p.logo_url){$("vLogo").src=p.logo_url;$("vLogo").classList.remove("hidden");}
+    pointLogoAtRegister(p.checkout_slug);
   }).catch(function(){});
 }
 /* ---------- terms acceptance ---------- */
