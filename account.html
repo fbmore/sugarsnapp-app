@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zJetIYYH9bUtzd2rCWIt/y4ODYeQKeQJ4ZHrfV9jo3o='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GakEKAbT4NHa7Yv2GND3tzehkJRhNjMJmNxbT5HINKk='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -111,6 +111,9 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .itm .rm{border:none;background:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;line-height:1}
 .itm .rm:hover{color:var(--bad)}
 .itm.off .nm input,.itm.off .pr input,.itm.off .un input{opacity:.5}
+.logorow{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap}
+.logorow img{width:66px;height:66px;border-radius:12px;object-fit:cover;border:1px solid var(--line);background:var(--canvas)}
+.logonone{width:66px;height:66px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center}
 .conn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
 .dot.ok{background:var(--accent)}
@@ -249,6 +252,18 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            that, writing through the same per-vendor RLS the app uses. -->
       <div class="card" id="standCard">
         <div class="kicker">Your stand</div>
+        <div class="fld"><span>Logo &mdash; shown on receipts and your checkout page</span>
+          <div class="logorow">
+            <img id="sfLogo" alt="" class="hidden">
+            <div id="sfLogoNone" class="logonone">No logo</div>
+            <div>
+              <button class="ghost" id="sfLogoPick" type="button">Choose image</button>
+              <button class="ghost hidden" id="sfLogoDrop" type="button">Remove</button>
+              <input type="file" id="sfLogoFile" accept="image/*" class="hidden">
+            </div>
+          </div>
+          <div class="expmsg" id="sfLogoMsg" style="margin-top:8px"></div>
+        </div>
         <label class="fld"><span>Stand name</span>
           <input type="text" id="sfName" maxlength="60" placeholder="Maple Lane Farm Stand"></label>
         <label class="fld"><span>Sales tax rate (%) &mdash; leave 0 if you don&rsquo;t charge tax</span>
@@ -285,6 +300,28 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
           <button class="ghost hidden" id="payOff" type="button">Disconnect</button>
         </div>
         <div class="payerr" id="payErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" id="handlesCard">
+        <div class="kicker">Other ways to get paid</div>
+        <div class="expmsg" style="margin-top:6px">
+          A handle is all these need &mdash; the pay link carries the amount. Nothing is
+          charged through SugarSnapp; your customer pays you directly.
+        </div>
+        <label class="fld"><span>PayPal.Me name</span>
+          <input type="text" id="hPaypal" maxlength="40" placeholder="yourname" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <div class="expmsg" id="hPaypalHint" style="margin-top:5px">Customers go to paypal.me/yourname with the amount filled in.</div>
+        <label class="fld"><span>Venmo business handle</span>
+          <input type="text" id="hVenmo" maxlength="40" placeholder="your-business-handle" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+        <div class="expmsg" style="margin-top:5px">
+          Venmo requires a <strong>business profile</strong> to sell &mdash; a personal account
+          breaks their terms. Leading &ldquo;@&rdquo; is optional; we store it without.
+        </div>
+        <div class="saverow">
+          <button class="cta" id="hSave" type="button">Save</button>
+          <span class="saved" id="hSaved">Saved</span>
+        </div>
+        <div class="payerr" id="hErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
       <div class="card" id="itemsCard">
@@ -702,6 +739,138 @@ function disconnect(){
   }).then(function(){$("payOff").disabled=false;$("payOff").textContent="Disconnect";});
 }
 
+/* ---------- PayPal / Venmo handles ---------- */
+/* Contract copied from ConnectService.saveHandle: strip whitespace and any
+   leading/trailing "@", then upsert on (user_id, processor) with the handle in
+   external_id and the processor's display name in display_label. Diverging here
+   would give the same vendor two different handles depending on which client
+   they last used. */
+function cleanHandle(v){return String(v||"").trim().replace(/^@+/,"").replace(/@+$/,"").trim();}
+function loadHandles(){
+  authRest("payment_accounts?processor=in.(paypal,venmo)&select=processor,external_id")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    rows.forEach(function(row){
+      if(row.processor==="paypal")$("hPaypal").value=row.external_id||"";
+      if(row.processor==="venmo")$("hVenmo").value=row.external_id||"";
+    });
+    paintPaypalHint();
+  }).catch(function(){});
+}
+function paintPaypalHint(){
+  var h=cleanHandle($("hPaypal").value)||"yourname";
+  $("hPaypalHint").textContent="Customers go to paypal.me/"+h+" with the amount filled in.";
+}
+function saveHandles(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("hErr");err.style.display="none";
+  var pp=cleanHandle($("hPaypal").value),vn=cleanHandle($("hVenmo").value);
+  /* A handle ends up inside a pay URL, so refuse anything that is not the
+     harmless shape both services actually use. Better to reject here than to
+     mint a link that silently sends a customer nowhere. */
+  var ok=/^[A-Za-z0-9._-]{1,40}$/;
+  if(pp&&!ok.test(pp)){err.textContent="That PayPal name has characters PayPal.Me won't accept.";err.style.display="block";return;}
+  if(vn&&!ok.test(vn)){err.textContent="That Venmo handle has characters Venmo won't accept.";err.style.display="block";return;}
+  $("hSave").disabled=true;
+  var writes=[];
+  [["paypal","PayPal",pp],["venmo","Venmo",vn]].forEach(function(t){
+    var proc=t[0],label=t[1],handle=t[2];
+    if(handle){
+      writes.push(authRest("payment_accounts?on_conflict=user_id,processor",{
+        method:"POST",
+        headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+        body:JSON.stringify({user_id:s.user_id,processor:proc,external_id:handle,display_label:label})}));
+    }else{
+      /* Cleared the box: that means "stop offering this rail", and leaving a
+         stale handle behind would keep showing it on the register. Safe to
+         hard-delete — unlike items, nothing references payment_accounts. */
+      writes.push(authRest("payment_accounts?processor=eq."+proc,
+        {method:"DELETE",headers:{Prefer:"return=minimal"}}));
+    }
+  });
+  Promise.all(writes).then(function(rs){
+    for(var i=0;i<rs.length;i++)if(!rs[i].ok)throw new Error("write failed");
+    paintPaypalHint();flash("hSaved");
+  }).catch(function(){
+    err.textContent="Couldn't save. Try again in a moment.";err.style.display="block";
+  }).then(function(){$("hSave").disabled=false;});
+}
+
+/* ---------- logo ---------- */
+/* Resized in the browser to the same 512px / JPEG 0.82 the app uses
+   (LogoStore.optimized), so both clients produce interchangeable assets and the
+   1 MB ceiling in upload-logo is never the thing a vendor discovers. Resizing
+   client-side also means no server-side image transformation is involved at
+   all — these live in R2 behind media.getsugarsnapp.com, not Supabase Storage. */
+function paintLogo(url){
+  var img=$("sfLogo"),none=$("sfLogoNone");
+  if(url){img.src=url;img.classList.remove("hidden");none.classList.add("hidden");
+          $("sfLogoDrop").classList.remove("hidden");}
+  else{img.removeAttribute("src");img.classList.add("hidden");none.classList.remove("hidden");
+       $("sfLogoDrop").classList.add("hidden");}
+}
+function loadLogo(){
+  var s=getSession();if(!s)return;
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=logo_url")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){paintLogo(rows[0]&&rows[0].logo_url);})
+  .catch(function(){});
+}
+function shrinkToJpeg(file){
+  return new Promise(function(resolve,reject){
+    var reader=new FileReader();
+    reader.onerror=function(){reject(new Error("read failed"));};
+    reader.onload=function(){
+      var img=new Image();
+      img.onerror=function(){reject(new Error("not an image"));};
+      img.onload=function(){
+        var largest=Math.max(img.width,img.height)||1;
+        var scale=Math.min(1,512/largest);
+        var c=document.createElement("canvas");
+        c.width=Math.max(1,Math.round(img.width*scale));
+        c.height=Math.max(1,Math.round(img.height*scale));
+        var ctx=c.getContext("2d");
+        /* Transparent PNGs would otherwise flatten onto black once encoded as
+           JPEG, which turns a logo into a dark square. */
+        ctx.fillStyle="#ffffff";ctx.fillRect(0,0,c.width,c.height);
+        ctx.drawImage(img,0,0,c.width,c.height);
+        c.toBlob(function(blob){blob?resolve(blob):reject(new Error("encode failed"));},"image/jpeg",0.82);
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function uploadLogo(file){
+  var s=getSession();if(!s){show("v-login");return;}
+  var msg=$("sfLogoMsg");msg.textContent="Preparing…";
+  $("sfLogoPick").disabled=true;
+  shrinkToJpeg(file).then(function(blob){
+    if(blob.size>1048576)throw new Error("still too large");
+    msg.textContent="Uploading…";
+    return fetch(fnUrl("upload-logo"),{method:"POST",
+      headers:{apikey:ANON,Authorization:"Bearer "+getSession().access_token,"Content-Type":"image/jpeg"},
+      body:blob});
+  }).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||"upload failed");return j;});})
+  .then(function(j){paintLogo(j.logo_url);msg.textContent="Logo updated.";
+                    var v=$("vLogo");if(v){v.src=j.logo_url;v.classList.remove("hidden");}})
+  .catch(function(e){msg.textContent=(e&&e.message==="not an image")
+    ?"That file isn't an image we can read."
+    :"Couldn't upload that image. Try a different one.";})
+  .then(function(){$("sfLogoPick").disabled=false;$("sfLogoFile").value="";});
+}
+function removeLogo(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var msg=$("sfLogoMsg");msg.textContent="Removing…";
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
+    method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({logo_url:null})
+  }).then(function(r){
+    if(!r.ok)throw new Error("failed");
+    paintLogo(null);msg.textContent="Logo removed.";
+    var v=$("vLogo");if(v)v.classList.add("hidden");
+  }).catch(function(){msg.textContent="Couldn't remove it. Try again.";});
+}
+
 /* ---------- catalog ---------- */
 /* Held in memory and written on Save rather than per-keystroke: a vendor
    editing prices on a phone at a stall should not fire a request per character,
@@ -1037,7 +1206,7 @@ function enter(view){
   localStorage.setItem("ss-account-view",view);
   if(view==="organizer"){show("v-organizer");loadOrganizer();}
   else{show("v-vendor");loadVendorHeader();loadVendorDay();loadPlan();
-       loadStand();loadPay();loadItems();}
+       loadStand();loadPay();loadItems();loadHandles();loadLogo();}
   recordTermsIfNeeded();
 }
 
@@ -1221,6 +1390,13 @@ $("expBtn").addEventListener("click",exportCSV);
 
 /* --- the Android path: stand, card rail, catalog --- */
 $("sfSave").addEventListener("click",saveStand);
+$("hSave").addEventListener("click",saveHandles);
+$("hPaypal").addEventListener("input",paintPaypalHint);
+$("sfLogoPick").addEventListener("click",function(){$("sfLogoFile").click();});
+$("sfLogoDrop").addEventListener("click",removeLogo);
+$("sfLogoFile").addEventListener("change",function(){
+  if(this.files&&this.files[0])uploadLogo(this.files[0]);
+});
 $("payConnect").addEventListener("click",startConnect);
 $("payRefresh").addEventListener("click",refreshConnect);
 $("payOff").addEventListener("click",disconnect);
