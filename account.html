@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GakEKAbT4NHa7Yv2GND3tzehkJRhNjMJmNxbT5HINKk='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5mBTjhZMNBNgZyXzgdisjacfvEEfuPpWfh+VEbLKUlo='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -186,7 +186,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
     <section id="v-login" class="card login hidden" style="margin:30px 0">
       <div class="kicker">Your account</div>
       <h2 style="font-size:1.35rem;margin-top:8px">Your market day, <em style="color:var(--accent)">from any browser</em></h2>
-      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Same sign-in as the SugarSnapp app. This page is view-only — sales, exports, and tent records; changes happen in the app.</p>
+      <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Same sign-in as the SugarSnapp app. Run your stand from any browser: sales and exports, your item list, how you get paid, and your plan.</p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
         <button type="button" id="oauthApple" class="obtn apple">
           <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.44 9.56c.02 2.42 2.12 3.23 2.14 3.24-.02.06-.34 1.15-1.1 2.28-.67.98-1.36 1.95-2.45 1.97-1.07.02-1.42-.63-2.64-.63-1.23 0-1.61.61-2.62.65-1.05.04-1.85-1.05-2.52-2.02C1.87 13.06.83 9.44 2.24 6.99c.7-1.22 1.95-1.99 3.3-2.01 1.03-.02 2.01.7 2.64.7.63 0 1.81-.86 3.05-.73.52.02 1.98.21 2.92 1.58-.08.05-1.74 1.02-1.71 3.03zM10.41 3.65c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.97 1.56-.85 2.48.9.07 1.82-.46 2.39-1.13z"/></svg>
@@ -614,8 +614,8 @@ function recordTermsIfNeeded(){
 /* ---------- stand details ---------- */
 /* Fields chosen to match what the iOS Settings screen writes, so a vendor who
    later installs the app finds their setup already there rather than a second,
-   diverging copy. Logo is deliberately absent: it is the one field that needs
-   an upload path, and image egress is already over quota. */
+   diverging copy. Logo upload landed later (6d58a80) and goes through the
+   upload-logo Edge Function, which is the sole holder of the R2 credentials. */
 function loadStand(){
   var s=getSession();if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
