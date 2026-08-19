@@ -27,6 +27,16 @@ CSP_RE = re.compile(r"(<meta http-equiv=\"Content-Security-Policy\"[^>]*?"
                     r"script-src )([^;\"]*)")
 
 
+def keywords(value):
+    """Non-hash tokens in script-src, e.g. 'self' for an external file.
+
+    Only the sha256 entries are ours to regenerate. Anything else the page
+    declares is a deliberate choice and must survive a rewrite — dropping
+    'self' would stop an external script loading, with the same silent blank
+    page this tool exists to prevent."""
+    return [t for t in value.split() if not t.startswith("'sha256-")]
+
+
 def digest(body):
     """The hash CSP expects: sha256 of the element's exact text content."""
     return base64.b64encode(hashlib.sha256(body.encode("utf-8")).digest()).decode()
@@ -51,8 +61,9 @@ def main():
             sys.exit("%s: pins a script hash but has no inline <script>." % name)
 
         # Order matters only for readability; CSP treats the list as a set.
-        want = " ".join("'sha256-%s'" % digest(body) for body in scripts)
         have = csp.group(2).strip()
+        hashes = ["'sha256-%s'" % digest(body) for body in scripts]
+        want = " ".join(keywords(have) + hashes)
         if want == have:
             print("ok    %s (%d script%s)"
                   % (name, len(scripts), "" if len(scripts) == 1 else "s"))

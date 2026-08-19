@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-OE2usgcfI7pOvF4yoAEWc+p0Q6Nf/UTJm3AmWkAdbPw='; style-src 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-pfNJQvdutbePQ1yK4x5/wTvsDoWrfuYKhaGgpvf4Lmk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -19,202 +19,10 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<style>
-/* ── App theme ───────────────────────────────────────────────────────────
-   Mirrors the iOS app (SugarSnapp/Core/Theme.swift): vermillion enamel,
-   warm ink, monospaced numerals. The MARKETING pages (index, vendors,
-   shoppers, organizers, pricing, support, terms, privacy) deliberately keep
-   the older green/serif identity — do not "re-sync" the two blocks.
-   ──────────────────────────────────────────────────────────────────────── */
-:root{
-  --accent:#d95421;            /* Color.vermillion */
-  --ink:#2b211c;               /* Color.keyInk    */
-  --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
-  --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
-  --key-cream:#f4ead5;         /* Color.keyCream  */
-  /* Fixed in EVERY theme. Theme.swift: the total window is "the one
-     deliberately fixed-contrast surface besides the QR itself" — and a QR
-     rendered on a dark surface simply stops scanning. */
-  --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
-  --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
-  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
-}
-:root[data-theme="dark"]{
-  --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
-}
-@media(prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
-    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
-  }
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
-a{color:var(--accent)}
-button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-.wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
-nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
-.brand-logo{height:26px;width:auto;display:block}
-:root[data-theme="dark"] .brand-logo{filter:invert(1)}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
-.navside{display:flex;align-items:center;gap:14px}
-.navside button{font-size:.92rem;color:var(--muted)}
-.navside select{font:inherit;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
-.navside button:hover{color:var(--accent)}
-.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
-.note-card{text-align:center;margin:34px 0}
-.note-card h2{font-size:1.35rem;margin:8px 0 10px}
-.note-card h2 em{font-style:italic;color:var(--accent)}
-.note-card p{color:var(--muted);font-size:.95rem;max-width:32em;margin:0 auto}
-.hidden{display:none!important}
-.cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer}
-.cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
-.ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer}
-.linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
-.linkrow code{font-family:var(--font-mono);font-size:.88rem;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px;word-break:break-all;flex:1;min-width:0}
-.pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:.85rem;color:var(--muted)}
-
-/* view toggle */
-.toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);overflow:hidden}
-.toggle button{padding:7px 16px;font-size:.9rem;color:var(--muted)}
-.toggle button.on{background:var(--accent);color:#fff}
-
-/* login */
-.login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
-.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
-.login input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
-.login .err{color:var(--bad);font-size:.9rem;margin-top:12px;display:none}
-.login .cta{width:100%;margin-top:20px;text-align:center}
-.obtn{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;min-height:46px;font-size:1rem;width:100%}
-.obtn.apple{background:#000;color:#fff}
-:root[data-theme="dark"] .obtn.apple{background:#fff;color:#000}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .obtn.apple{background:#fff;color:#000}}
-.obtn.google{background:#fff;color:#1f1f20;border:1px solid #747775}
-
-/* header */
-.stand{display:flex;align-items:center;gap:14px;margin:4px 0 18px}
-.stand img{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#fff}
-.stand h1{font-size:1.35rem;line-height:1.2;font-weight:700}
-.stand .sub{color:var(--muted);font-size:.88rem;margin-top:1px}
-
-/* day nav */
-.daynav{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
-.daynav button.step{width:38px;height:38px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:1.1rem;color:var(--accent);line-height:1}
-.daynav button.step:disabled{color:var(--line)}
-.daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)}
-
-/* totals */
-.bigtot{font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
-.bigtot .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
-.brk{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;font-size:.92rem}
-.brk .r{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)}
-.brk .r b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
-
-/* sale rows */
-.sale{border-top:1px solid var(--line);padding:12px 0}
-.sale:first-child{border-top:none}
-.sale .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.sale .t{color:var(--muted);font-size:.85rem;white-space:nowrap}
-.sale .p{flex:1}
-.sale .amt{font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.sale .st{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
-.sale.dead .amt,.sale.dead .p{text-decoration:line-through;color:var(--muted)}
-.sale .st{white-space:nowrap;margin-right:10px}
-.sale .st.refunded,.sale .st.canceled{color:var(--bad)}
-.sale .st.pending,.sale .st.in_progress{color:var(--muted)}
-.sale .acts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:.85rem}
-.sale .lnk{background:none;border:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.85rem;text-decoration:underline;text-underline-offset:2px}
-.sale .lnk:disabled{color:var(--muted);cursor:default;text-decoration:none}
-.sale .actmsg{color:var(--muted)}
-.sale .actmsg.bad{color:var(--bad)}
-.sale .inl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
-.sale .inl input[type=email]{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.9rem;background:var(--canvas);color:var(--ink);min-width:200px}
-.sale .inl .confirm{color:var(--bad)}
-.danger{border-color:#e0b9b9}
-.danger .cta{background:var(--bad)}
-.lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:var(--font-mono)}
-.lines .ln{display:flex;justify-content:space-between;gap:8px}
-.lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.emptyday{color:var(--muted);font-style:italic;text-align:center;padding:8px 0}
-
-/* export */
-.exp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
-.exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas)}
-.exp label.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted)}
-/* Setup surfaces: the stand, the money rail, and the catalog. These are new to
-   the web because an Android vendor had no other way to author any of them —
-   the register shipped before the things it rings up did. */
-.fld{display:block;margin-top:12px}
-.fld>span{display:block;font-size:.82rem;color:var(--muted);margin-bottom:5px}
-.fld input[type=text],.fld input[type=number],.fld select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
-.fld.row{display:flex;gap:10px;align-items:flex-end}
-.saverow{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
-.saved{font-size:.85rem;color:var(--accent);opacity:0;transition:opacity .2s}
-.saved.on{opacity:1}
-.itm{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
-.itm:first-child{border-top:none}
-.itm .nm{flex:1;min-width:0}
-.itm .nm input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
-.itm .pr input{width:96px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink);text-align:right}
-.itm .un input{width:88px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
-.itm .rm{border:none;background:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;line-height:1}
-.itm .rm:hover{color:var(--bad)}
-.itm.off .nm input,.itm.off .pr input,.itm.off .un input{opacity:.5}
-.logorow{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap}
-.logorow img{width:66px;height:66px;border-radius:12px;object-fit:cover;border:1px solid var(--line);background:var(--canvas)}
-.logonone{width:66px;height:66px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center}
-.conn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
-.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
-.dot.ok{background:var(--accent)}
-.dot.warn{background:#c98a2b}
-.dot.no{background:var(--line)}
-.expmsg{font-size:.88rem;color:var(--muted);margin-top:8px}
-
-/* pricing cards */
-.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
-@media(max-width:640px){.plans{grid-template-columns:1fr}}
-.plan{border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;background:var(--canvas);display:flex;flex-direction:column}
-/* The one you're on is the loudest thing in the row — the whole point of the
-   card layout is answering "which am I on?" before "what else is there?". */
-.plan.current{border-color:var(--accent);border-width:2px;background:var(--surface);padding:15px 15px 17px}
-.plan .pname{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.plan.current .pname{color:var(--accent)}
-.plan .pprice{font-family:var(--font-mono);font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
-.plan .pper{font-size:.82rem;color:var(--muted);margin-bottom:10px}
-.plan ul{list-style:none;margin:0 0 14px;font-size:.88rem}
-.plan ul li{padding:3px 0 3px 16px;position:relative;color:var(--muted)}
-.plan ul li::before{content:"\2713";position:absolute;left:0;color:var(--accent)}
-.plan .pbtn{margin-top:auto}
-.plan .pbtn button{width:100%;text-align:center}
-.plan .badge{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
-.plan .oncard{font-size:.82rem;color:var(--muted);text-align:center;padding:10px 0 2px}
-.plan .save{font-size:.78rem;color:var(--accent);margin-top:-6px;margin-bottom:8px}
-
-/* organizer */
-.ro-banner{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media(max-width:520px){.grid2{grid-template-columns:1fr}}
-.stat .v{font-family:var(--font-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
-.stat .k{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
-.stat .sub2{font-size:.85rem;color:var(--muted);margin-top:2px}
-.delta-ok{color:var(--accent)}
-.delta-off{color:var(--bad)}
-table.tal{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:6px}
-table.tal th{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:4px 6px 6px 0}
-table.tal td{border-top:1px solid var(--line);padding:7px 6px 7px 0}
-table.tal td.n,table.tal th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
-.flagged{color:var(--bad);font-size:.8rem}
-.audit .ae{border-top:1px solid var(--line);padding:9px 0;font-size:.9rem}
-.audit .ae:first-child{border-top:none}
-.audit .ae .m{color:var(--muted);font-size:.8rem}
-.audit .ae .rsn{color:var(--muted);font-style:italic}
-footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-align:center;color:var(--muted);font-size:.85rem}
-</style>
+<link rel="stylesheet" href="styles/ss.css">
 </head>
 <body>
-<div class="wrap">
+<div class="wrap wide">
   <nav>
     <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
     <div class="navside">
@@ -275,21 +83,48 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
           <div class="sub">Vendor account</div>
         </div>
       </div>
-      <div class="daynav">
+      <!-- Desktop: a persistent left rail. Narrow: a drawer behind the
+           hamburger in .secbar. Both drive the same hash router, so a
+           section is always addressable as account.html#stripe. -->
+      <button class="navtoggle" id="navToggle" type="button" aria-expanded="false" aria-controls="acctNav">
+        <span aria-hidden="true">&#9776;</span><span id="navHere">Ledger</span>
+      </button>
+      <div class="navscrim" id="navScrim" hidden></div>
+      <div class="acctwrap">
+        <aside class="acctnav" id="acctNav">
+          <nav aria-label="Account sections">
+            <p class="navgrp">Ledger</p>
+            <a href="#ledger" data-nav="ledger">Today&rsquo;s ledger</a>
+            <a href="#export" data-nav="export">Export CSV</a>
+            <p class="navgrp">Getting paid</p>
+            <a href="#stripe" data-nav="stripe">Stripe</a>
+            <a href="#handles" data-nav="handles">PayPal &amp; Venmo</a>
+            <a href="#checkout" data-nav="checkout">Self-checkout</a>
+            <p class="navgrp">Your stand</p>
+            <a href="#stand" data-nav="stand">Stand details</a>
+            <a href="#receipts" data-nav="receipts">Receipt details</a>
+            <a href="catalog.html">Catalog &rsaquo;</a>
+            <p class="navgrp">Account</p>
+            <a href="#plan" data-nav="plan">Plan</a>
+            <a href="#delete" data-nav="delete">Delete account</a>
+          </nav>
+        </aside>
+        <div class="acctmain">
+      <div class="daynav" data-sec="ledger">
         <button class="step" id="vPrev" type="button" aria-label="Previous day">&lsaquo;</button>
         <input type="date" id="vDate" aria-label="Ledger day">
         <button class="step" id="vNext" type="button" aria-label="Next day">&rsaquo;</button>
         <button class="ghost" id="vToday" type="button">Today</button>
       </div>
-      <div class="card">
+      <div class="card" data-sec="ledger">
         <div class="bigtot"><span class="lbl" id="vTotLbl">Total</span><span id="vTotal">$0.00</span></div>
         <div class="brk" id="vBreak"></div>
       </div>
-      <div class="card" id="vSalesCard">
+      <div class="card" id="vSalesCard" data-sec="ledger">
         <div class="kicker" style="margin-bottom:6px">Sales</div>
         <div id="vSales"></div>
       </div>
-      <div class="card">
+      <div class="card" data-sec="export">
         <div class="kicker">Export CSV</div>
         <div class="exp">
           <input type="date" id="expFrom" aria-label="Export from">
@@ -306,7 +141,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            vendor therefore had a register that could take cash against an
            empty product list, which is not a product. These three cards close
            that, writing through the same per-vendor RLS the app uses. -->
-      <div class="card" id="payCard">
+      <div class="card" id="payCard" data-sec="stripe">
         <div class="kicker">Card payments</div>
         <div class="conn" id="payState"><span class="dot no"></span><span class="expmsg">Checking&hellip;</span></div>
         <div class="expmsg" id="payNote" style="margin-top:10px">
@@ -321,7 +156,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div class="payerr" id="payErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
-      <div class="card" id="handlesCard">
+      <div class="card" id="handlesCard" data-sec="handles">
         <div class="kicker">Other ways to get paid</div>
         <div class="expmsg" style="margin-top:6px">
           A handle is all these need &mdash; the pay link carries the amount. Nothing is
@@ -343,7 +178,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div class="payerr" id="hErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
-      <div class="card" id="checkoutCard">
+      <div class="card" id="checkoutCard" data-sec="checkout">
         <div class="kicker">Self-checkout</div>
         <div class="expmsg" id="scNote" style="margin:6px 0 10px">Checking&hellip;</div>
         <label class="fld"><span><input type="checkbox" id="scOn" style="margin-right:7px">Public checkout page</span></label>
@@ -354,7 +189,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div id="scErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
-      <div class="card" id="standCard">
+      <div class="card" id="standCard" data-sec="stand">
         <div class="kicker">Your stand</div>
         <div class="fld"><span>Logo &mdash; shown on receipts and your checkout page</span>
           <div class="logorow">
@@ -392,7 +227,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div class="payerr" id="sfErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
-      <div class="card" id="receiptCard">
+      <div class="card" id="receiptCard" data-sec="receipts">
         <div class="kicker">Receipt details</div>
         <p class="expmsg" style="margin-bottom:6px">Optional, and shown on receipts only &mdash; never on your public checkout page.</p>
         <label class="fld"><span>Address</span>
@@ -410,20 +245,6 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         <div id="rdErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
-      <div class="card" id="itemsCard">
-        <div class="kicker">What you sell</div>
-        <div class="expmsg" style="margin-top:6px">
-          These are the buttons on your register and the list your shoppers see at
-          self-checkout. Same list as the app.
-        </div>
-        <div id="itemRows" style="margin-top:12px"></div>
-        <div class="saverow">
-          <button class="ghost" id="itAdd" type="button">Add an item</button>
-          <button class="cta" id="itSave" type="button">Save catalog</button>
-          <span class="saved" id="itSaved">Saved</span>
-        </div>
-        <div class="payerr" id="itErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
-      </div>
 
       <!-- Subscribing happens HERE, on the web, never in the iOS app. The app
            contains no purchase of its own, so App Store 3.1.1 has nothing to
@@ -431,7 +252,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            fully control. (Settings does carry a "See all plans" link to this
            card — an external purchase link, permitted for US apps post-Epic,
            and a known accepted risk recorded in APP_STORE_READINESS.md.) -->
-      <div class="card" id="planCard">
+      <div class="card" id="planCard" data-sec="plan">
         <div class="kicker">Your plan</div>
         <div id="planState" class="expmsg" style="margin-top:6px">Checking&hellip;</div>
         <div class="plans" id="planGrid"></div>
@@ -447,7 +268,7 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
            a web-only vendor had no self-serve path at all — they would have had
            to email us, which for a "delete my data" request is the wrong answer.
            Same function, same promise as AccountSettingsView. -->
-      <div class="card danger" id="deleteCard">
+      <div class="card danger" id="deleteCard" data-sec="delete">
         <div class="kicker">Delete account</div>
         <div class="expmsg" style="margin-top:6px">
           This permanently removes your account, ledger, and connected payment apps.
@@ -471,7 +292,9 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
         Run a market? <a href="organizers.html">Organizer mode</a> is free — set it up in the
         SugarSnapp app and your tent shows up here.
       </p>
-    </section>
+            </div>
+      </div>
+</section>
 
     <!-- organizer (read-only) -->
     <section id="v-organizer" class="hidden">
@@ -532,68 +355,9 @@ footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-al
     <p>Made by Francesco Bertocci LLC · <a href="index.html">getsugarsnapp.com</a></p>
   </footer>
 </div>
+<script src="scripts/ss-core.js"></script>
 <script>
 "use strict";
-/* ---------- plumbing (mirrors shop.html) ---------- */
-var SUPA="https://psiattienhrooetmjvue.supabase.co";
-var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
-var PROC_NAMES={stripe:"Stripe",paypal:"PayPal",venmo:"Venmo",cash:"Cash",ebt:"EBT",tap_to_pay:"Card · Tap to Pay"};
-
-function rest(path,opts,token){
-  opts=opts||{};
-  var headers={apikey:ANON,Authorization:"Bearer "+(token||ANON),"Content-Type":"application/json"};
-  for(var h in (opts.headers||{}))headers[h]=opts.headers[h];
-  return fetch(SUPA+"/rest/v1/"+path,{method:opts.method||"GET",headers:headers,body:opts.body});
-}
-function getSession(){try{return JSON.parse(localStorage.getItem("ss-session"));}catch(e){return null;}}
-function setSession(s){if(s)localStorage.setItem("ss-session",JSON.stringify(s));else localStorage.removeItem("ss-session");}
-function refreshSession(s){
-  return fetch(SUPA+"/auth/v1/token?grant_type=refresh_token",{
-    method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
-    body:JSON.stringify({refresh_token:s.refresh_token})
-  }).then(function(r){
-    if(!r.ok){setSession(null);return null;}
-    return r.json().then(function(j){
-      var ns={access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id};
-      setSession(ns);return ns;
-    });
-  });
-}
-function authRest(path,opts){
-  var s=getSession();
-  if(!s)return Promise.reject(new Error("no session"));
-  return rest(path,opts,s.access_token).then(function(r){
-    if(r.status!==401)return r;
-    return refreshSession(s).then(function(ns){
-      if(!ns){show("v-login");throw new Error("signed out");}
-      return rest(path,opts,ns.access_token);
-    });
-  });
-}
-function money(cents){return "$"+((cents||0)/100).toFixed(2);}
-function moneyPlain(cents){return ((cents||0)/100).toFixed(2);}
-function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
-  return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-function $(id){return document.getElementById(id);}
-
-/* ---------- appearance ---------- */
-/* Three states, matching the app's Settings > Appearance: Dark, Light, or
-   Match device. The head script already applied the stored choice before
-   paint; this only wires the control and persists changes. */
-(function(){
-  var sel=$("themeSel");
-  if(!sel)return;
-  var stored=null;
-  try{stored=localStorage.getItem("ss-theme");}catch(e){}
-  sel.value=stored||"dark";
-  sel.addEventListener("change",function(){
-    var v=sel.value;
-    try{localStorage.setItem("ss-theme",v);}catch(e){}
-    if(v==="system"){document.documentElement.removeAttribute("data-theme");}
-    else{document.documentElement.setAttribute("data-theme",v);}
-  });
-})();
-
 /* ---------- views ---------- */
 var VIEWS=["v-loading","v-login","v-vendor","v-organizer"];
 /* Does this account actually have an organizer side?
@@ -656,44 +420,6 @@ function show(id){
      to an empty tent. */
   $("orgHint").classList.toggle("hidden",!(id==="v-vendor"&&!hasOrganizerSide));
   window.scrollTo(0,0);
-}
-
-/* ---------- OAuth return leg (mirrors shop.html, minus the slug) ---------- */
-var oauthError=null;
-(function(){
-  var hash=location.hash||"";
-  if(hash.indexOf("access_token")<0&&hash.indexOf("error")<0)return;
-  var h=new URLSearchParams(hash.slice(1));
-  var at=h.get("access_token"),rt=h.get("refresh_token");
-  if(at&&rt){
-    var uid="";
-    try{uid=JSON.parse(atob(at.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))).sub||"";}catch(e){}
-    setSession({access_token:at,refresh_token:rt,user_id:uid});
-  }else{
-    oauthError=h.get("error_description")||"Sign-in didn't complete. Try again.";
-    oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));
-  }
-  history.replaceState(null,"",location.pathname);
-})();
-
-/* ---------- date helpers (local-midnight day boundaries, like the app) ---------- */
-function dstr(d){
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-function parseDstr(s){
-  var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2]);
-}
-function dayBounds(d){
-  var a=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-  var b=new Date(a);b.setDate(b.getDate()+1);
-  return [a.toISOString(),b.toISOString()];
-}
-function sameLocalDay(iso,d){
-  var x=new Date(iso);
-  return x.getFullYear()===d.getFullYear()&&x.getMonth()===d.getMonth()&&x.getDate()===d.getDate();
-}
-function timeOf(iso){
-  return new Date(iso).toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
 }
 
 /* ---------- vendor ledger ---------- */
@@ -915,6 +641,10 @@ function paintPay(state){
    Stripe once rather than trusting the redirect — the same reason the
    subscription path polls instead of believing its own success_url. */
 var payNeedsRefresh=false;
+/* Where a redirect wants us to land. Captured at boot because the
+   return-leg cleanup below calls replaceState and wipes the evidence
+   before enter() runs. */
+var landing=null;
 function loadPay(){
   var s=getSession();if(!s)return;
   /* Read our own row first: it is one indexed query and it is what every money
@@ -1113,78 +843,8 @@ function removeLogo(){
    should, because a past sale must stay resolvable to what was sold. Retired
    items stay listed here, dimmed, and can be brought back; on Android this page
    is the only place that could ever undo it. */
-var itemRows=[];
-function itemRowHtml(it,i){
-  var off=it.active===false;
-  return '<div class="itm'+(off?' off':'')+'" data-i="'+i+'">'+
-    '<div class="nm"><input type="text" maxlength="60" placeholder="Item name" value="'+esc(it.name||"")+'"'+(off?" disabled":"")+'></div>'+
-    '<div class="pr"><input type="number" min="0" step="0.01" placeholder="0.00" value="'+
-      (it.price_cents==null?"":moneyPlain(it.price_cents))+'"'+(off?" disabled":"")+'></div>'+
-    '<div class="un"><input type="text" maxlength="12" placeholder="each" value="'+esc(it.unit||"")+'"'+(off?" disabled":"")+'></div>'+
-    (off
-      ? '<button class="ghost" type="button" data-act="restore" style="padding:6px 12px;font-size:.85rem">Bring back</button>'
-      : '<button class="rm" type="button" data-act="retire" title="Remove from the register">&times;</button>')+
-    '</div>';
-}
-function paintItems(){
-  $("itemRows").innerHTML=itemRows.length
-    ? itemRows.map(itemRowHtml).join("")
-    : '<div class="expmsg">Nothing yet. Add your first item &mdash; a name and a price is enough.</div>';
-}
 /* Read the DOM back into the model before any operation that repaints, or the
    vendor's uncommitted typing is silently thrown away. */
-function readItemRows(){
-  var nodes=$("itemRows").querySelectorAll(".itm");
-  for(var i=0;i<nodes.length;i++){
-    var n=nodes[i],idx=parseInt(n.getAttribute("data-i"),10);
-    var row=itemRows[idx];
-    if(!row||row.active===false)continue;
-    row.name=n.querySelector(".nm input").value.trim();
-    var raw=n.querySelector(".pr input").value;
-    row.price_cents=raw===""?null:Math.round(parseFloat(raw)*100);
-    row.unit=n.querySelector(".un input").value.trim()||null;
-  }
-}
-function loadItems(){
-  authRest("items?select=id,name,price_cents,unit,active,sort_order&order=active.desc,sort_order.asc,created_at.asc")
-  .then(function(r){return r.ok?r.json():[];})
-  .then(function(rows){itemRows=rows;paintItems();})
-  .catch(function(){itemRows=[];paintItems();});
-}
-function saveItems(){
-  var s=getSession();if(!s){show("v-login");return;}
-  readItemRows();
-  var err=$("itErr");err.style.display="none";
-  /* Validate everything before writing anything. A partial save leaves the
-     register showing some edits and not others, which is worse than refusing. */
-  for(var i=0;i<itemRows.length;i++){
-    var it=itemRows[i];
-    if(it.active===false)continue;
-    if(!it.name){err.textContent="Every item needs a name.";err.style.display="block";return;}
-    if(it.price_cents==null||isNaN(it.price_cents)||it.price_cents<0){
-      err.textContent='"'+(it.name||"That item")+'" needs a price.';err.style.display="block";return;}
-  }
-  $("itSave").disabled=true;
-  var writes=itemRows.map(function(it,i){
-    if(it.id){
-      var patch={name:it.name,price_cents:it.price_cents,unit:it.unit,
-                 sort_order:i,active:it.active!==false};
-      return authRest("items?id=eq."+encodeURIComponent(it.id),
-        {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
-    }
-    return authRest("items",{method:"POST",headers:{Prefer:"return=minimal"},
-      body:JSON.stringify({user_id:s.user_id,name:it.name,price_cents:it.price_cents,
-        unit:it.unit,sort_order:i,active:true})});
-  });
-  Promise.all(writes).then(function(rs){
-    for(var i=0;i<rs.length;i++)if(!rs[i].ok)throw new Error("write failed");
-    flash("itSaved");
-    loadItems();
-  }).catch(function(){
-    err.textContent="Couldn't save the catalog. Try again in a moment.";
-    err.style.display="block";
-  }).then(function(){$("itSave").disabled=false;});
-}
 
 function loadVendorDay(){
   vDay=clampFuture(vDay);
@@ -1550,11 +1210,90 @@ function loadRoster(){
 }
 
 /* ---------- wiring ---------- */
+/* ---------- section router ----------
+   Every card carries data-sec; the rail and the drawer both just set the
+   hash. A section's data is fetched the first time it is opened and never
+   again, so arriving at the ledger costs one query instead of eight. */
+var SECTIONS=["ledger","export","stripe","handles","checkout","stand","receipts","catalog","plan","delete"];
+/* Some cards share a fetch: paintCheckout() needs stripeReady from loadPay
+   AND checkout_slug from loadStand, so both sections ask for both and
+   loadOnce keeps it to a single request either way. */
+var fetched={};
+function loadOnce(key,fn){if(!fetched[key]){fetched[key]=true;fn();}}
+var SEC_LOADERS={
+  ledger:function(){loadVendorDay();},
+  stripe:function(){loadOnce("pay",loadPay);},
+  handles:function(){loadOnce("handles",loadHandles);},
+  checkout:function(){loadOnce("pay",loadPay);loadOnce("stand",loadStand);},
+  stand:function(){loadOnce("stand",loadStand);loadOnce("logo",loadLogo);},
+  plan:function(){loadOnce("plan",loadPlan);}
+};
+var secLoaded={};
+
+function secFromHash(){
+  var h=(location.hash||"").replace(/^#/,"");
+  if(h==="planCard")h="plan";              /* the app's "See all plans" deep link */
+  return SECTIONS.indexOf(h)>=0?h:"ledger";
+}
+
+function showSection(sec,push){
+  if(SECTIONS.indexOf(sec)<0)sec="ledger";
+  var cards=document.querySelectorAll(".acctmain > [data-sec]");
+  for(var i=0;i<cards.length;i++){
+    cards[i].classList.toggle("on",cards[i].getAttribute("data-sec")===sec);
+  }
+  var links=document.querySelectorAll(".acctnav a[data-nav]");
+  for(var j=0;j<links.length;j++){
+    var on=links[j].getAttribute("data-nav")===sec;
+    links[j].classList.toggle("on",on);
+    if(on)$("navHere").textContent=links[j].textContent;
+  }
+  if(push&&secFromHash()!==sec)history.replaceState(null,"","#"+sec);
+  closeNav();
+  if(!secLoaded[sec]){
+    secLoaded[sec]=true;
+    if(SEC_LOADERS[sec])SEC_LOADERS[sec]();
+  }
+  window.scrollTo(0,0);
+}
+
+function openNav(){
+  $("acctNav").classList.add("open");
+  $("navScrim").hidden=false;
+  $("navToggle").setAttribute("aria-expanded","true");
+}
+function closeNav(){
+  $("acctNav").classList.remove("open");
+  $("navScrim").hidden=true;
+  $("navToggle").setAttribute("aria-expanded","false");
+}
+
+function wireNav(){
+  var links=document.querySelectorAll(".acctnav a[data-nav]");
+  for(var i=0;i<links.length;i++){
+    links[i].addEventListener("click",function(e){
+      e.preventDefault();
+      showSection(this.getAttribute("data-nav"),true);
+    });
+  }
+  $("navToggle").addEventListener("click",function(){
+    if($("acctNav").classList.contains("open"))closeNav();else openNav();
+  });
+  $("navScrim").addEventListener("click",closeNav);
+  window.addEventListener("hashchange",function(){showSection(secFromHash(),false);});
+}
+
 function enter(view){
   localStorage.setItem("ss-account-view",view);
   if(view==="organizer"){show("v-organizer");loadOrganizer();}
-  else{show("v-vendor");loadVendorHeader();loadVendorDay();loadPlan();
-       loadStand();loadPay();loadItems();loadHandles();loadLogo();}
+  else{
+    show("v-vendor");
+    /* The header is the stand's name and logo above every section, so it is
+       the one thing besides the ledger that always loads. */
+    loadVendorHeader();
+    wireNav();
+    showSection(landing||secFromHash(),!!landing);
+  }
   recordTermsIfNeeded();
 }
 
@@ -1785,31 +1524,6 @@ $("sfLogoFile").addEventListener("change",function(){
 $("payConnect").addEventListener("click",startConnect);
 $("payRefresh").addEventListener("click",refreshConnect);
 $("payOff").addEventListener("click",disconnect);
-$("itAdd").addEventListener("click",function(){
-  readItemRows();
-  itemRows.push({name:"",price_cents:null,unit:null,active:true});
-  paintItems();
-  var inputs=$("itemRows").querySelectorAll(".itm .nm input");
-  if(inputs.length)inputs[inputs.length-1].focus();
-});
-$("itSave").addEventListener("click",saveItems);
-/* Delegated: the rows are rebuilt on every repaint, so per-row listeners would
-   have to be re-attached each time and would leak the ones they replaced. */
-$("itemRows").addEventListener("click",function(ev){
-  var btn=ev.target.closest("[data-act]");if(!btn)return;
-  var row=btn.closest(".itm");if(!row)return;
-  var i=parseInt(row.getAttribute("data-i"),10);
-  var it=itemRows[i];if(!it)return;
-  readItemRows();
-  if(btn.getAttribute("data-act")==="retire"){
-    /* Never saved? Nothing exists to retire — just drop it. */
-    if(!it.id)itemRows.splice(i,1);
-    else it.active=false;
-  }else{
-    it.active=true;
-  }
-  paintItems();
-});
 function startOAuth(provider){
   location.href=SUPA+"/auth/v1/authorize?provider="+provider+
     "&redirect_to="+encodeURIComponent("https://getsugarsnapp.com/account.html");
@@ -1866,18 +1580,11 @@ function boot(){
     /* Back from Stripe consent: the card rail lives on the vendor side, so a
        remembered organizer view would hide the thing they just set up. */
     if(new URLSearchParams(location.search).get("stripe")==="connected"){
-      view="vendor";payNeedsRefresh=true;
+      view="vendor";payNeedsRefresh=true;landing="stripe";
     }
     enter(view);
-    /* Native anchor scrolling fires before this script reveals the section, so
-       the browser finds a hidden element and does nothing. Scroll once the view
-       is actually on screen. */
-    if(location.hash==="#planCard"){
-      setTimeout(function(){
-        var el=$("planCard");
-        if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
-      },300);
-    }
+    /* #planCard from the app's "See all plans" is mapped to the plan section
+       by secFromHash, which reveals it outright — no anchor scrolling needed. */
   });
   /* Back from Stripe. Entitlement is written by WEBHOOK, not by this redirect,
      so it can trail the return by a few seconds. Poll briefly rather than
@@ -1889,6 +1596,7 @@ function boot(){
   }
   if(new URLSearchParams(location.search).get("subscribed")==="1"){
     history.replaceState(null,"",location.pathname);
+    landing="plan";
     $("planState").textContent="Payment received — activating…";
     var tries=0;
     var poll=setInterval(function(){

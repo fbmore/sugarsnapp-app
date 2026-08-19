@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Jig6hbTnIfJVUSRGzThtul0N0JHQd+Zd4CWFqGEfV14='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<title>Your catalog — SugarSnapp</title>
+<meta name="description" content="Edit the items on your SugarSnapp register and self-checkout page.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+/* Runs before first paint so a stored choice never flashes the wrong theme.
+   Kept tiny and dependency-free; hashed into the CSP like every inline
+   script here (see scripts/csp-hash.py). */
+(function(){try{
+  var t=localStorage.getItem('ss-theme')||'dark';   /* vendor tool: dark, like the app */
+  if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
+}catch(e){}})();
+</script>
+<link rel="stylesheet" href="styles/ss.css">
+<style>
+/* The catalog gets the full column here — that is the whole point of giving
+   it its own page rather than a card in the account stack. */
+.catwrap{max-width:860px;margin:0 auto}
+.catback{display:inline-block;margin-bottom:18px;color:var(--muted);text-decoration:none;font-size:.94rem}
+.catback:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
+    <div class="navside">
+      <select id="themeSel" aria-label="Appearance">
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+        <option value="system">Match device</option>
+      </select>
+    </div>
+  </nav>
+
+  <main class="catwrap">
+    <section id="c-loading" class="card note-card">
+      <h2>Opening <em>your catalog</em>&hellip;</h2>
+    </section>
+    <section id="c-main" class="hidden">
+      <a class="catback" href="account.html#stand">&lsaquo; Back to your account</a>
+      <h1 style="margin:0 0 6px">Your catalog</h1>
+      <div class="card" id="itemsCard">
+        <div class="kicker">What you sell</div>
+        <div class="expmsg" style="margin-top:6px">
+          These are the buttons on your register and the list your shoppers see at
+          self-checkout. Same list as the app.
+        </div>
+        <div id="itemRows" style="margin-top:12px"></div>
+        <div class="saverow">
+          <button class="ghost" id="itAdd" type="button">Add an item</button>
+          <button class="cta" id="itSave" type="button">Save catalog</button>
+          <span class="saved" id="itSaved">Saved</span>
+        </div>
+        <div class="payerr" id="itErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="scripts/ss-core.js"></script>
+<script>
+"use strict";
+/* Catalog editor. The session plumbing, formatting helpers and theme switch
+   all come from ss-core.js; this file is only the item list.
+ *
+ * There is no sign-in form here on purpose — an unauthenticated visitor is
+ * bounced to account.html, which already owns that flow. One copy of the
+ * sign-in UI, not two. */
+function flash(id){var e=$(id);e.classList.add("on");setTimeout(function(){e.classList.remove("on");},1600);}
+function show(id){ /* ss-core's saveItems bails to the sign-in view on a dead session */
+  if(id==="v-login")location.replace("account.html");
+}
+
+/* The catalog is a list of rows the vendor edits in place, then saves as one
+   batch. Removal is a RETIRE, never a delete: sale_items.item_id references
+   items with NO ACTION, so deleting anything ever sold would fail on a foreign
+   key — and should, because a past sale must stay resolvable to what was sold.
+   Retired items stay listed, dimmed, and can be brought back. */
+var itemRows=[];
+function itemRowHtml(it,i){
+  var off=it.active===false;
+  return '<div class="itm'+(off?' off':'')+'" data-i="'+i+'">'+
+    '<div class="nm"><input type="text" maxlength="60" placeholder="Item name" value="'+esc(it.name||"")+'"'+(off?" disabled":"")+'></div>'+
+    '<div class="pr"><input type="number" min="0" step="0.01" placeholder="0.00" value="'+
+      (it.price_cents==null?"":moneyPlain(it.price_cents))+'"'+(off?" disabled":"")+'></div>'+
+    '<div class="un"><input type="text" maxlength="12" placeholder="each" value="'+esc(it.unit||"")+'"'+(off?" disabled":"")+'></div>'+
+    (off
+      ? '<button class="ghost" type="button" data-act="restore" style="padding:6px 12px;font-size:.85rem">Bring back</button>'
+      : '<button class="rm" type="button" data-act="retire" title="Remove from the register">&times;</button>')+
+    '</div>';
+}
+function paintItems(){
+  $("itemRows").innerHTML=itemRows.length
+    ? itemRows.map(itemRowHtml).join("")
+    : '<div class="expmsg">Nothing yet. Add your first item &mdash; a name and a price is enough.</div>';
+}
+function readItemRows(){
+  var nodes=$("itemRows").querySelectorAll(".itm");
+  for(var i=0;i<nodes.length;i++){
+    var n=nodes[i],idx=parseInt(n.getAttribute("data-i"),10);
+    var row=itemRows[idx];
+    if(!row||row.active===false)continue;
+    row.name=n.querySelector(".nm input").value.trim();
+    var raw=n.querySelector(".pr input").value;
+    row.price_cents=raw===""?null:Math.round(parseFloat(raw)*100);
+    row.unit=n.querySelector(".un input").value.trim()||null;
+  }
+}
+function loadItems(){
+  authRest("items?select=id,name,price_cents,unit,active,sort_order&order=active.desc,sort_order.asc,created_at.asc")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){itemRows=rows;paintItems();})
+  .catch(function(){itemRows=[];paintItems();});
+}
+function saveItems(){
+  var s=getSession();if(!s){show("v-login");return;}
+  readItemRows();
+  var err=$("itErr");err.style.display="none";
+  /* Validate everything before writing anything. A partial save leaves the
+     register showing some edits and not others, which is worse than refusing. */
+  for(var i=0;i<itemRows.length;i++){
+    var it=itemRows[i];
+    if(it.active===false)continue;
+    if(!it.name){err.textContent="Every item needs a name.";err.style.display="block";return;}
+    if(it.price_cents==null||isNaN(it.price_cents)||it.price_cents<0){
+      err.textContent='"'+(it.name||"That item")+'" needs a price.';err.style.display="block";return;}
+  }
+  $("itSave").disabled=true;
+  var writes=itemRows.map(function(it,i){
+    if(it.id){
+      var patch={name:it.name,price_cents:it.price_cents,unit:it.unit,
+                 sort_order:i,active:it.active!==false};
+      return authRest("items?id=eq."+encodeURIComponent(it.id),
+        {method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(patch)});
+    }
+    return authRest("items",{method:"POST",headers:{Prefer:"return=minimal"},
+      body:JSON.stringify({user_id:s.user_id,name:it.name,price_cents:it.price_cents,
+        unit:it.unit,sort_order:i,active:true})});
+  });
+  Promise.all(writes).then(function(rs){
+    for(var i=0;i<rs.length;i++)if(!rs[i].ok)throw new Error("write failed");
+    flash("itSaved");
+    loadItems();
+  }).catch(function(){
+    err.textContent="Couldn't save the catalog. Try again in a moment.";
+    err.style.display="block";
+  }).then(function(){$("itSave").disabled=false;});
+}
+
+$("itAdd").addEventListener("click",function(){
+  readItemRows();
+  itemRows.push({name:"",price_cents:null,unit:null,active:true});
+  paintItems();
+  var inputs=$("itemRows").querySelectorAll(".itm .nm input");
+  if(inputs.length)inputs[inputs.length-1].focus();
+});
+$("itSave").addEventListener("click",saveItems);
+/* Delegated: the rows are rebuilt on every repaint, so per-row listeners would
+   have to be re-attached each time and would leak the ones they replaced. */
+$("itemRows").addEventListener("click",function(ev){
+  var btn=ev.target.closest("[data-act]");if(!btn)return;
+  var row=btn.closest(".itm");if(!row)return;
+  var i=parseInt(row.getAttribute("data-i"),10);
+  var it=itemRows[i];if(!it)return;
+  readItemRows();
+  if(btn.getAttribute("data-act")==="retire"){
+    /* Never saved? Nothing exists to retire — just drop it. */
+    if(!it.id)itemRows.splice(i,1);
+    else it.active=false;
+  }else{
+    it.active=true;
+  }
+  paintItems();
+});
+
+(function(){
+  if(!getSession()){location.replace("account.html");return;}
+  $("c-loading").classList.add("hidden");
+  $("c-main").classList.remove("hidden");
+  loadItems();
+})();
+</script>
+</body>
+</html>

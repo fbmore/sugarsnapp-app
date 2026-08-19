@@ -1,0 +1,228 @@
+/* Shared stylesheet for the signed-in pages (account, catalog).
+   Extracted from account.html so the catalog page cannot drift from it.
+   Inline style="" attributes are still used throughout, so style-src
+   keeps 'unsafe-inline' alongside 'self'. */
+/* The left rail must ADD width, not steal it: at 640px the rail left the
+   cards ~356px, narrower than before there was a rail at all. Only the
+   vendor shell widens — the sign-in card, the loading note and the organizer
+   view keep the original 640px measure. */
+.wrap.wide{max-width:900px}
+.wrap.wide>#v-login,.wrap.wide>#v-loading,.wrap.wide>#v-organizer{max-width:640px;margin-left:auto;margin-right:auto}
+@media(max-width:900px){.wrap.wide{max-width:640px}}
+
+/* ── Account shell ───────────────────────────────────────────────────────
+   One section on screen at a time, chosen by a left rail. The ledger is the
+   only thing that loads on arrival; everything else fetches the first time
+   it is opened (see showSection). Below 900px the rail becomes a drawer. */
+.acctwrap{display:grid;grid-template-columns:210px minmax(0,1fr);gap:34px;align-items:start}
+.acctnav{position:sticky;top:22px}
+.acctnav nav{display:flex;flex-direction:column;gap:2px}
+.navgrp{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px;padding:0 10px}
+.navgrp:first-child{margin-top:0}
+.acctnav a{display:block;padding:7px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.94rem;line-height:1.35}
+.acctnav a:hover{background:var(--line);color:var(--ink)}
+.acctnav a.on{background:var(--accent);color:#fff}
+.acctmain>[data-sec]{display:none}
+.acctmain>[data-sec].on{display:block}
+.navtoggle{display:none;align-items:center;gap:10px;background:none;border:1px solid var(--line);border-radius:999px;padding:9px 16px;color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer;margin-bottom:16px}
+.navscrim{display:none}
+@media(max-width:900px){
+  .acctwrap{display:block}
+  .navtoggle{display:inline-flex}
+  .acctnav{position:fixed;z-index:40;top:0;left:0;bottom:0;width:250px;padding:22px 14px;background:var(--bg);border-right:1px solid var(--line);overflow-y:auto;transform:translateX(-100%);transition:transform .18s ease}
+  .acctnav.open{transform:none}
+  .navscrim{display:block;position:fixed;z-index:39;inset:0;background:rgba(0,0,0,.5)}
+  .navscrim[hidden]{display:none}
+}
+
+/* ── App theme ───────────────────────────────────────────────────────────
+   Mirrors the iOS app (SugarSnapp/Core/Theme.swift): vermillion enamel,
+   warm ink, monospaced numerals. The MARKETING pages (index, vendors,
+   shoppers, organizers, pricing, support, terms, privacy) deliberately keep
+   the older green/serif identity — do not "re-sync" the two blocks.
+   ──────────────────────────────────────────────────────────────────────── */
+:root{
+  --accent:#d95421;            /* Color.vermillion */
+  --ink:#2b211c;               /* Color.keyInk    */
+  --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
+  --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
+  --key-cream:#f4ead5;         /* Color.keyCream  */
+  /* Fixed in EVERY theme. Theme.swift: the total window is "the one
+     deliberately fixed-contrast surface besides the QR itself" — and a QR
+     rendered on a dark surface simply stops scanning. */
+  --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
+  --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
+}
+:root[data-theme="dark"]{
+  --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+    --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e;
+  }
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px}
+.brand-logo{height:26px;width:auto;display:block}
+:root[data-theme="dark"] .brand-logo{filter:invert(1)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
+.navside{display:flex;align-items:center;gap:14px}
+.navside button{font-size:.92rem;color:var(--muted)}
+.navside select{font:inherit;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
+.navside button:hover{color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
+.note-card{text-align:center;margin:34px 0}
+.note-card h2{font-size:1.35rem;margin:8px 0 10px}
+.note-card h2 em{font-style:italic;color:var(--accent)}
+.note-card p{color:var(--muted);font-size:.95rem;max-width:32em;margin:0 auto}
+.hidden{display:none!important}
+.cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer}
+.cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
+.ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer}
+.linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.linkrow code{font-family:var(--font-mono);font-size:.88rem;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px;word-break:break-all;flex:1;min-width:0}
+.pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:.85rem;color:var(--muted)}
+
+/* view toggle */
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);overflow:hidden}
+.toggle button{padding:7px 16px;font-size:.9rem;color:var(--muted)}
+.toggle button.on{background:var(--accent);color:#fff}
+
+/* login */
+.login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
+.login input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
+.login input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.login .err{color:var(--bad);font-size:.9rem;margin-top:12px;display:none}
+.login .cta{width:100%;margin-top:20px;text-align:center}
+.obtn{display:flex;align-items:center;justify-content:center;gap:9px;border-radius:999px;min-height:46px;font-size:1rem;width:100%}
+.obtn.apple{background:#000;color:#fff}
+:root[data-theme="dark"] .obtn.apple{background:#fff;color:#000}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .obtn.apple{background:#fff;color:#000}}
+.obtn.google{background:#fff;color:#1f1f20;border:1px solid #747775}
+
+/* header */
+.stand{display:flex;align-items:center;gap:14px;margin:4px 0 18px}
+.stand img{width:52px;height:52px;border-radius:12px;border:1px solid var(--line);object-fit:cover;background:#fff}
+.stand h1{font-size:1.35rem;line-height:1.2;font-weight:700}
+.stand .sub{color:var(--muted);font-size:.88rem;margin-top:1px}
+
+/* day nav */
+.daynav{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.daynav button.step{width:38px;height:38px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:1.1rem;color:var(--accent);line-height:1}
+.daynav button.step:disabled{color:var(--line)}
+.daynav input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--surface);color:var(--ink)}
+
+/* totals */
+.bigtot{font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums}
+.bigtot .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
+.brk{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;font-size:.92rem}
+.brk .r{display:flex;justify-content:space-between;padding:2px 0;color:var(--muted)}
+.brk .r b{color:var(--ink);font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
+
+/* sale rows */
+.sale{border-top:1px solid var(--line);padding:12px 0}
+.sale:first-child{border-top:none}
+.sale .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sale .t{color:var(--muted);font-size:.85rem;white-space:nowrap}
+.sale .p{flex:1}
+.sale .amt{font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sale .st{font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+.sale.dead .amt,.sale.dead .p{text-decoration:line-through;color:var(--muted)}
+.sale .st{white-space:nowrap;margin-right:10px}
+.sale .st.refunded,.sale .st.canceled{color:var(--bad)}
+.sale .st.pending,.sale .st.in_progress{color:var(--muted)}
+.sale .acts{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:.85rem}
+.sale .lnk{background:none;border:none;padding:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.85rem;text-decoration:underline;text-underline-offset:2px}
+.sale .lnk:disabled{color:var(--muted);cursor:default;text-decoration:none}
+.sale .actmsg{color:var(--muted)}
+.sale .actmsg.bad{color:var(--bad)}
+.sale .inl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.sale .inl input[type=email]{padding:7px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:.9rem;background:var(--canvas);color:var(--ink);min-width:200px}
+.sale .inl .confirm{color:var(--bad)}
+.danger{border-color:#e0b9b9}
+.danger .cta{background:var(--bad)}
+.lines{margin-top:4px;font-size:.85rem;color:var(--muted);font-family:var(--font-mono)}
+.lines .ln{display:flex;justify-content:space-between;gap:8px}
+.lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emptyday{color:var(--muted);font-style:italic;text-align:center;padding:8px 0}
+
+/* export */
+.exp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas)}
+.exp label.chk{display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--muted)}
+/* Setup surfaces: the stand, the money rail, and the catalog. These are new to
+   the web because an Android vendor had no other way to author any of them —
+   the register shipped before the things it rings up did. */
+.fld{display:block;margin-top:12px}
+.fld>span{display:block;font-size:.82rem;color:var(--muted);margin-bottom:5px}
+.fld input[type=text],.fld input[type=number],.fld select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}
+.fld.row{display:flex;gap:10px;align-items:flex-end}
+.saverow{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.saved{font-size:.85rem;color:var(--accent);opacity:0;transition:opacity .2s}
+.saved.on{opacity:1}
+.itm{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.itm:first-child{border-top:none}
+.itm .nm{flex:1;min-width:0}
+.itm .nm input{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
+.itm .pr input{width:96px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink);text-align:right}
+.itm .un input{width:88px;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;font:inherit;background:var(--field);color:var(--ink)}
+.itm .rm{border:none;background:none;color:var(--muted);font-size:1.2rem;cursor:pointer;padding:4px 8px;line-height:1}
+.itm .rm:hover{color:var(--bad)}
+.itm.off .nm input,.itm.off .pr input,.itm.off .un input{opacity:.5}
+.logorow{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap}
+.logorow img{width:66px;height:66px;border-radius:12px;object-fit:cover;border:1px solid var(--line);background:var(--canvas)}
+.logonone{width:66px;height:66px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center}
+.conn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+.dot.ok{background:var(--accent)}
+.dot.warn{background:#c98a2b}
+.dot.no{background:var(--line)}
+.expmsg{font-size:.88rem;color:var(--muted);margin-top:8px}
+
+/* pricing cards */
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+@media(max-width:640px){.plans{grid-template-columns:1fr}}
+.plan{border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;background:var(--canvas);display:flex;flex-direction:column}
+/* The one you're on is the loudest thing in the row — the whole point of the
+   card layout is answering "which am I on?" before "what else is there?". */
+.plan.current{border-color:var(--accent);border-width:2px;background:var(--surface);padding:15px 15px 17px}
+.plan .pname{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.plan.current .pname{color:var(--accent)}
+.plan .pprice{font-family:var(--font-mono);font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
+.plan .pper{font-size:.82rem;color:var(--muted);margin-bottom:10px}
+.plan ul{list-style:none;margin:0 0 14px;font-size:.88rem}
+.plan ul li{padding:3px 0 3px 16px;position:relative;color:var(--muted)}
+.plan ul li::before{content:"\2713";position:absolute;left:0;color:var(--accent)}
+.plan .pbtn{margin-top:auto}
+.plan .pbtn button{width:100%;text-align:center}
+.plan .badge{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+.plan .oncard{font-size:.82rem;color:var(--muted);text-align:center;padding:10px 0 2px}
+.plan .save{font-size:.78rem;color:var(--accent);margin-top:-6px;margin-bottom:8px}
+
+/* organizer */
+.ro-banner{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){.grid2{grid-template-columns:1fr}}
+.stat .v{font-family:var(--font-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.stat .k{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.stat .sub2{font-size:.85rem;color:var(--muted);margin-top:2px}
+.delta-ok{color:var(--accent)}
+.delta-off{color:var(--bad)}
+table.tal{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:6px}
+table.tal th{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:4px 6px 6px 0}
+table.tal td{border-top:1px solid var(--line);padding:7px 6px 7px 0}
+table.tal td.n,table.tal th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--font-mono)}
+.flagged{color:var(--bad);font-size:.8rem}
+.audit .ae{border-top:1px solid var(--line);padding:9px 0;font-size:.9rem}
+.audit .ae:first-child{border-top:none}
+.audit .ae .m{color:var(--muted);font-size:.8rem}
+.audit .ae .rsn{color:var(--muted);font-style:italic}
+footer{border-top:1px solid var(--line);margin-top:30px;padding-top:18px;text-align:center;color:var(--muted);font-size:.85rem}
