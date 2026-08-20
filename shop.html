@@ -47,8 +47,20 @@
   --key-edge:#8a7550;
   /* Fixed in EVERY theme. Theme.swift: the total window is "the one
      deliberately fixed-contrast surface besides the QR itself" — and a QR
-     rendered on a dark surface simply stops scanning. */
+     rendered on a dark surface simply stops scanning.
+
+     The keycap belongs in this group and was not in it. A key is a physical
+     object: cream cap, dark ink, whatever the light in the room. The fill was
+     pinned (--key-cream) but the ink was taken from --ink, which flips to
+     near-white in the dark theme — so the dark theme rendered #f2efe9 digits
+     on a #f4ead5 cap at 1.04:1, and the numbers simply were not there. The
+     Clear key had it worse: its background was --ink, so it turned WHITE.
+
+     These are Theme.swift's exact values: Color.keyCream, Color.keyInk,
+     Color.vermillion, and the Clear key's salmon. */
   --total-window:#0e0d0b; --total-ink:#ffffff; --qr-surface:#ffffff;
+  --key-ink:#2b211c;           /* Color.keyInk    */
+  --key-clear-ink:#f28c73;     /* the C on RegisterView's clear key */
   --font-ui:-apple-system,BlinkMacSystemFont,system-ui,'Segoe UI',Roboto,sans-serif;
   --font-mono:ui-monospace,'SF Mono',SFMono-Regular,Menlo,monospace;
 }
@@ -183,10 +195,10 @@ body.has-paybar{padding-bottom:110px}
 .totwin .twlbl{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;color:rgba(255,255,255,.4)}
 .totwin .twamt{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1}
 .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-.keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:1px solid var(--key-edge);cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--key-ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:1px solid var(--key-edge);cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .keypad .key:active{transform:scale(.96);opacity:.8}
 .keypad .key.op{background:var(--accent);color:var(--key-cream);border-color:transparent}
-.keypad .key.clearkey{grid-column:span 2;background:var(--ink);color:#f28c73;border-color:transparent}
+.keypad .key.clearkey{grid-column:span 2;background:var(--key-ink);color:var(--key-clear-ink);border-color:transparent}
 .reg-items .qbadge{margin-left:8px;background:var(--accent);color:var(--key-cream);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
 
 /* wide landscape = the iPad register: keypad column left (capped like the
