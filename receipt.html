@@ -226,6 +226,7 @@ var PROC_NAMES={cash:"Cash",venmo:"Venmo",paypal:"PayPal",stripe:"Stripe",tap_to
 var params=new URLSearchParams(location.search);
 var saleId=params.get("sale");
 var canceled=params.get("canceled")==="1";
+var firstAwaitAt=null; // first render of the awaiting state, for retry gating
 var pollTimer=null;
 var emailSent=false;
 
@@ -314,6 +315,13 @@ function render(j){
     $("stamp").classList.add("hidden");
     $("awaiting").classList.remove("hidden");
     $("retryPay").href=PAY+saleId+"/stripe";
+    /* Retry only when the shopper explicitly backed out (?canceled=1) or the
+       payment has clearly stalled (>15s of awaiting). During normal webhook
+       lag the button was an invitation to pay twice — and although /r now
+       reuses the open session (P0-01), a paid-but-lagging sale should read
+       as "settling", not "try again". */
+    if(!firstAwaitAt)firstAwaitAt=Date.now();
+    $("retryPay").classList.toggle("hidden",!canceled&&(Date.now()-firstAwaitAt)<15000);
     $("saveHint").textContent="Once paid, a stamped copy appears here — that's what you show the vendor.";
     startPoll();
   }
