@@ -22,12 +22,13 @@ function evalFromPage(...snippets) {
     assert.ok(m, `shop.html no longer contains ${re} — update this test with the page`);
     return m[0];
   }).join('\n');
-  return new Function(src + '\nreturn {PROC_NAMES, RAIL_DISPLAY_ONLY, OFFERABLE};')();
+  return new Function(src + '\nreturn {PROC_NAMES, RAIL_DISPLAY_ONLY, OFFERABLE, WEBHOOK_VERIFIED};')();
 }
 
-const { PROC_NAMES, OFFERABLE } = evalFromPage(
+const { PROC_NAMES, OFFERABLE, WEBHOOK_VERIFIED } = evalFromPage(
   /var RAIL_DISPLAY_ONLY=\{[^}]*\};/,
   /var RAIL_HELD_UNTIL_1_4_LIVE=\{[\s\S]*?\};/,
+  /var WEBHOOK_VERIFIED=\{[^}]*\};/,
   /function OFFERABLE\([^)]*\)\{[^}]*\}/,
   /var PROC_NAMES=\{[^}]*\};/,
 );
@@ -76,4 +77,32 @@ test('both dark rails keep their display names, so old sales still read right', 
   // Gating what a vendor may RING UP must not change what the ledger SHOWS.
   assert.equal(PROC_NAMES.tap_to_pay, 'Card · Tap to Pay');
   assert.equal(PROC_NAMES.ebt, 'EBT');
+});
+
+/**
+ * The default shortlist must mirror VisibleRails.defaults on iOS. A vendor who
+ * uses both halves should not meet two different pickers, and the reason Stripe
+ * is excluded — an unbacked assertion reaching an organizer's grant report —
+ * applies identically on the web.
+ */
+function defaultShortlist(accounts) {
+  return ['cash'].concat(accounts.filter(a => !WEBHOOK_VERIFIED[a]));
+}
+
+test('Stripe is not a default hand-log choice, even when connected', () => {
+  const rails = defaultShortlist(['stripe', 'venmo']);
+  assert.ok(!rails.includes('stripe'),
+    'hand-logging Stripe asserts a card settled with no charge behind it');
+  assert.ok(rails.includes('venmo'),
+    'nothing calls back for Venmo — hand-confirming it is the intended flow');
+});
+
+test('a Stripe-only vendor still gets a usable picker', () => {
+  assert.deepEqual(defaultShortlist(['stripe']), ['cash']);
+});
+
+test('Stripe stays reachable under More ways to pay', () => {
+  const stored = defaultShortlist(['stripe']);
+  const more = Object.keys(PROC_NAMES).filter(r => !stored.includes(r) && OFFERABLE(r));
+  assert.ok(more.includes('stripe'), 'excluded from the default, never from the product');
 });

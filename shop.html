@@ -768,6 +768,11 @@ var RAIL_DISPLAY_ONLY={tap_to_pay:1,ebt:1};
 
    TO RELEASE: confirm 1.4 shows READY_FOR_SALE, then delete this object
    and the HELD check in OFFERABLE. One deletion, nothing else. */
+/* Rails SugarSnapp normally learns about from Stripe rather than from a
+   person. Kept beside the other rail sets so the three stay readable together.
+   MIRRORS Processor.isWebhookVerified on iOS. */
+var WEBHOOK_VERIFIED={stripe:1,tap_to_pay:1};
+
 var RAIL_HELD_UNTIL_1_4_LIVE={check:1,zelle:1,cashapp:1,apple_cash:1,
                               bank_transfer:1,trade:1,comped:1,other:1};
 
@@ -1170,7 +1175,19 @@ function enterRegister(profile){
       return r && PROC_NAMES[r];
     });
     if(!stored.length){
-      stored=["cash"].concat(accounts.map(function(a){return a.processor;}));
+      /* MIRRORS VisibleRails.defaults on iOS. Stripe is left out even when
+         connected: its sales arrive confirmed by a webhook through Charge, so
+         tapping it on the MANUAL picker asserts by hand that a card settled
+         with no charge to back it. Once organizer reconciliation reads
+         per-stall tallies that assertion lands in a grant report, so it does
+         not belong one mis-tap away on a screen used in a rush. It stays under
+         "More ways to pay" and stays fully curatable.
+
+         PayPal and Venmo stay, because nothing calls back for them — a vendor
+         confirming those by hand is the intended flow, not an anomaly. */
+      stored=["cash"].concat(accounts.filter(function(a){
+        return !WEBHOOK_VERIFIED[a.processor];
+      }).map(function(a){return a.processor;}));
     }
     if(stored.indexOf("cash")<0)stored.unshift("cash");
     railShortlist=stored.filter(OFFERABLE);
