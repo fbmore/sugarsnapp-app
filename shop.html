@@ -1427,7 +1427,7 @@ function renderLogRails(){
   }
   $("logRails").innerHTML = tiles(railShortlist);
   $("logMore").classList.toggle("hidden", railMore.length===0);
-  $("logNote").textContent = "For the vendor: this marks "+money(reg.total())+" as paid in your ledger.";
+  $("logNote").textContent = "For the vendor: this marks "+money(reg.grandTotal())+" as paid in your ledger.";
   bindRailTiles();
 }
 function bindRailTiles(){
