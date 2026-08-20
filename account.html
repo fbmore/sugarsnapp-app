@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-hl6ZF6v60Kaqd61Qa4wWbQN5UVxB4WBh9JYoLS62GnY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-00Q9erkDlA69W3D0inykahzpfXaR4Q/ViX79Qlpe11A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -178,6 +178,19 @@
           <span class="saved" id="hSaved">Saved</span>
         </div>
         <div class="payerr" id="hErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" id="railsCard" data-sec="rails">
+        <div class="kicker">Ways to log a payment</div>
+        <p class="expmsg" style="margin:6px 0 10px">Tick the ones you actually take. These appear first
+          when you log a payment by hand at the register &mdash; everything else stays behind
+          &ldquo;More ways to pay&rdquo;. The same list is used in the app.</p>
+        <div id="railsList"></div>
+        <div class="saverow">
+          <button class="cta" id="railsSave" type="button">Save</button>
+          <span class="saved" id="railsSaved">Saved</span>
+        </div>
+        <div id="railsErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
       <div class="card" id="checkoutCard" data-sec="checkout">
@@ -357,7 +370,7 @@
     <p>Made by Francesco Bertocci LLC · <a href="index.html">getsugarsnapp.com</a></p>
   </footer>
 </div>
-<script src="scripts/ss-core.js?v=5cc9f71f36"></script>
+<script src="scripts/ss-core.js?v=571f3f381d"></script>
 <script>
 "use strict";
 /* ---------- views ---------- */
@@ -505,7 +518,7 @@ function loadStand(){
   var s=getSession();if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
            "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled,"+
-           "market_tokens_enabled,address,website,contact_email,contact_phone,"+
+           "market_tokens_enabled,visible_rails,address,website,contact_email,contact_phone,"+
            "checkout_enabled,checkout_slug")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
@@ -526,8 +539,74 @@ function loadStand(){
 
     checkoutSlug=p.checkout_slug||null;
     $("scOn").checked=!!p.checkout_enabled;
+    loadRails(p);
     paintCheckout();
   }).catch(function(){});
+}
+
+/* ---------- ways to log a payment ---------- */
+/* The shortlist roams as profiles.visible_rails so this page and the app offer
+   the same rails. Cash is never optional: a picker with nothing in it and a
+   customer holding out a note leaves the vendor with no way forward. */
+var railsOrder = null;   /* the vendor's own order, exactly as stored */
+
+function renderRails(){
+  var el=$("railsList");
+  if(!el)return;
+  var chosen = railsOrder || ["cash"];
+  var html="";
+  Object.keys(PROC_NAMES).forEach(function(p){
+    var on = chosen.indexOf(p) >= 0;
+    var locked = (p === "cash");
+    html += '<label class="fld" style="display:flex;align-items:center;gap:9px;margin:0 0 6px">'
+         +  '<input type="checkbox" data-rail="'+esc(p)+'"'
+         +  (on?" checked":"") + (locked?" checked disabled":"") + '>'
+         +  '<span>'+esc(PROC_NAMES[p])+'</span>'
+         +  (locked?'<span style="color:var(--muted);font-size:.8rem">always</span>':'')
+         +  '</label>';
+  });
+  el.innerHTML = html;
+}
+
+function loadRails(p){
+  /* NULL means never curated: default to cash, matching what the app computes
+     before a vendor has chosen anything. */
+  if(p && typeof p.visible_rails === "string" && p.visible_rails !== ""){
+    railsOrder = p.visible_rails.split(",");
+  }else{
+    railsOrder = ["cash"];
+  }
+  if(railsOrder.indexOf("cash") < 0) railsOrder.unshift("cash");
+  renderRails();
+}
+
+function saveRails(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("railsErr");err.style.display="none";
+  var ticked=[];
+  var boxes=$("railsList").querySelectorAll("input[data-rail]");
+  for(var i=0;i<boxes.length;i++){
+    if(boxes[i].checked) ticked.push(boxes[i].getAttribute("data-rail"));
+  }
+  /* Preserve the vendor's own order for rails they already had. Reordering
+     happens in the app, and saving from here must not flatten it back to our
+     canonical order. Newly ticked rails go on the end. */
+  var prev = railsOrder || [];
+  var ordered = prev.filter(function(r){return ticked.indexOf(r)>=0;});
+  ticked.forEach(function(r){ if(ordered.indexOf(r)<0) ordered.push(r); });
+  if(ordered.indexOf("cash")<0) ordered.unshift("cash");
+
+  $("railsSave").disabled=true;
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
+    method:"PATCH",headers:{Prefer:"return=minimal"},
+    body:JSON.stringify({visible_rails:ordered.join(",")})
+  }).then(function(r){
+    if(!r.ok)throw new Error("save failed");
+    railsOrder=ordered; renderRails(); flash("railsSaved");
+  }).catch(function(){
+    err.textContent="Couldn't save. Check your connection and try again.";
+    err.style.display="block";
+  }).then(function(){$("railsSave").disabled=false;});
 }
 
 function saveReceipt(){
@@ -1526,6 +1605,7 @@ $("vSales").addEventListener("keydown",function(ev){
 $("sfSave").addEventListener("click",saveStand);
 $("sfTokens").addEventListener("change",function(){mtTokensTouched=true;});
 $("rdSave").addEventListener("click",saveReceipt);
+$("railsSave").addEventListener("click",saveRails);
 $("scOn").addEventListener("change",function(){setCheckout($("scOn").checked);});
 $("scCopy").addEventListener("click",function(){
   var t=$("scLink").textContent;

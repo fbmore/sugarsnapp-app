@@ -218,6 +218,14 @@ body.has-paybar{padding-bottom:110px}
 .reg-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .reg-actions .cta{width:100%;text-align:center;padding:16px 10px;font-size:1.1rem}
 .reg-actions .ghost{width:100%;text-align:center}
+.logsheet{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+.logsheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-weight:600}
+.logsheet-head .ghost{padding:6px 14px;font-size:.9rem}
+.lograils{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.lograil{display:flex;align-items:center;gap:10px;min-height:64px;padding:0 14px;border:none;border-radius:16px;
+  color:#fff;font:inherit;font-weight:600;text-align:left;cursor:pointer}
+.lograil .lmark{flex:none;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.22);
+  display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700}
 .reg-note{color:var(--muted);font-size:.82rem;font-style:italic;text-align:center;margin-top:14px}
 
 /* charge / QR screen */
@@ -383,9 +391,20 @@ footer a{margin:0 8px;color:var(--muted)}
           <div class="tape" id="tape"></div>
           <div class="reg-actions">
             <button class="cta" id="chargeBtn">Charge</button>
-            <button class="ghost" id="cashBtn">Log cash</button>
+            <button class="ghost" id="logBtn">Log payment</button>
           </div>
           <div class="payerr" id="regErr"></div>
+          <!-- the vendor's shortlist, same rails and same order as the app's
+               picker, read from profiles.visible_rails -->
+          <div class="logsheet hidden" id="logSheet">
+            <div class="logsheet-head">
+              <span>How did they pay?</span>
+              <button type="button" class="ghost" id="logCancel">Not yet</button>
+            </div>
+            <div class="lograils" id="logRails"></div>
+            <button type="button" class="ghost hidden" id="logMore">More ways to pay</button>
+            <p class="reg-note" id="logNote"></p>
+          </div>
           <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.<br>Charging needs signal — in a dead zone, take cash and log it when you&rsquo;re back.</p>
         </div>
         <!-- On wide landscape screens the compact tape gives way to the real
@@ -695,7 +714,7 @@ function badgeCanvas(proc,px){
 var SUPA="https://psiattienhrooetmjvue.supabase.co";
 var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
 var PAY="https://pay.getsugarsnapp.com/r/";
-var PROC_NAMES={stripe:"Stripe",paypal:"PayPal",venmo:"Venmo",cash:"Cash",ebt:"EBT",tap_to_pay:"Card · Tap to Pay"};
+var PROC_NAMES={cash:"Cash",venmo:"Venmo",paypal:"PayPal",stripe:"Stripe",tap_to_pay:"Card · Tap to Pay",ebt:"EBT",check:"Check",zelle:"Zelle",cashapp:"Cash App",apple_cash:"Apple Cash",bank_transfer:"Bank transfer",trade:"Trade",comped:"Comped",other:"Other"};
 
 function rest(path,opts,token){
   opts=opts||{};
@@ -807,7 +826,7 @@ function boot(){
   }
   var s=getSession();
   var tryVendor=s
-    ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug")
+    ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails")
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){return rows[0]&&rows[0].checkout_slug===slug?rows[0]:null;})
       .catch(function(){return null;})
@@ -1055,7 +1074,7 @@ $("loginForm").onsubmit=function(ev){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
       setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
-      return authRest("profiles?id=eq."+encodeURIComponent(j.user.id)+"&select=id,business_name,logo_url,checkout_slug")
+      return authRest("profiles?id=eq."+encodeURIComponent(j.user.id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails")
         .then(function(r2){return r2.ok?r2.json():[];})
         .then(function(rows){
           if(rows[0]&&rows[0].checkout_slug===slug)return enterRegister(rows[0]);
@@ -1083,6 +1102,20 @@ function enterRegister(profile){
     regItems=res[0];
     accounts=res[1].filter(function(a){
       return a.external_id&&["stripe","paypal","venmo"].indexOf(a.processor)>=0;
+    });
+    /* The shortlist the vendor curated, wherever they curated it. NULL means
+       never chosen, so fall back to what the app computes: cash plus whatever
+       is actually connected. */
+    var stored=(profile.visible_rails||"").split(",").filter(function(r){
+      return r && PROC_NAMES[r];
+    });
+    if(!stored.length){
+      stored=["cash"].concat(accounts.map(function(a){return a.processor;}));
+    }
+    if(stored.indexOf("cash")<0)stored.unshift("cash");
+    railShortlist=stored;
+    railMore=Object.keys(PROC_NAMES).filter(function(r){
+      return stored.indexOf(r)<0;
     });
     reg.clearAll();
     renderRegister();
@@ -1149,7 +1182,8 @@ function renderTape(){
   renderReceiptPane();
   var can=reg.canCharge();
   $("chargeBtn").disabled=!can||!accounts.length;
-  $("cashBtn").disabled=!can;
+  $("logBtn").disabled=!can;
+  if(!can)closeLogSheet();
   var t=reg.grandTotal();
   $("chargeBtn").textContent=!accounts.length?"Charge (no accounts)"
     :(t===0?"Charge":"Charge "+money(t));
@@ -1324,14 +1358,98 @@ $("chargeBtn").onclick=function(){
   .catch(function(){regError("No signal — the sale couldn't be created. Log cash instead, or try again.");})
   .finally(function(){btn.disabled=false;renderTape();});
 };
-$("cashBtn").onclick=function(){
+/* ---------- log a payment that already happened ---------- */
+/* The vendor's shortlist, roamed as profiles.visible_rails so this register and
+   the app offer the same rails in the same order. Asserted rails only: nothing
+   here shows a QR or waits on a webhook, which is why confirmation_method is
+   "manual" and confirmed_at is now. */
+var railShortlist = ["cash"], railMore = [];
+/* No SF Symbols on the web, so every rail wears initials — which means they
+   have to be made unique deliberately. Cash, Check and Comped all start with C,
+   and three identical discs in a row is a mis-tap at a stall, not a cosmetic
+   nitpick. Multi-word names take one letter from each of the first two words;
+   single words take as many letters as it takes to be unlike everything above
+   them. Computed once over the whole map so it is stable, never per-render. */
+var RAIL_MARKS = (function(){
+  var taken = {}, marks = {};
+  Object.keys(PROC_NAMES).forEach(function(p){
+    var words = (PROC_NAMES[p]||p).split(/[^A-Za-z]+/).filter(Boolean);
+    var mark;
+    if(words.length > 1){
+      mark = (words[0][0] + words[1][0]).toUpperCase();
+    }else{
+      var w = words[0] || p;
+      for(var n = 1; n <= w.length; n++){
+        mark = w.slice(0, n).toUpperCase();
+        if(!taken[mark]) break;
+      }
+    }
+    while(taken[mark]) mark += "\u2032";   /* pathological tie-break */
+    taken[mark] = true; marks[p] = mark;
+  });
+  return marks;
+})();
+function railMark(p){ return RAIL_MARKS[p] || (p[0] || "?").toUpperCase(); }
+/* Money rails wear a colour; the two where nothing was collected stay muted so
+   the register never dresses them as income. */
+function railColor(p){
+  if(p==="cash")return "#34c759";
+  if(p==="trade"||p==="comped")return "#57534e";
+  if(BRAND[p])return BRAND[p];
+  return "#2b211c";
+}
+function renderLogRails(){
+  function tiles(list){
+    return list.map(function(p){
+      return '<button type="button" class="lograil" data-rail="'+esc(p)+'"'
+           + ' style="background:'+railColor(p)+'">'
+           + '<span class="lmark">'+esc(railMark(p))+'</span>'
+           + '<span>'+esc(PROC_NAMES[p]||p)+'</span></button>';
+    }).join("");
+  }
+  $("logRails").innerHTML = tiles(railShortlist);
+  $("logMore").classList.toggle("hidden", railMore.length===0);
+  $("logNote").textContent = "For the vendor: this marks "+money(reg.total())+" as paid in your ledger.";
+  bindRailTiles();
+}
+function bindRailTiles(){
+  var tiles=$("logRails").querySelectorAll(".lograil");
+  for(var i=0;i<tiles.length;i++){
+    tiles[i].onclick=function(){ logPayment(this.getAttribute("data-rail")); };
+  }
+}
+function openLogSheet(){
   if(!reg.canCharge())return;
-  var btn=$("cashBtn");btn.disabled=true;btn.textContent="Logging…";
-  createSale({status:"paid",processor:"cash",confirmation_method:"manual",
-    confirmed_at:new Date().toISOString()})
-  .then(function(sale){showPaid(sale.total_cents,"cash");})
-  .catch(function(){regError("No signal — the cash sale couldn't be logged. It's safe to retry.");})
-  .finally(function(){btn.disabled=false;btn.textContent="Log cash";});
+  renderLogRails();
+  $("logSheet").classList.remove("hidden");
+}
+function closeLogSheet(){ $("logSheet").classList.add("hidden"); }
+
+function logPayment(rail){
+  var body={status:"paid",processor:rail,confirmation_method:"manual",
+            confirmed_at:new Date().toISOString()};
+  /* Trade and other mean nothing without saying what happened instead of
+     money. Always skippable — a note must never stand between a vendor and
+     recording the sale. */
+  if(rail==="trade"||rail==="other"){
+    var asked=window.prompt(rail==="trade" ? "What did you get for it? (optional)"
+                                           : "How did they pay? (optional)", "");
+    if(asked===null)return;            /* cancelled the prompt, not the sale */
+    if(asked.trim()!=="")body.note=asked.trim();
+  }
+  closeLogSheet();
+  var btn=$("logBtn");btn.disabled=true;btn.textContent="Logging…";
+  createSale(body)
+  .then(function(sale){showPaid(sale.total_cents,rail);})
+  .catch(function(){regError("No signal — the sale couldn't be logged. It's safe to retry.");})
+  .finally(function(){btn.disabled=false;btn.textContent="Log payment";});
+}
+
+$("logBtn").onclick=openLogSheet;
+$("logCancel").onclick=closeLogSheet;
+$("logMore").onclick=function(){
+  railShortlist=railShortlist.concat(railMore); railMore=[];
+  renderLogRails();
 };
 
 /* ---------- charge screen ---------- */
