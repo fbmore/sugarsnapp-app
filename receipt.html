@@ -100,7 +100,11 @@ nav .links a:hover{color:var(--accent)}
 .paper .brandfoot span{font-family:var(--font-mono);font-size:.66rem;color:#555}
 
 /* the PAID stamp */
-.stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);text-align:center;color:var(--accent);border:3px solid var(--accent);border-radius:8px;padding:10px 28px 12px;background:rgba(255,255,255,.72);pointer-events:none;mix-blend-mode:multiply;opacity:.3}
+/* The stamp is the trust handoff — a vendor reads it across a table in
+   daylight. The old .3 opacity + multiply blend was rubber-stamp pretty and
+   outdoor-invisible (P5). Still inky, now legible: the vendor's glance wins
+   over the aesthetic. */
+.stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);text-align:center;color:var(--accent);border:4px solid var(--accent);border-radius:8px;padding:10px 28px 12px;background:rgba(255,255,255,.9);pointer-events:none;mix-blend-mode:multiply;opacity:.85}
 .stamp::after{content:"";position:absolute;inset:3px;border:1.5px solid var(--accent);border-radius:5px}
 .stamp .word{font-family:var(--font-mono);font-weight:700;font-size:2.9rem;letter-spacing:.14em;line-height:1;text-transform:uppercase}
 .stamp .when{font-family:var(--font-mono);font-size:.74rem;font-weight:600;letter-spacing:.04em;margin-top:6px;white-space:nowrap}
@@ -329,10 +333,27 @@ function render(j){
   show("v-receipt");
 }
 
+var pollStartedAt=null;
 function startPoll(){
   if(pollTimer)return;
-  pollTimer=setInterval(load,3000);
+  if(!pollStartedAt)pollStartedAt=Date.now();
+  pollTimer=setInterval(function(){
+    /* Ceiling (P5): an abandoned tab was polling every 3s all afternoon.
+       After 10 minutes awaiting, drop to a slow heartbeat; any visibility
+       change snaps back to live polling for the shopper who returns. */
+    if(Date.now()-pollStartedAt>600000){
+      stopPoll();
+      pollTimer=setInterval(load,60000);
+      return;
+    }
+    load();
+  },3000);
 }
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"&&pollTimer){
+    stopPoll();pollStartedAt=Date.now();startPoll();load();
+  }
+});
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
 $("retryBtn").onclick=function(){show("v-loading");load();};
