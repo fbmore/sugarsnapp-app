@@ -226,6 +226,14 @@ body.has-paybar{padding-bottom:110px}
   color:#fff;font:inherit;font-weight:600;text-align:left;cursor:pointer}
 .lograil .lmark{flex:none;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.22);
   display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700}
+.lognote{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.lognote .fld{display:block;margin:0}
+.lognote .fld span{display:block;font-size:.88rem;color:var(--muted);margin-bottom:6px}
+.lognote input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:10px;
+  font:inherit;background:var(--field);color:var(--ink)}
+.lognote-actions{display:flex;gap:10px;margin-top:10px}
+.lognote-actions .ghost{flex:none}
+.lognote-actions .cta{flex:1;text-align:center}
 .reg-note{color:var(--muted);font-size:.82rem;font-style:italic;text-align:center;margin-top:14px}
 
 /* charge / QR screen */
@@ -403,6 +411,16 @@ footer a{margin:0 8px;color:var(--muted)}
             </div>
             <div class="lograils" id="logRails"></div>
             <button type="button" class="ghost hidden" id="logMore">More ways to pay</button>
+            <!-- second step, only for the rails that mean nothing without
+                 saying what happened instead of money -->
+            <div class="lognote hidden" id="logNoteStep">
+              <label class="fld" for="logNoteInput"><span id="logNoteAsk"></span>
+                <input type="text" id="logNoteInput" maxlength="120" autocomplete="off"></label>
+              <div class="lognote-actions">
+                <button type="button" class="ghost" id="logNoteSkip">Skip</button>
+                <button type="button" class="cta" id="logNoteSave">Save</button>
+              </div>
+            </div>
             <p class="reg-note" id="logNote"></p>
           </div>
           <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.<br>Charging needs signal — in a dead zone, take cash and log it when you&rsquo;re back.</p>
@@ -1423,20 +1441,35 @@ function openLogSheet(){
   renderLogRails();
   $("logSheet").classList.remove("hidden");
 }
-function closeLogSheet(){ $("logSheet").classList.add("hidden"); }
+function closeLogSheet(){ endNoteStep(); $("logSheet").classList.add("hidden"); }
 
-function logPayment(rail){
+/* Trade and other mean nothing without saying what happened instead of money,
+   so they ask — inline, in the same sheet, the way the app does it. Always
+   skippable: a note must never stand between a vendor and recording a sale. */
+function askNote(rail){
+  $("logNoteAsk").textContent = rail==="trade"
+    ? "What did you get for it?" : "How did they pay?";
+  $("logNoteInput").value="";
+  $("logNoteInput").placeholder = rail==="trade" ? "two dozen eggs" : "how they paid";
+  $("logRails").classList.add("hidden");
+  $("logMore").classList.add("hidden");
+  $("logNoteStep").classList.remove("hidden");
+  $("logNoteInput").focus();
+  pendingRail=rail;
+}
+function endNoteStep(){
+  $("logNoteStep").classList.add("hidden");
+  $("logRails").classList.remove("hidden");
+  $("logMore").classList.toggle("hidden", railMore.length===0);
+  pendingRail=null;
+}
+var pendingRail=null;
+
+function logPayment(rail, note){
   var body={status:"paid",processor:rail,confirmation_method:"manual",
             confirmed_at:new Date().toISOString()};
-  /* Trade and other mean nothing without saying what happened instead of
-     money. Always skippable — a note must never stand between a vendor and
-     recording the sale. */
-  if(rail==="trade"||rail==="other"){
-    var asked=window.prompt(rail==="trade" ? "What did you get for it? (optional)"
-                                           : "How did they pay? (optional)", "");
-    if(asked===null)return;            /* cancelled the prompt, not the sale */
-    if(asked.trim()!=="")body.note=asked.trim();
-  }
+  if((rail==="trade"||rail==="other") && note===undefined){ askNote(rail); return; }
+  if(note && note.trim()!=="") body.note=note.trim();
   closeLogSheet();
   var btn=$("logBtn");btn.disabled=true;btn.textContent="Logging…";
   createSale(body)
@@ -1451,6 +1484,12 @@ $("logMore").onclick=function(){
   railShortlist=railShortlist.concat(railMore); railMore=[];
   renderLogRails();
 };
+$("logNoteSkip").onclick=function(){ var r=pendingRail; endNoteStep(); logPayment(r,""); };
+$("logNoteSave").onclick=function(){ var r=pendingRail,v=$("logNoteInput").value;
+  endNoteStep(); logPayment(r,v); };
+$("logNoteInput").addEventListener("keydown",function(e){
+  if(e.key==="Enter"){ e.preventDefault(); $("logNoteSave").click(); }
+});
 
 /* ---------- charge screen ---------- */
 function showCharge(sale){
