@@ -135,7 +135,14 @@ body.has-paybar{padding-bottom:110px}
 .reg-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:4px 0 16px}
 .reg-head h1{font-size:1.3rem}
 .reg-head h1 em{font-style:italic;color:var(--accent)}
-.reg-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:20px}
+.reg-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.reg-catalog{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.reg-catalog .cathead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);padding:2px}
+.reg-catalog .catn{color:var(--muted);font-weight:400;font-family:var(--font-mono);font-size:.85rem}
+.reg-catalog .chev{margin-left:auto;color:var(--muted);transition:transform .15s ease}
+.reg-catalog.closed .chev{transform:rotate(-90deg)}
+.reg-catalog.closed .catbody{display:none}
+.reg-catalog .reg-items{margin-top:10px}
 .reg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;-webkit-user-select:none;user-select:none}
 .reg-item:active{border-color:var(--accent);background:#f2f7ef}
 .reg-item .nm{font-size:.98rem;line-height:1.25}
@@ -175,6 +182,9 @@ body.has-paybar{padding-bottom:110px}
      hold both so Sign out sits at the true right edge. */
   body.regwide .wrap{max-width:1240px}
   .reg-wrap{display:flex;gap:28px;align-items:flex-start}
+  .reg-catalog{width:250px;flex:none;margin-bottom:0}
+  .reg-catalog .reg-items{grid-template-columns:1fr}
+  .reg-catalog.closed{width:auto}
   .reg-left{flex:1;max-width:745px;margin:0 auto}
   .reg-head{display:none} /* the receipt masthead already names the stand */
   .reg-wrap .tape{display:none}
@@ -328,11 +338,19 @@ footer a{margin:0 8px;color:var(--muted)}
         <h1>Register — <em id="regName"></em></h1>
       </div>
       <div class="reg-wrap">
+        <!-- The catalog is its own collapsible column: no items, or fifty,
+             and the keypad never moves. Hidden entirely when the vendor has
+             no catalog; the chevron state is remembered per browser. -->
+        <aside class="reg-catalog hidden" id="regCatalog">
+          <button type="button" class="cathead" id="catToggle" aria-expanded="true" aria-controls="catBody">Catalog <span class="catn" id="catCount"></span><span class="chev">▾</span></button>
+          <div class="catbody" id="catBody">
+            <div class="reg-items" id="regItems"></div>
+          </div>
+        </aside>
         <div class="reg-left">
           <!-- The total window is fixed-contrast in both themes, like the app:
                white on near-black, the old "CASH .90" indicator window. -->
           <div class="totwin" aria-label="Total"><span class="twlbl">TOTAL</span><span class="twamt" id="twAmt">$0.00</span></div>
-          <div class="reg-items" id="regItems"></div>
           <!-- The keypad — the web twin of the iOS register (RegisterModel.swift).
                Cents-first: 9 5 0 reads $9.50. × then digits = quantity. + commits. -->
           <div class="keypad" id="keypad">
@@ -1029,9 +1047,9 @@ function enterRegister(profile){
 function renderRegister(){
   var grid=$("regItems");
   grid.innerHTML="";
-  if(!regItems.length){
-    grid.innerHTML='<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted)">No active items. Add items in the SugarSnapp app and refresh.</div>';
-  }
+  /* No catalog → no column at all; the keypad alone IS the register. */
+  $("regCatalog").classList.toggle("hidden",!regItems.length);
+  $("catCount").textContent=regItems.length?String(regItems.length):"";
   regItems.forEach(function(it){
     var b=document.createElement("button");
     b.type="button";b.className="reg-item";
@@ -1117,6 +1135,20 @@ function renderReceiptPane(){
   html+='</div>';
   el.innerHTML=html;
 }
+/* catalog column collapse — remembered per browser */
+(function(){
+  var t=$("catToggle");
+  if(!t)return;
+  var closed=false;
+  try{closed=localStorage.getItem("ss-cat-closed")==="1";}catch(e){}
+  if(closed)$("regCatalog").classList.add("closed");
+  t.setAttribute("aria-expanded",closed?"false":"true");
+  t.onclick=function(){
+    var c=$("regCatalog").classList.toggle("closed");
+    t.setAttribute("aria-expanded",c?"false":"true");
+    try{localStorage.setItem("ss-cat-closed",c?"1":"0");}catch(e){}
+  };
+})();
 /* keypad wiring — clicks map 1:1 onto the model; C long-press (600ms) wipes
    everything at once, exactly like holding Clear on the app */
 (function(){
