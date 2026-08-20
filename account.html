@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-r/7eWq4A5RQNsNfdAN0r/lQgqKcF7l6ZSbLbChIbZLs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-vNgn0GDdslWUAt2P4dmvfYAJwOOhPIrzLEmcu5fn8bg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -587,6 +587,11 @@ function renderRails(){
      tap_to_pay/ebt are display-only on web; the rest are held until 1.4 is
      live. DELETE the held members here in the SAME pass that deletes
      shop.html's RAIL_HELD_UNTIL_1_4_LIVE — two copies, one unlock. */
+  /* MIRRORS Processor.isWebhookVerified on iOS and WEBHOOK_VERIFIED in
+     shop.html: rails we normally learn about from Stripe rather than from a
+     person, and so not part of the default hand-log shortlist. */
+  var WEBHOOK_VERIFIED_RAIL={stripe:1,tap_to_pay:1};
+
   var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1,check:1,zelle:1,cashapp:1,
                           apple_cash:1,bank_transfer:1,trade:1,comped:1,other:1};
   Object.keys(PROC_NAMES).forEach(function(p){
@@ -604,15 +609,36 @@ function renderRails(){
 }
 
 function loadRails(p){
-  /* NULL means never curated: default to cash, matching what the app computes
-     before a vendor has chosen anything. */
+  /* NULL means never curated, and the default must be the SAME one the
+     registers compute — cash plus whatever is connected and not
+     webhook-verified (VisibleRails.defaults on iOS, the fallback in
+     shop.html). Defaulting to cash alone made the editor disagree with the
+     register on this very page: a vendor with Venmo connected saw only Cash
+     ticked, and saving without changing anything wrote "cash" — quietly
+     dropping Venmo from their own checkout picker on both surfaces. */
   if(p && typeof p.visible_rails === "string" && p.visible_rails !== ""){
     railsOrder = p.visible_rails.split(",");
-  }else{
-    railsOrder = ["cash"];
+    if(railsOrder.indexOf("cash") < 0) railsOrder.unshift("cash");
+    renderRails();
+    return;
   }
-  if(railsOrder.indexOf("cash") < 0) railsOrder.unshift("cash");
+  /* Never curated. The default must be computed from what is actually
+     connected, so it is fetched rather than assumed — this page has no
+     connected-rails variable, and defaulting to cash alone was the bug. */
+  railsOrder = ["cash"];
   renderRails();
+  authRest("payment_accounts?select=processor")
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    rows.forEach(function(row){
+      if(!WEBHOOK_VERIFIED_RAIL[row.processor] && PROC_NAMES[row.processor]
+         && railsOrder.indexOf(row.processor) < 0){
+        railsOrder.push(row.processor);
+      }
+    });
+    renderRails();
+  }).catch(function(){ /* offline: cash-only is the safe floor, and nothing
+                          is written until the vendor presses Save. */ });
 }
 
 function saveRails(){
@@ -625,9 +651,18 @@ function saveRails(){
   }
   /* Preserve the vendor's own order for rails they already had. Reordering
      happens in the app, and saving from here must not flatten it back to our
-     canonical order. Newly ticked rails go on the end. */
+     canonical order. Newly ticked rails go on the end.
+
+     Critically, a rail this editor does not RENDER must survive a save here.
+     iOS curates all fourteen rails; this page can only offer the four the web
+     registers will honour today. Filtering purely on `ticked` therefore
+     deleted every rail the vendor had chosen in the app — a vendor who put
+     Check and Trade on their shortlist lost both by saving an unrelated change
+     here. An editor may only remove what it actually showed the person. */
   var prev = railsOrder || [];
-  var ordered = prev.filter(function(r){return ticked.indexOf(r)>=0;});
+  var ordered = prev.filter(function(r){
+    return ticked.indexOf(r) >= 0 || RAIL_NOT_CURATABLE[r];
+  });
   ticked.forEach(function(r){ if(ordered.indexOf(r)<0) ordered.push(r); });
   if(ordered.indexOf("cash")<0) ordered.unshift("cash");
 
