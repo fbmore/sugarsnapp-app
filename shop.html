@@ -440,6 +440,13 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="proc-tabs" id="procTabs"></div>
       <div class="qrbox"><canvas id="qrCanvas" width="10" height="10"></canvas></div>
       <div class="wait" id="chargeWait"><span class="dotp"></span>Waiting for payment&hellip;</div>
+      <!-- Shown only when we have stopped being able to ASK. Never claims the
+           payment failed: we do not know that, and the customer may be holding
+           a receipt. -->
+      <div class="wait" id="chargeStale" hidden>
+        <div id="chargeStaleMsg"></div>
+        <button class="ghost" id="recheckBtn" type="button" style="margin-top:8px">Check again</button>
+      </div>
       <!-- The web twin of the app's link fallback: same /r/<sale>/<processor>
            URL the QR encodes, for customers who can't scan (or are on the
            other end of a phone call / text thread). -->
@@ -959,9 +966,20 @@ function loadCustom(){
   });
 }
 function saveCustom(){localStorage.setItem("ss-custom-"+slug,JSON.stringify(customLines));}
+/* Typed on the keypad but not yet added to the order. The vendor face has
+   always counted this (syncTape commits "exactly what's on screen, in-flight
+   line included"); the guest face did not — so a shopper in an unattended
+   honesty-box stall keyed $20, watched the display say $20, and found a
+   disabled "Pay $0.00" at the bottom of the screen with nothing telling them
+   to press +. Most will simply walk away, which on an honesty box means the
+   vendor is not paid at all. */
+function guestPendingCents(){
+  return typeof gm !== "undefined" && gm ? gm.currentLineTotal() : 0;
+}
 function cartTotal(){
   return items.reduce(function(sum,it){return sum+(cart[it.id]||0)*it.price_cents;},0)+
-    customLines.reduce(function(sum,l){return sum+l.amount_cents;},0);
+    customLines.reduce(function(sum,l){return sum+l.amount_cents;},0)+
+    guestPendingCents();
 }
 function renderShop(){
   var name=vendor.business_name||"This stand";
@@ -1052,12 +1070,13 @@ function guestAddLine(){
   if(cents<CA_MIN)msg="Enter at least $1.00.";
   else if(cents>CA_MAX)msg="Custom amounts are capped at $5,000.";
   else if(customLines.length>=CA_LINES)msg="Up to "+CA_LINES+" custom amounts per checkout.";
-  if(msg){errEl.textContent=msg;errEl.style.display="block";return;}
+  if(msg){errEl.textContent=msg;errEl.style.display="block";return false;}
   customLines.push({amount_cents:cents,note:$("caNote").value.trim().slice(0,CA_NOTE)});
   gm.clearAll();
   $("caNote").value="";
   renderGuestEntry();
   saveCustom();renderCustom();syncPaybar();
+  return true;
 }
 $("caAdd").onclick=guestAddLine;
 $("gKeypad").addEventListener("click",function(e){
@@ -1072,6 +1091,7 @@ $("gKeypad").addEventListener("click",function(e){
     case "clear":gm.clearAll();break;
   }
   renderGuestEntry();
+  syncPaybar();   // the amount on the keypad is part of what they owe
 });
 function syncPaybar(){
   var total=cartTotal();
@@ -1083,6 +1103,11 @@ function syncPaybar(){
   renderShopReceipt();
 }
 $("payBtn").onclick=function(){
+  /* Commit whatever is still on the keypad first, through the SAME validation
+     Add uses — a pending $0.50 must be refused here for the reason it is
+     refused there, not silently rounded into the order. This mirrors the
+     vendor face's syncTape(). */
+  if(guestPendingCents()>0 && !guestAddLine()) return;
   var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
     .filter(function(l){return l.quantity>0;});
   customLines.forEach(function(l){
@@ -1607,24 +1632,77 @@ function selectProc(proc){
   });
   drawQR($("qrCanvas"),PAY+activeSale.id+"/"+proc,proc);
 }
+/* Consecutive failed checks. A single miss is a dropped packet at a market;
+   a run of them means we are no longer able to ASK — most often an expired
+   session, where every request 401s and rows comes back empty. That used to be
+   indistinguishable from "not paid yet": the spinner spun forever while the
+   vendor told a customer who had genuinely paid that it hadn't gone through. */
+var pollFails=0;
+var POLL_FAIL_LIMIT=4;   /* ~8s at the 2s tick — long enough to ride out a blip */
+
+function pollOnce(saleId){
+  return authRest("sales?id=eq."+saleId+"&select=status,processor,total_cents")
+  .then(function(r){
+    if(!r.ok) throw {http:r.status};
+    return r.json();
+  })
+  .then(function(rows){
+    pollFails=0;
+    hideStale();
+    var s=rows[0];
+    if(!s) return false;
+    if(s.status==="paid"){
+      stopPoll();
+      showPaid(s.total_cents,s.processor);
+      return true;
+    }
+    if(s.status==="in_progress"){
+      $("chargeWait").innerHTML='<span class="dotp"></span>Customer scanned — paying now&hellip;';
+    }
+    return false;
+  })
+  .catch(function(e){
+    pollFails++;
+    if(pollFails>=POLL_FAIL_LIMIT) showStale(e);
+    throw e;
+  });
+}
+
+function showStale(e){
+  /* Deliberately does NOT say the payment failed, and does not stop the QR
+     working. We have lost the ability to check, which is a different thing —
+     the customer may already be holding a receipt. */
+  var expired = e && e.http === 401;
+  $("chargeWait").hidden=true;
+  $("chargeStaleMsg").textContent = expired
+    ? "Your session expired, so this register can't check the payment. Sign in again on your phone, or ask the customer to show their receipt."
+    : "Can't reach the server to check this payment. The customer's QR still works — check again in a moment, or ask to see their receipt.";
+  $("chargeStale").hidden=false;
+}
+function hideStale(){
+  if(!$("chargeStale").hidden){
+    $("chargeStale").hidden=true;
+    $("chargeWait").hidden=false;
+  }
+}
+
 function startPoll(saleId){
   stopPoll();
+  pollFails=0;
+  hideStale();
   pollTimer=setInterval(function(){
-    authRest("sales?id=eq."+saleId+"&select=status,processor,total_cents")
-    .then(function(r){return r.ok?r.json():[];})
-    .then(function(rows){
-      var s=rows[0];
-      if(!s)return;
-      if(s.status==="paid"){
-        stopPoll();
-        showPaid(s.total_cents,s.processor);
-      }else if(s.status==="in_progress"){
-        $("chargeWait").innerHTML='<span class="dotp"></span>Customer scanned — paying now&hellip;';
-      }
-    }).catch(function(){});
+    pollOnce(saleId).catch(function(){});
   },2000);
 }
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+
+$("recheckBtn").onclick=function(){
+  if(!activeSale)return;
+  var b=$("recheckBtn"),orig=b.textContent;
+  b.disabled=true;b.textContent="Checking\u2026";
+  pollOnce(activeSale.id).catch(function(){})
+  .then(function(){b.disabled=false;b.textContent=orig;});
+};
 $("shareLinkBtn").onclick=function(){
   if(!activeSale||!activeProc)return;
   var url=PAY+activeSale.id+"/"+activeProc;
