@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-yq10tc0FhCmdDY2gdj3PgnV/HSf5l1+dBZ8NdXG1nWQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-r/7eWq4A5RQNsNfdAN0r/lQgqKcF7l6ZSbLbChIbZLs='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -455,12 +455,38 @@ function pointLogoAtRegister(slug){
     a.title=slug?"Open your register":"";
   }
   /* The "New charge" button at the top of the ledger is the same destination
-     made visible — it only appears once self-checkout has minted a slug,
-     because the register IS the public shop page in the vendor's hands. */
+     made visible. No slug yet ≠ no register (U-W A3): index.html promises
+     "sign in from any phone's browser and ring up sales" with no iPhone, no
+     Stripe, no published storefront — but the slug used to be minted only
+     inside the self-checkout toggle, which is gated on Stripe KYC. So a
+     cash-only browser vendor could never reach the register at all. Now the
+     button mints the slug on demand; checkout stays OFF, so shoppers get
+     nothing until the vendor flips it themselves. */
   var b=document.getElementById("vNewCharge");
-  if(b){
-    if(slug){b.href="shop.html?v="+encodeURIComponent(slug);b.hidden=false;}
-    else b.hidden=true;
+  if(!b)return;
+  b.hidden=false;
+  if(slug){
+    b.href="shop.html?v="+encodeURIComponent(slug);
+    b.textContent="New charge";
+    b.onclick=null;
+  }else{
+    b.href="#";
+    b.textContent="Open the register";
+    b.onclick=function(ev){
+      ev.preventDefault();
+      var orig=b.textContent;
+      b.textContent="Opening…";
+      authRest("rpc/mint_checkout_slug",{method:"POST",body:JSON.stringify({})})
+        .then(function(r){if(!r.ok)throw 0;return r.json();})
+        .then(function(minted){
+          checkoutSlug=minted; // paintCheckout reads this — same slug, one mint path
+          location.href="shop.html?v="+encodeURIComponent(minted);
+        })
+        .catch(function(){
+          b.textContent="Couldn’t open — check signal, tap to retry";
+          setTimeout(function(){b.textContent=orig;},2600);
+        });
+    };
   }
 }
 function loadVendorHeader(){
