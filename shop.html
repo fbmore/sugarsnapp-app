@@ -37,6 +37,14 @@
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
   --key-cream:#f4ead5;         /* Color.keyCream  */
+  /* The outline that gives a pale keycap an edge on a pale ground. Cream on
+     the dark canvas is 14:1 and needs nothing; on the light canvas it is
+     1.07:1 — the keys very nearly vanish, and light mode is the one people
+     use in direct sunlight at a stall. Deepening the fill cannot rescue it
+     (even a muddy tan only reaches 2.7:1), so the boundary does the work:
+     3.97:1 against the canvas, 3.71:1 against the cream it outlines.
+     MIRRORS Color.keyEdge on iOS. */
+  --key-edge:#8a7550;
   /* Fixed in EVERY theme. Theme.swift: the total window is "the one
      deliberately fixed-contrast surface besides the QR itself" — and a QR
      rendered on a dark surface simply stops scanning. */
@@ -47,11 +55,13 @@
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
+  --key-edge:transparent;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
+    --key-edge:transparent;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -173,10 +183,10 @@ body.has-paybar{padding-bottom:110px}
 .totwin .twlbl{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;color:rgba(255,255,255,.4)}
 .totwin .twamt{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1}
 .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-.keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:none;cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:1px solid var(--key-edge);cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .keypad .key:active{transform:scale(.96);opacity:.8}
-.keypad .key.op{background:var(--accent);color:var(--key-cream)}
-.keypad .key.clearkey{grid-column:span 2;background:var(--ink);color:#f28c73}
+.keypad .key.op{background:var(--accent);color:var(--key-cream);border-color:transparent}
+.keypad .key.clearkey{grid-column:span 2;background:var(--ink);color:#f28c73;border-color:transparent}
 .reg-items .qbadge{margin-left:8px;background:var(--accent);color:var(--key-cream);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
 
 /* wide landscape = the iPad register: keypad column left (capped like the
