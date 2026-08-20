@@ -82,3 +82,51 @@ test('Pay commits the pending amount through the SAME floor Add enforces', () =>
                /if\(guestPendingCents\(\)>0 && !guestAddLine\(\)\) return;/,
                'Pay must stop when the pending amount is refused');
 });
+
+/**
+ * B3's stale-check copy must match what the code actually does next.
+ *
+ * A dropped connection heals itself and the background poll keeps trying, so
+ * "we'll keep trying" is a promise the code keeps. An expired session never
+ * heals — polling it is hammering a dead endpoint until the tab closes — so
+ * that branch stops the poll, and the copy must send the vendor to the button
+ * rather than invite them to wait for a recovery that cannot arrive.
+ */
+const staleSrcRaw = grab(/function showStale\(e\)\{[\s\S]*?\n\}/, 'showStale');
+// Strip comments before asserting on wording. The first version of the
+// never-say-failed check matched the comment that EXPLAINS the rule — a test
+// that fails on its own documentation, which is the opposite of useful.
+const staleSrc = staleSrcRaw.replace(/\/\*[\s\S]*?\*\//g, ' ');
+
+test('the expired-session branch stops polling and says to tap the button', () => {
+  const expired = staleSrc.slice(staleSrc.indexOf('if(expired){'), staleSrc.indexOf('}else{'));
+  assert.match(expired, /stopPoll\(\)/, 'a 401 cannot self-heal — stop hammering it');
+  assert.match(expired, /tap Check again/, 'so the copy must point at the button');
+  assert.doesNotMatch(expired, /keep trying|in a moment/,
+    'never promise a recovery that cannot arrive');
+});
+
+test('the reachability branch keeps trying, more slowly, and says so', () => {
+  const generic = staleSrc.slice(staleSrc.indexOf('}else{'));
+  assert.match(generic, /slowPoll\(\)/, 'back off rather than hammer');
+  assert.match(generic, /keep trying/, 'and the copy may promise it, because it is true');
+});
+
+test('neither branch tells the vendor the payment failed', () => {
+  // The whole point of the finding: we lost the ability to CHECK. The customer
+  // may be holding a receipt.
+  // Only the strings a vendor actually reads.
+  const shown = [...staleSrc.matchAll(/textContent\s*=\s*\n?\s*"([^"]+)"/g)].map(m => m[1]);
+  assert.equal(shown.length, 2, 'expected exactly the two stale messages');
+  for (const bad of [/payment failed/i, /didn'?t go through/i, /not paid/i, /declined/i]) {
+    for (const line of shown) {
+      assert.doesNotMatch(line, bad, `stale copy must never assert ${bad}`);
+    }
+  }
+});
+
+test('a slowed poll returns to the live cadence once a check succeeds', () => {
+  const once = grab(/function pollOnce\(saleId\)\{[\s\S]*?\n\}/, 'pollOnce');
+  assert.match(once, /pollEvery=POLL_FAST_MS/,
+    'otherwise a market that briefly dropped signal stays on a 15s check all day');
+});

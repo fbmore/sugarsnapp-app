@@ -1647,8 +1647,13 @@ function pollOnce(saleId){
     return r.json();
   })
   .then(function(rows){
+    var wasSlow = pollFails>0;
     pollFails=0;
     hideStale();
+    if(wasSlow && pollEvery!==POLL_FAST_MS && activeSale){
+      pollEvery=POLL_FAST_MS;
+      startPoll(activeSale.id, true);   // back to a live cadence
+    }
     var s=rows[0];
     if(!s) return false;
     if(s.status==="paid"){
@@ -1671,13 +1676,35 @@ function pollOnce(saleId){
 function showStale(e){
   /* Deliberately does NOT say the payment failed, and does not stop the QR
      working. We have lost the ability to check, which is a different thing —
-     the customer may already be holding a receipt. */
+     the customer may already be holding a receipt.
+
+     The two branches differ in what happens NEXT, so the copy has to as well.
+     A dropped connection heals itself, and the background poll keeps trying at
+     a slower rate, so "we'll keep trying" is a promise we keep. An expired session
+     never heals on its own — polling it is hammering a dead endpoint every two
+     seconds until the tab closes — so that poll is stopped and the copy says
+     to tap the button, rather than inviting someone to wait for a recovery
+     that cannot arrive. */
   var expired = e && e.http === 401;
   $("chargeWait").hidden=true;
-  $("chargeStaleMsg").textContent = expired
-    ? "Your session expired, so this register can't check the payment. Sign in again on your phone, or ask the customer to show their receipt."
-    : "Can't reach the server to check this payment. The customer's QR still works — check again in a moment, or ask to see their receipt.";
+  if(expired){
+    stopPoll();
+    $("chargeStaleMsg").textContent =
+      "Your session expired, so this register can't check the payment. Sign in again on your phone, then tap Check again — or ask the customer to show their receipt.";
+  }else{
+    slowPoll();
+    $("chargeStaleMsg").textContent =
+      "Can't reach the server to check this payment. The customer's QR still works — we'll keep trying, or tap Check again. You can also ask to see their receipt.";
+  }
   $("chargeStale").hidden=false;
+}
+
+/* Back off rather than keep hammering: something is wrong, and a market's
+   signal is not helped by four requests a second from every stall. */
+function slowPoll(){
+  if(!activeSale || pollEvery===POLL_SLOW_MS) return;
+  pollEvery=POLL_SLOW_MS;
+  startPoll(activeSale.id, true);
 }
 function hideStale(){
   if(!$("chargeStale").hidden){
@@ -1686,13 +1713,15 @@ function hideStale(){
   }
 }
 
-function startPoll(saleId){
+var POLL_FAST_MS=2000, POLL_SLOW_MS=15000;
+var pollEvery=POLL_FAST_MS;
+
+function startPoll(saleId, keepState){
   stopPoll();
-  pollFails=0;
-  hideStale();
+  if(!keepState){ pollFails=0; pollEvery=POLL_FAST_MS; hideStale(); }
   pollTimer=setInterval(function(){
     pollOnce(saleId).catch(function(){});
-  },2000);
+  },pollEvery);
 }
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
