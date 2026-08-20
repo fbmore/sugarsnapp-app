@@ -732,6 +732,26 @@ function badgeCanvas(proc,px){
 var SUPA="https://psiattienhrooetmjvue.supabase.co";
 var ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBzaWF0dGllbmhyb29ldG1qdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyODgzMzMsImV4cCI6MjEwMDg2NDMzM30.8sT1GNVTwj4uv4Ua25qphYewNci_NeavNX2UwIiSnIw";
 var PAY="https://pay.getsugarsnapp.com/r/";
+/* PROC_NAMES names every rail the ledger can CONTAIN, including ones this
+   page must never OFFER. Two are display-only:
+
+   tap_to_pay — the feature ships dark. iOS gates every surface on
+     Config.tapToPayShipped; the web had no equivalent, so "More ways to pay"
+     silently exposed it. docs/CLAIM_SURFACES.md: "no Tap to Pay UI may appear
+     at all ... shipping a visible toggle for a feature that cannot run is a
+     false claim." Logging a sale on it would also assert a card was tapped
+     when no reader exists.
+
+   ebt — iOS interposes a SNAP-vs-match question before writing, and stamps
+     external_ref accordingly. Without that step the web would write EBT rows
+     carrying no token split: invisible to organizer reconciliation and
+     useless as evidence behind a vendor's reimbursement claim. It comes back
+     with the token step, not before.
+
+   Historical sales on either rail still render everywhere, because that is a
+   different question from whether a vendor may ring one up today. */
+var RAIL_DISPLAY_ONLY={tap_to_pay:1,ebt:1};
+function OFFERABLE(r){return !RAIL_DISPLAY_ONLY[r];}
 var PROC_NAMES={cash:"Cash",venmo:"Venmo",paypal:"PayPal",stripe:"Stripe",tap_to_pay:"Card · Tap to Pay",ebt:"EBT",check:"Check",zelle:"Zelle",cashapp:"Cash App",apple_cash:"Apple Cash",bank_transfer:"Bank transfer",trade:"Trade",comped:"Comped",other:"Other"};
 
 function rest(path,opts,token){
@@ -1131,9 +1151,9 @@ function enterRegister(profile){
       stored=["cash"].concat(accounts.map(function(a){return a.processor;}));
     }
     if(stored.indexOf("cash")<0)stored.unshift("cash");
-    railShortlist=stored;
+    railShortlist=stored.filter(OFFERABLE);
     railMore=Object.keys(PROC_NAMES).filter(function(r){
-      return stored.indexOf(r)<0;
+      return stored.indexOf(r)<0 && OFFERABLE(r);
     });
     reg.clearAll();
     renderRegister();

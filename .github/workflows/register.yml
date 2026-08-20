@@ -1,0 +1,24 @@
+# GitHub Pages deploys this repo straight off main with no build step and no
+# type checker, so a call site that names a method the model doesn't have is
+# perfectly valid JavaScript right up until a vendor taps the button. That is
+# exactly how `reg.total()` (the method is `grandTotal`) reached production and
+# left the Log payment sheet dead for everyone without Stripe connected.
+#
+# This runs the same single entry point developers run before pushing.
+name: Register guards
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  register:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Every reg.*/gm.* call resolves, and every guard passes
+        run: node scripts/check-register-api.mjs
