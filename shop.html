@@ -101,7 +101,6 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .ca-cur{font-family:var(--font-mono);font-weight:700;font-size:1.1rem;color:var(--muted)}
 .ca-row input{padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--canvas);color:var(--ink)}
 .ca-row input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
-#caAmount{width:96px;font-variant-numeric:tabular-nums}
 #caNote{flex:1;min-width:150px}
 .ca-row .ghost{padding:11px 22px}
 .ca-line{display:flex;align-items:baseline;gap:8px;padding:7px 0;border-top:1px dashed var(--line);font-size:.95rem}
@@ -175,31 +174,44 @@ body.has-paybar{padding-bottom:110px}
 
 /* wide landscape = the iPad register: keypad column left (capped like the
    app's 620pt), the live paper receipt right (430, receipt paper 360) */
+/* the paper receipt — shared by the register pane and the shopper's order
+   card. A receipt is paper: always light, whatever the theme. */
+.paper{width:100%;max-width:360px;margin:0 auto;background:#fff;color:#1c1c1e;border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:26px 24px;font-family:var(--font-mono);font-size:.85rem}
+.paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px}
+.paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
+.paper .sub{text-align:center;color:#8e8e93;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
+.paper .dash{border-top:1px dashed #c7c7cc;margin:10px 0}
+.paper .ln{display:flex;gap:8px;align-items:baseline;padding:2px 0}
+.paper .ln .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper .ln .m{color:#8e8e93;white-space:nowrap}
+.paper .ln .amt{font-variant-numeric:tabular-nums}
+.paper .tot{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding-top:4px}
+.paper .empty{color:#8e8e93;text-align:center;font-style:italic;padding:18px 0}
 .reg-receipt{display:none}
+.shop-receipt{margin:16px 0}
+/* guest amount entry: the live display does the cents-first explaining */
+.gentry{display:flex;align-items:baseline;gap:6px;font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums;padding:8px 2px 2px}
+.gentry .gqty{color:var(--muted);font-size:1.1rem}
+.keypad-guest{margin:10px 0 12px}
+.keypad-guest .key{min-height:56px;font-size:1.2rem}
+.custom-amt.solo .gentry{font-size:2.8rem;justify-content:center}
+.custom-amt.solo .kicker{text-align:center}
 @media (min-width:1000px){
   /* The register earns a wider room than the shopper column: keypad capped
      at 745 (the app's 620 + 20%), receipt 430, and the page + nav stretch to
-     hold both so Sign out sits at the true right edge. */
-  body.regwide .wrap{max-width:1240px}
-  .reg-wrap{display:flex;gap:28px;align-items:flex-start}
+     hold both so Sign out sits at the true right edge. The shopper face gets
+     the same treatment once it has a receipt to show. */
+  body.regwide .wrap,body.shopwide .wrap{max-width:1240px}
+  .reg-wrap,.shop-wrap{display:flex;gap:28px;align-items:flex-start}
   .reg-catalog{width:250px;flex:none;margin-bottom:0}
   .reg-catalog .reg-items{grid-template-columns:1fr}
   .reg-catalog.closed{width:auto}
   .reg-left{flex:1;max-width:745px;margin:0 auto}
+  .shop-left{flex:1;max-width:620px;margin:0 auto}
   .reg-head{display:none} /* the receipt masthead already names the stand */
   .reg-wrap .tape{display:none}
-  .reg-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px}
-  .reg-receipt .paper{width:360px;margin:0 auto;background:#fff;color:#1c1c1e;border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:26px 24px;font-family:var(--font-mono);font-size:.85rem}
-  .reg-receipt .paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px}
-  .reg-receipt .paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
-  .reg-receipt .paper .sub{text-align:center;color:#8e8e93;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
-  .reg-receipt .paper .dash{border-top:1px dashed #c7c7cc;margin:10px 0}
-  .reg-receipt .paper .ln{display:flex;gap:8px;align-items:baseline;padding:2px 0}
-  .reg-receipt .paper .ln .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .reg-receipt .paper .ln .m{color:#8e8e93;white-space:nowrap}
-  .reg-receipt .paper .ln .amt{font-variant-numeric:tabular-nums}
-  .reg-receipt .paper .tot{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding-top:4px}
-  .reg-receipt .paper .empty{color:#8e8e93;text-align:center;font-style:italic;padding:18px 0}
+  .reg-receipt,.shop-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px;margin:0}
+  .shop-receipt.hidden{display:none}
 }
 /* Charge is the register's one big lever: full keypad width, cash logging
    tucked under it as the quiet secondary. */
@@ -285,18 +297,29 @@ footer a{margin:0 8px;color:var(--muted)}
           <div class="sub" id="shopSub"></div>
         </div>
       </div>
-      <div class="items" id="shopItems"></div>
-      <!-- custom amount — only when the vendor allows it -->
-      <div class="card custom-amt hidden" id="customCard">
-        <div class="kicker">Something not listed?</div>
-        <div class="ca-row">
-          <span class="ca-cur">$</span>
-          <input id="caAmount" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" aria-label="Custom amount in dollars">
-          <input id="caNote" type="text" maxlength="60" placeholder="What&rsquo;s it for? (optional)" autocomplete="off" aria-label="Note for the vendor">
-          <button class="ghost" id="caAdd" type="button">Add</button>
+      <div class="shop-wrap">
+        <div class="shop-left">
+          <div class="items" id="shopItems"></div>
+          <!-- custom amount — only when the vendor allows it. The same
+               register keypad, turned to face the shopper: cents-first entry
+               with the live display doing the explaining. When the stand has
+               no catalog at all, this card IS the storefront (.solo). -->
+          <div class="card custom-amt hidden" id="customCard">
+            <div class="kicker" id="caKicker">Something not listed?</div>
+            <div class="gentry" aria-live="polite"><span class="ca-cur">$</span><span id="gAmt">0.00</span><span class="gqty" id="gQty"></span></div>
+            <div class="keypad keypad-guest" id="gKeypad"></div>
+            <div class="ca-row">
+              <input id="caNote" type="text" maxlength="60" placeholder="What&rsquo;s it for? (optional)" autocomplete="off" aria-label="Note for the vendor">
+              <button class="ghost" id="caAdd" type="button">Add to order</button>
+            </div>
+            <div class="payerr" id="caErr"></div>
+            <div class="ca-lines hidden" id="caLines"></div>
+          </div>
         </div>
-        <div class="payerr" id="caErr"></div>
-        <div class="ca-lines hidden" id="caLines"></div>
+        <!-- The order, as the paper it will become. Hidden until something's
+             on it; the right-hand pane on wide screens, an in-flow card on
+             phones. Same renderer as the vendor register's receipt. -->
+        <aside class="shop-receipt hidden" id="shopReceipt"></aside>
       </div>
       <div class="trust">
         <div class="row"><img src="mark.svg" alt=""><span><strong>Powered by SugarSnapp</strong></span></div>
@@ -353,24 +376,10 @@ footer a{margin:0 8px;color:var(--muted)}
                white on near-black, the old "CASH .90" indicator window. -->
           <div class="totwin" aria-label="Total"><span class="twlbl">TOTAL</span><span class="twamt" id="twAmt">$0.00</span></div>
           <!-- The keypad — the web twin of the iOS register (RegisterModel.swift).
-               Cents-first: 9 5 0 reads $9.50. × then digits = quantity. + commits. -->
-          <div class="keypad" id="keypad">
-            <button type="button" class="key" data-d="7">7</button>
-            <button type="button" class="key" data-d="8">8</button>
-            <button type="button" class="key" data-d="9">9</button>
-            <button type="button" class="key op" data-op="mul" aria-label="Multiply">×</button>
-            <button type="button" class="key" data-d="4">4</button>
-            <button type="button" class="key" data-d="5">5</button>
-            <button type="button" class="key" data-d="6">6</button>
-            <button type="button" class="key op" data-op="add" aria-label="Add line">+</button>
-            <button type="button" class="key" data-d="1">1</button>
-            <button type="button" class="key" data-d="2">2</button>
-            <button type="button" class="key" data-d="3">3</button>
-            <button type="button" class="key op" data-op="back" aria-label="Backspace">⌫</button>
-            <button type="button" class="key" data-d="0">0</button>
-            <button type="button" class="key" data-d00>00</button>
-            <button type="button" class="key clearkey" data-op="clear" aria-label="Clear">C</button>
-          </div>
+               Cents-first: 9 5 0 reads $9.50. × then digits = quantity. + commits.
+               Keys are generated by buildKeypad() — one source of truth with
+               the guest keypad. -->
+          <div class="keypad" id="keypad"></div>
           <div class="tape" id="tape"></div>
           <div class="reg-actions">
             <button class="cta" id="chargeBtn">Charge</button>
@@ -742,9 +751,10 @@ function show(id){
   var vendorish=id==="v-register"||id==="v-charge"||id==="v-paid";
   document.getElementById("navVendor").classList.toggle("hidden",!guest);
   document.getElementById("navSignout").classList.toggle("hidden",!vendorish);
-  /* Only the register gets the wide room (keypad + receipt); charge/paid and
-     every shopper view keep the phone-width column. */
+  /* The register and the shopper storefront get the wide room (left column +
+     receipt); charge/paid and the note views keep the phone-width column. */
   document.body.classList.toggle("regwide",id==="v-register");
+  document.body.classList.toggle("shopwide",id==="v-shop");
   window.scrollTo(0,0);
 }
 function $(id){return document.getElementById(id);}
@@ -886,13 +896,16 @@ function renderShop(){
   loadCart();
   loadCustom();
   $("customCard").classList.toggle("hidden",!customAllowed());
+  /* Honesty-box mode: no catalog, custom amounts on — the keypad IS the
+     storefront, so it stands alone and says so. */
+  var solo=!items.length&&customAllowed();
+  $("customCard").classList.toggle("solo",solo);
+  $("caKicker").textContent=solo?"Enter what you owe":"Something not listed?";
   renderCustom();
   var grid=$("shopItems");
   grid.innerHTML="";
-  if(!items.length){
-    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>'+
-      (customAllowed()?'No items listed — enter what you owe below.':'No items listed yet — pay at the stand.')+
-      '</p></div>';
+  if(!items.length&&!customAllowed()){
+    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>No items listed yet — pay at the stand.</p></div>';
   }
   items.forEach(function(it){
     var el=document.createElement("div");
@@ -937,20 +950,45 @@ function renderCustom(){
     box.appendChild(el);
   });
 }
-$("caAdd").onclick=function(){
+/* The guest's amount entry is the same register keypad turned around: its
+   own RegisterModel builds ONE line (digits, 00, × quantity, ⌫, C), and both
+   the + key and the Add button push it into customLines under the server's
+   own caps. Cents-first like every SugarSnapp register — the big display
+   explains each keystroke. */
+var gm=new RegisterModel();
+function renderGuestEntry(){
+  $("gAmt").textContent=(gm.entryCents/100).toFixed(2);
+  $("gQty").textContent=gm.phase==="quantity"?("×"+(gm.quantity===null?"":gm.quantity)):"";
+}
+function guestAddLine(){
   var errEl=$("caErr");
   errEl.style.display="none";
-  var raw=$("caAmount").value.replace(",",".").trim();
-  var cents=Math.round((parseFloat(raw)||0)*100);
+  var cents=gm.currentLineTotal();
   var msg=null;
   if(cents<CA_MIN)msg="Enter at least $1.00.";
   else if(cents>CA_MAX)msg="Custom amounts are capped at $5,000.";
   else if(customLines.length>=CA_LINES)msg="Up to "+CA_LINES+" custom amounts per checkout.";
   if(msg){errEl.textContent=msg;errEl.style.display="block";return;}
   customLines.push({amount_cents:cents,note:$("caNote").value.trim().slice(0,CA_NOTE)});
-  $("caAmount").value="";$("caNote").value="";
+  gm.clearAll();
+  $("caNote").value="";
+  renderGuestEntry();
   saveCustom();renderCustom();syncPaybar();
-};
+}
+$("caAdd").onclick=guestAddLine;
+$("gKeypad").addEventListener("click",function(e){
+  var b=e.target.closest("button");
+  if(!b)return;
+  if(b.hasAttribute("data-d00"))gm.tapDoubleZero();
+  else if(b.hasAttribute("data-d"))gm.tapDigit(+b.getAttribute("data-d"));
+  else switch(b.getAttribute("data-op")){
+    case "mul":gm.tapMultiply();break;
+    case "add":guestAddLine();return; // + on the guest pad = Add to order
+    case "back":gm.backspace();break;
+    case "clear":gm.clearAll();break;
+  }
+  renderGuestEntry();
+});
 function syncPaybar(){
   var total=cartTotal();
   $("payTotal").textContent=money(total);
@@ -958,6 +996,7 @@ function syncPaybar(){
   btn.disabled=total===0;
   btn.textContent=total===0?"Pay":"Pay "+money(total);
   $("payErr").style.display="none";
+  renderShopReceipt();
 }
 $("payBtn").onclick=function(){
   var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
@@ -1118,28 +1157,76 @@ function renderTape(){
 }
 /* The wide-screen receipt pane: the actual receipt assembling itself, like
    the iPad register. A receipt is paper — always light, whatever the theme. */
-function renderReceiptPane(){
-  var el=$("regReceipt");
+/* One paper, two faces: the register's live pane and the shopper's order
+   card render through the same function so they can never drift. Lines are
+   {name, unitCents, quantity}; unnamed lines print as "Item", like iOS. */
+function renderPaper(el,name,logoUrl,lines,totalCents,emptyMsg){
   if(!el)return;
-  var lines=reg.linesForCharge(),html='<div class="paper">';
-  if(regProfile&&regProfile.logo_url&&/^https:\/\//.test(regProfile.logo_url)){
-    html+='<img class="rlogo" src="'+esc(regProfile.logo_url)+'" alt="">';
+  var html='<div class="paper">';
+  if(logoUrl&&/^https:\/\//.test(logoUrl)){
+    html+='<img class="rlogo" src="'+esc(logoUrl)+'" alt="">';
   }
-  html+='<h3>'+esc((regProfile&&regProfile.business_name)||"Your stand")+'</h3>';
+  html+='<h3>'+esc(name||"Your stand")+'</h3>';
   html+='<div class="sub">RECEIPT</div><div class="dash"></div>';
   if(!lines.length){
-    html+='<div class="empty">Ring up a sale…</div>';
+    html+='<div class="empty">'+esc(emptyMsg||"Ring up a sale…")+'</div>';
   }else{
     lines.forEach(function(l){
       html+='<div class="ln"><span class="nm">'+(l.name?esc(l.name):"Item")+'</span>'+
         (l.quantity>1?'<span class="m">'+money(l.unitCents)+' ×'+l.quantity+'</span>':'')+
         '<span class="amt">'+money(l.unitCents*l.quantity)+'</span></div>';
     });
-    html+='<div class="dash"></div><div class="tot"><span>TOTAL</span><span>'+money(reg.grandTotal())+'</span></div>';
+    html+='<div class="dash"></div><div class="tot"><span>TOTAL</span><span>'+money(totalCents)+'</span></div>';
   }
   html+='</div>';
   el.innerHTML=html;
 }
+function renderReceiptPane(){
+  renderPaper($("regReceipt"),
+    regProfile&&regProfile.business_name,
+    regProfile&&regProfile.logo_url,
+    reg.linesForCharge(),reg.grandTotal());
+}
+/* The shopper's order as the paper it will become. Hidden until something is
+   on it — an empty receipt sells nothing. */
+function renderShopReceipt(){
+  var el=$("shopReceipt");
+  if(!el)return;
+  var lines=[];
+  items.forEach(function(it){
+    var q=cart[it.id]||0;
+    if(q>0)lines.push({name:it.name,unitCents:it.price_cents,quantity:q});
+  });
+  customLines.forEach(function(l){
+    lines.push({name:l.note||null,unitCents:l.amount_cents,quantity:1});
+  });
+  el.classList.toggle("hidden",!lines.length);
+  if(lines.length)renderPaper(el,vendor&&vendor.business_name,vendor&&vendor.logo_url,lines,cartTotal());
+}
+/* One source of truth for the key layout, both faces: 7-8-9-×, 4-5-6-+,
+   1-2-3-⌫, 0-00-C(span 2). Wiring stays with each face (the + key means
+   "commit a line" to the vendor and "add to order" to a shopper). */
+function buildKeypad(el){
+  if(!el)return;
+  el.innerHTML=
+    '<button type="button" class="key" data-d="7">7</button>'+
+    '<button type="button" class="key" data-d="8">8</button>'+
+    '<button type="button" class="key" data-d="9">9</button>'+
+    '<button type="button" class="key op" data-op="mul" aria-label="Multiply">×</button>'+
+    '<button type="button" class="key" data-d="4">4</button>'+
+    '<button type="button" class="key" data-d="5">5</button>'+
+    '<button type="button" class="key" data-d="6">6</button>'+
+    '<button type="button" class="key op" data-op="add" aria-label="Add line">+</button>'+
+    '<button type="button" class="key" data-d="1">1</button>'+
+    '<button type="button" class="key" data-d="2">2</button>'+
+    '<button type="button" class="key" data-d="3">3</button>'+
+    '<button type="button" class="key op" data-op="back" aria-label="Backspace">⌫</button>'+
+    '<button type="button" class="key" data-d="0">0</button>'+
+    '<button type="button" class="key" data-d00>00</button>'+
+    '<button type="button" class="key clearkey" data-op="clear" aria-label="Clear">C</button>';
+}
+buildKeypad($("keypad"));
+buildKeypad($("gKeypad"));
 /* catalog column collapse — remembered per browser */
 (function(){
   var t=$("catToggle");
