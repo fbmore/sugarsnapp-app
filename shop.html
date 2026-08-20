@@ -751,7 +751,29 @@ var PAY="https://pay.getsugarsnapp.com/r/";
    Historical sales on either rail still render everywhere, because that is a
    different question from whether a vendor may ring one up today. */
 var RAIL_DISPLAY_ONLY={tap_to_pay:1,ebt:1};
-function OFFERABLE(r){return !RAIL_DISPLAY_ONLY[r];}
+
+/* Held until 1.4 is LIVE, not merely submitted.
+   ------------------------------------------------------------------
+   The eight rails below are accepted by the database today, but the iOS
+   build that can READ them (1.4 / build 11, which added the .unknown
+   tolerance) is still WAITING_FOR_REVIEW. Every vendor on a phone right
+   now is on 1.3, which decodes a day's sales as ONE array and throws on
+   a rail it does not recognise — so a vendor who logs a cheque here
+   would open their phone ledger and be told they made no sales that day.
+   The data is safe on the server; their own book just goes blank, which
+   is the worst possible way to find out.
+
+   The phone cannot be patched retroactively, which is why this waits on
+   the app rather than the other way round.
+
+   TO RELEASE: confirm 1.4 shows READY_FOR_SALE, then delete this object
+   and the HELD check in OFFERABLE. One deletion, nothing else. */
+var RAIL_HELD_UNTIL_1_4_LIVE={check:1,zelle:1,cashapp:1,apple_cash:1,
+                              bank_transfer:1,trade:1,comped:1,other:1};
+
+function OFFERABLE(r){
+  return !RAIL_DISPLAY_ONLY[r] && !RAIL_HELD_UNTIL_1_4_LIVE[r];
+}
 var PROC_NAMES={cash:"Cash",venmo:"Venmo",paypal:"PayPal",stripe:"Stripe",tap_to_pay:"Card · Tap to Pay",ebt:"EBT",check:"Check",zelle:"Zelle",cashapp:"Cash App",apple_cash:"Apple Cash",bank_transfer:"Bank transfer",trade:"Trade",comped:"Comped",other:"Other"};
 
 function rest(path,opts,token){

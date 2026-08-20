@@ -27,6 +27,7 @@ function evalFromPage(...snippets) {
 
 const { PROC_NAMES, OFFERABLE } = evalFromPage(
   /var RAIL_DISPLAY_ONLY=\{[^}]*\};/,
+  /var RAIL_HELD_UNTIL_1_4_LIVE=\{[\s\S]*?\};/,
   /function OFFERABLE\([^)]*\)\{[^}]*\}/,
   /var PROC_NAMES=\{[^}]*\};/,
 );
@@ -55,9 +56,19 @@ test('EBT is not offerable until the token-kind question exists', () => {
 
 test('the rails that ARE honourable all remain reachable', () => {
   const { all } = split(['cash']);
-  for (const rail of ['venmo', 'paypal', 'stripe', 'check', 'zelle',
-                      'cashapp', 'apple_cash', 'bank_transfer', 'trade', 'comped', 'other']) {
+  for (const rail of ['cash', 'venmo', 'paypal', 'stripe']) {
     assert.ok(all.includes(rail), `${rail} vanished from the picker`);
+  }
+});
+
+test('the eight new rails stay held while 1.3 is what vendors have installed', () => {
+  // Not a style preference: 1.3 decodes a day of sales as one array and throws
+  // on a rail it cannot name, so logging one here blanks that vendor's ledger.
+  const { all } = split(['cash']);
+  for (const rail of ['check', 'zelle', 'cashapp', 'apple_cash',
+                      'bank_transfer', 'trade', 'comped', 'other']) {
+    assert.ok(!all.includes(rail),
+      `${rail} is offerable before 1.4 is live — a vendor on 1.3 who logs one sees an empty ledger day`);
   }
 });
 
