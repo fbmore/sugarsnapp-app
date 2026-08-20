@@ -1417,12 +1417,31 @@ function createSale(extra){
   for(var k in extra)body[k]=extra[k];
   return authRest("sales",{method:"POST",headers:{Prefer:"return=representation"},
     body:JSON.stringify(body)})
-  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(r){if(!r.ok)throw {clean:true};return r.json();})
   .then(function(rows){
     var sale=rows[0];
     return authRest("sale_items",{method:"POST",body:JSON.stringify(saleLinesBody(sale.id))})
-      .then(function(r){if(!r.ok)throw 0;return sale;});
+      .then(function(r){ return r.ok ? sale : cleanUp(sale); },
+            /* A dead zone REJECTS the request rather than returning !ok, and
+               that is the common case this exists for — handle both. */
+            function(){ return cleanUp(sale); });
   });
+
+  function cleanUp(sale){
+        /* The sales row exists and its lines do not. Left alone it is a
+           phantom on the vendor's ledger, and retrying rings the sale twice.
+           guest-checkout already deletes the dangling row on exactly this
+           failure (guest-checkout/index.ts:302-306); this is that, ported.
+
+           But it cannot always work, and pretending otherwise is how the old
+           copy came to lie. The usual cause of the second request failing is
+           lost signal — and then the DELETE has no signal either. So the
+           caller is told which of the two happened, and says something true
+           in each case rather than "safe to retry" in both. */
+    return authRest("sales?id=eq."+sale.id+"&status=neq.paid",{method:"DELETE"})
+      .then(function(d){throw {clean:!!d.ok};},
+            function(){throw {clean:false};});
+  }
 }
 $("chargeBtn").onclick=function(){
   if(!reg.canCharge()||!accounts.length)return;
@@ -1432,7 +1451,11 @@ $("chargeBtn").onclick=function(){
     activeSale=sale;
     showCharge(sale);
   })
-  .catch(function(){regError("No signal — the sale couldn't be created. Log cash instead, or try again.");})
+  .catch(function(e){
+    regError(e&&e.clean===false
+      ? "No signal, and the sale may be half-recorded. Check today's sales before ringing it up again."
+      : "No signal — the sale couldn't be created. Log a payment instead, or try again.");
+  })
   .finally(function(){btn.disabled=false;renderTape();});
 };
 /* ---------- log a payment that already happened ---------- */
@@ -1533,7 +1556,14 @@ function logPayment(rail, note){
   var btn=$("logBtn");btn.disabled=true;btn.textContent="Logging…";
   createSale(body)
   .then(function(sale){showPaid(sale.total_cents,rail);})
-  .catch(function(){regError("No signal — the sale couldn't be logged. It's safe to retry.");})
+  .catch(function(e){
+    /* "Safe to retry" is only true when nothing was written. When the cleanup
+       could not run, the sales row may still be there, and a retry would log
+       the sale twice and inflate the day's total with nothing flagging it. */
+    regError(e&&e.clean===false
+      ? "No signal, and the sale may be half-recorded. Check today's sales before logging it again."
+      : "No signal — the sale wasn't logged. It's safe to retry.");
+  })
   .finally(function(){btn.disabled=false;btn.textContent="Log payment";});
 }
 
