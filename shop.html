@@ -431,6 +431,16 @@ footer a{margin:0 8px;color:var(--muted)}
             other payments with <strong>Log payment</strong>.
             <a href="/account.html#stripe">Set up card payments</a>
           </div>
+          <!-- Inline, like the trade-note step: a browser confirm() blocks the
+               page and reads as a system error rather than a question about
+               the vendor's own order. -->
+          <div class="lognote hidden" id="clearConfirm">
+            <span id="clearConfirmAsk"></span>
+            <div class="lognote-actions">
+              <button type="button" class="ghost" id="clearKeep">Keep it</button>
+              <button type="button" class="cta" id="clearWipe">Clear the order</button>
+            </div>
+          </div>
           <div class="payerr" id="regErr"></div>
           <!-- the vendor's shortlist, same rails and same order as the app's
                picker, read from profiles.visible_rails -->
@@ -1437,14 +1447,38 @@ buildKeypad($("gKeypad"));
       case "mul":reg.tapMultiply();break;
       case "add":reg.tapAdd();break;
       case "back":reg.backspace();break;
-      case "clear":if(clearHeld){clearHeld=false;break;}reg.clear();break;
+      case "clear":
+        if(clearHeld){clearHeld=false;break;}
+        // Only ask when there is something to lose: clearing the digits you
+        // are part-way through typing needs no ceremony.
+        if(reg.clearWouldWipeBasket())askClearBasket(); else reg.clear();
+        break;
     }
     renderTape();
   });
+  /* One confirm for both wipe paths. The long press is the deliberate
+     gesture, but "deliberate" is not the same as "meant to lose the order",
+     and at a stall the two are one thumb apart. */
+  function askClearBasket(){
+    var n=reg.lines.length;
+    if(!n){reg.clearAll();renderTape();return;}
+    $("clearConfirmAsk").textContent="Clear the whole order? "+n+" item"+(n===1?"":"s")+", "
+      +money(reg.grandTotal())+" rung up so far — this can't be undone.";
+    $("clearConfirm").classList.remove("hidden");
+  }
+  function endClearConfirm(){ $("clearConfirm").classList.add("hidden"); }
+  $("clearKeep").onclick=endClearConfirm;
+  $("clearWipe").onclick=function(){ endClearConfirm(); reg.clearAll(); renderTape(); };
+
   var ck=kp.querySelector('[data-op="clear"]');
   ["pointerdown","touchstart"].forEach(function(ev){
     ck.addEventListener(ev,function(){
-      clearTimer=setTimeout(function(){clearHeld=true;reg.clearAll();renderTape();},600);
+      clearTimer=setTimeout(function(){
+        clearHeld=true;
+        // Deliberate, but "deliberate" is not "meant to lose the order", and
+        // at a stall the two gestures are one thumb apart.
+        if(reg.lines.length)askClearBasket(); else {reg.clearAll();renderTape();}
+      },600);
     },{passive:true});
   });
   ["pointerup","pointerleave","touchend","touchcancel"].forEach(function(ev){

@@ -54,13 +54,20 @@ test("multiply then add", () => {
   assert.equal(m.grandTotal(), 3700);
 });
 
-test("clear clears entry, then lines", () => {
+test("clear clears the entry — and no longer wipes lines on a second tap", () => {
   const m = new RegisterModel();
   m.tapDigit(5); m.tapAdd(); m.tapDigit(3);
-  m.clear(); // clears the in-flight entry
+  assert.equal(m.clear(), true);        // clears the in-flight entry
   assert.equal(m.entryCents, 0);
   assert.equal(m.lines.length, 1);
-  m.clear(); // now clears committed lines
+
+  // This used to empty the basket. Two taps of the widest key on the pad, no
+  // undo, with a customer waiting — so the model now refuses and reports,
+  // and the view asks before calling clearAll().
+  assert.equal(m.clear(), false, "the second tap must not decide this alone");
+  assert.equal(m.lines.length, 1, "the basket survives an unconfirmed tap");
+  assert.equal(m.clearWouldWipeBasket(), true);
+  m.clearAll();                          // what the confirmation calls
   assert.ok(m.isEmpty());
 });
 
@@ -121,4 +128,53 @@ test("web extension: removeLineAt drops one unit, then the line", () => {
   assert.equal(m.quantityOf(zucchini), 1);
   m.removeLineAt(0);
   assert.ok(m.isEmpty());
+});
+
+/**
+ * C must not wipe a basket without asking.
+ *
+ * C is the widest key on the pad, and with nothing in flight it emptied the
+ * whole order on one tap with no undo — one mis-reach mid-rush and a
+ * twelve-line basket is gone with a customer standing there. The model now
+ * reports rather than decides, so the view can ask first.
+ */
+test('C clears only the digits being typed, and says it handled it', () => {
+  const m = new RegisterModel();
+  m.addItem({ name: 'Jam', priceCents: 600 });
+  m.tapDigit(5); m.tapDoubleZero();               // $5.00 in flight
+  assert.equal(m.clearWouldWipeBasket(), false, 'there is an entry to clear first');
+  assert.equal(m.clear(), true, 'handled');
+  assert.equal(m.currentLineTotal(), 0, 'the entry went');
+  assert.equal(m.lines.length, 1, 'the basket did not');
+});
+
+test('C on a basket with nothing in flight refuses to act', () => {
+  const m = new RegisterModel();
+  m.addItem({ name: 'Jam', priceCents: 600 });
+  m.addItem({ name: 'Bread', priceCents: 450 });
+  assert.equal(m.clearWouldWipeBasket(), true, 'this is the destructive case');
+  assert.equal(m.clear(), false, 'the model must not decide this alone');
+  assert.equal(m.lines.length, 2, 'and must not have wiped anything');
+});
+
+test('C on an empty register is a no-op that needs no confirmation', () => {
+  const m = new RegisterModel();
+  assert.equal(m.clearWouldWipeBasket(), false);
+  assert.equal(m.clear(), true, 'nothing to lose, nothing to ask');
+});
+
+test('a quantity in flight is cleared without asking', () => {
+  const m = new RegisterModel();
+  m.addItem({ name: 'Jam', priceCents: 600 });
+  m.tapDigit(2); m.tapDoubleZero(); m.tapMultiply(); m.tapDigit(3);
+  assert.equal(m.clearWouldWipeBasket(), false, 'the quantity is what C takes');
+  assert.equal(m.clear(), true);
+  assert.equal(m.lines.length, 1);
+});
+
+test('clearAll still wipes — it is what the confirmation calls', () => {
+  const m = new RegisterModel();
+  m.addItem({ name: 'Jam', priceCents: 600 });
+  m.clearAll();
+  assert.equal(m.lines.length, 0);
 });

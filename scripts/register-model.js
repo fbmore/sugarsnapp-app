@@ -79,12 +79,24 @@
   };
 
   /* Clear. A mistake means clear and retype — no editing of past lines. */
+  /* Whether C would wipe the basket rather than the digits being typed. C is
+     the widest key on the pad, and with nothing in flight it emptied a whole
+     order on one tap with no undo — one mis-reach mid-rush and a twelve-line
+     basket is gone with a customer standing there. Callers ask first; the
+     model only reports. MIRRORS RegisterModel.clearWouldWipeBasket on iOS. */
+  RegisterModel.prototype.clearWouldWipeBasket = function () {
+    return !(this.hasEntry() || this.phase === "quantity") && this.lines.length > 0;
+  };
+
+  /* Clears the entry in flight. Returns false, touching nothing, when the tap
+     would instead have wiped the basket — that needs confirming, and the model
+     must not decide it silently. */
   RegisterModel.prototype.clear = function () {
     if (this.hasEntry() || this.phase === "quantity") {
       this.entryCents = 0; this.quantity = null; this.phase = "amount";
-    } else if (this.lines.length) {
-      this.lines = [];
+      return true;
     }
+    return this.lines.length === 0;
   };
 
   RegisterModel.prototype.clearAll = function () {
