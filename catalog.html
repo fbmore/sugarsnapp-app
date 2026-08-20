@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-3SWACXJbDNIsmR7tM1+ix6luIj1rVj7H47PzUJuEg2Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Mljv0bKFzVK/c+lgpSMUCdzJR582M9O6M7MN8lviRGE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your catalog — SugarSnapp</title>
 <meta name="description" content="Edit the items on your SugarSnapp register and self-checkout page.">
 <meta name="robots" content="noindex">
@@ -18,7 +18,7 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=a181283bda">
+<link rel="stylesheet" href="styles/ss.css?v=6c94394098">
 <style>
 /* The catalog gets the full column here — that is the whole point of giving
    it its own page rather than a card in the account stack. */
@@ -166,6 +166,7 @@ function saveItems(){
   Promise.all(writes).then(function(rs){
     for(var i=0;i<rs.length;i++)if(!rs[i].ok)throw new Error("write failed");
     flash("itSaved");
+    catalogDirty=false;
     loadItems();
   }).catch(function(){
     /* The writes are parallel, NOT atomic: some may have landed. Reloading
@@ -178,6 +179,14 @@ function saveItems(){
   }).then(function(){$("itSave").disabled=false;});
 }
 
+/* Unsaved edits must survive a stray tap on the back link or the register
+   logo — both sit right beside the work (U-W A4). The browser's own leave
+   prompt covers every exit; the flag drops only on a successful save. */
+var catalogDirty=false;
+window.addEventListener("beforeunload",function(e){
+  if(catalogDirty){e.preventDefault();e.returnValue="";}
+});
+$("itemRows").addEventListener("input",function(){catalogDirty=true;});
 $("itAdd").addEventListener("click",function(){
   readItemRows();
   itemRows.push({name:"",price_cents:null,unit:null,active:true});
@@ -190,6 +199,7 @@ $("itSave").addEventListener("click",saveItems);
    have to be re-attached each time and would leak the ones they replaced. */
 $("itemRows").addEventListener("click",function(ev){
   var btn=ev.target.closest("[data-act]");if(!btn)return;
+  catalogDirty=true;
   var row=btn.closest(".itm");if(!row)return;
   var i=parseInt(row.getAttribute("data-i"),10);
   var it=itemRows[i];if(!it)return;

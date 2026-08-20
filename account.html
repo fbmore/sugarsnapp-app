@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-h7Rv+0A+Qd4t4Z0LcwPerHSuY8AgBlAdrxMq0pxwvXc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-yq10tc0FhCmdDY2gdj3PgnV/HSf5l1+dBZ8NdXG1nWQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -19,7 +19,7 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=a181283bda">
+<link rel="stylesheet" href="styles/ss.css?v=6c94394098">
 </head>
 <body>
 <div class="wrap wide">
@@ -100,6 +100,7 @@
             <p class="navgrp">Get paid</p>
             <a href="#stripe" data-nav="stripe">Stripe</a>
             <a href="#handles" data-nav="handles">PayPal &amp; Venmo</a>
+            <a href="#rails" data-nav="rails">Ways to log a payment</a>
             <a href="#checkout" data-nav="checkout">Self-checkout</a>
             <p class="navgrp">Selling</p>
             <a href="#stand" data-nav="stand">Your stand</a>
@@ -555,7 +556,15 @@ function renderRails(){
   if(!el)return;
   var chosen = railsOrder || ["cash"];
   var html="";
+  /* Only rails the registers will actually OFFER may be curated here —
+     ticking a box the register ignores saves a lie (U-W A1 secondary).
+     tap_to_pay/ebt are display-only on web; the rest are held until 1.4 is
+     live. DELETE the held members here in the SAME pass that deletes
+     shop.html's RAIL_HELD_UNTIL_1_4_LIVE — two copies, one unlock. */
+  var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1,check:1,zelle:1,cashapp:1,
+                          apple_cash:1,bank_transfer:1,trade:1,comped:1,other:1};
   Object.keys(PROC_NAMES).forEach(function(p){
+    if(RAIL_NOT_CURATABLE[p])return;
     var on = chosen.indexOf(p) >= 0;
     var locked = (p === "cash");
     html += '<label class="fld" style="display:flex;align-items:center;gap:9px;margin:0 0 6px">'
@@ -1343,7 +1352,11 @@ function loadRoster(){
    Every card carries data-sec; the rail and the drawer both just set the
    hash. A section's data is fetched the first time it is opened and never
    again, so arriving at the ledger costs one query instead of eight. */
-var SECTIONS=["ledger","export","stripe","handles","checkout","stand","receipts","catalog","plan","delete"];
+/* "rails" was missing from this list from the day railsCard shipped — the
+   card was rendered, wired, saving correctly, and PERMANENTLY unreachable
+   (U-W A1): secFromHash mapped #rails back to "ledger" and no nav link
+   existed. A web-only vendor could never edit their hand-log shortlist. */
+var SECTIONS=["ledger","export","stripe","handles","rails","checkout","stand","receipts","catalog","plan","delete"];
 /* Some cards share a fetch: paintCheckout() needs stripeReady from loadPay
    AND checkout_slug from loadStand, so both sections ask for both and
    loadOnce keeps it to a single request either way. */
