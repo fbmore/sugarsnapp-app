@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5Hz1CQoEN6SVz/bVRckMUI71XDQgPcGAfAAi8vcZgpI='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+mc6J2tJgEmKOL2t9JWK2AD/MZw9qRoyIyLzug7IhLs='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -57,6 +57,13 @@ th{color:var(--muted);font-weight:400;font-size:.8rem;text-transform:uppercase;l
 td.num{text-align:right;font-variant-numeric:tabular-nums}
 .flag{color:var(--bad);font-weight:700}
 .ok{color:var(--accent)}
+/* A decline row worth acting on, and the message to send about it. */
+tr.bad td{background:rgba(255,107,87,.08)}
+.warn{border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:8px;
+      padding:10px 12px;color:var(--muted)}
+.warn code{font-family:ui-monospace,'SF Mono',Menlo,monospace;color:var(--ink)}
+pre.msg{white-space:pre-wrap;background:var(--field);border:1px solid var(--line);
+        border-radius:8px;padding:12px;font-size:.86rem;line-height:1.5;margin-top:6px}
 .mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.84rem;word-break:break-all}
 .qr{display:block;margin:16px auto;width:190px;height:190px;background:#fff;border:1px solid var(--line);border-radius:10px}
 ul.plain{list-style:none;margin-top:8px}
@@ -166,6 +173,12 @@ ul.plain li{padding:5px 0;border-bottom:1px solid var(--line);font-size:.92rem}
   </div>
 
   <div class="card">
+    <p class="kicker">Pilot</p>
+    <h2>Card declines</h2>
+    <p class="note">Guest checkout is an anonymous page. A stranger can’t read anything and can’t pay themselves — but they can start card attempts against a vendor’s account, and because these are direct charges every decline lands on <em>that vendor’s</em> Stripe record. A run of them is what triggers a risk review or a payout hold, for a problem they didn’t cause and can’t see.</p>
+    <div id="declineOut"></div>
+    <p class="note" style="margin-top:12px">What a vendor can do about it: raise the minimum they accept by card (testers use the smallest amount that works), turn off custom amounts so only catalogue items can be bought, or take the shop page down for a day. Their own Stripe Radar rules are what actually block the attempts — this is the early warning that sends them there.</p>
+
     <p class="kicker">Pilot</p>
     <h2>Health</h2>
     <p class="note">The card that catches a broken pilot before the vendor does.</p>
@@ -568,6 +581,74 @@ function renderRails(rows){
   $("railOut").innerHTML=h+'</table>';
 }
 
+/* Two different silences look identical on a dashboard: "no vendor has had a
+   declined card this week" and "the events that would tell us are not being
+   delivered". The RPC returns `observing` so this card can say which. */
+function renderDeclines(d){
+  var el=$("declineOut");
+  if(!d.observing){
+    el.innerHTML='<div class="warn">Not watching yet — no card decline has ever been recorded. '
+      +'Tick <code>payment_intent.payment_failed</code> on the Connect webhook endpoint in Stripe, '
+      +'or this card will keep looking like good news.</div>';
+    return;
+  }
+  var rows=d.vendors||[];
+  if(!rows.length){
+    el.innerHTML='<div class="ok">No declines in the last '+d.window_days+' days.</div>';
+    return;
+  }
+  var html='<table><tr><th>Vendor</th><th>Declined</th><th>Paid</th>'
+    +'<th>Rate</th><th>Most common</th><th>Last</th></tr>';
+  rows.forEach(function(v){
+    /* A rate is meaningless on two attempts. Flag on BOTH a high rate and
+       enough volume to mean something, so a vendor is never alarmed over one
+       mistyped card. */
+    var noisy = v.decline_rate >= 30 && (v.declined + v.paid) >= 10;
+    html+='<tr'+(noisy?' class="bad"':'')+'>'
+      +'<td>'+esc(v.business_name||"—")+'</td>'
+      +'<td>'+v.declined+'</td><td>'+v.paid+'</td>'
+      +'<td>'+(v.decline_rate==null?"—":v.decline_rate+"%")+'</td>'
+      +'<td>'+esc(v.common_code||"—")+'</td>'
+      +'<td>'+(v.last_decline?new Date(v.last_decline).toLocaleString():"—")+'</td>'
+      +'</tr>';
+  });
+  html+='</table>';
+  var flagged=rows.filter(function(v){return v.decline_rate>=30 && (v.declined+v.paid)>=10;});
+  if(flagged.length){
+    html+='<p class="note" style="margin-top:10px"><strong>'+flagged.length+' vendor'
+      +(flagged.length===1?"":"s")+' worth a message.</strong> Suggested wording:</p>'
+      +'<pre class="msg">'+esc(declineMessage(flagged[0]))+'</pre>'
+      +'<button class="cta" type="button" id="copyDeclineMsg">Copy message</button>';
+  }
+  el.innerHTML=html;
+  var btn=$("copyDeclineMsg");
+  if(btn)btn.onclick=function(){
+    navigator.clipboard.writeText(declineMessage(flagged[0])).then(function(){
+      btn.textContent="Copied"; setTimeout(function(){btn.textContent="Copy message";},1600);
+    }).catch(function(){});
+  };
+}
+
+/* Written to be sent as-is. It leads with "this is not your fault", because
+   the vendor's first reading of "declined cards on your account" is that they
+   have done something wrong. */
+function declineMessage(v){
+  return "Hi"+(v.business_name?" "+v.business_name:"")+",\n\n"
+    +"We monitor card declines on SugarSnapp accounts, and yours has had "
+    +v.declined+" declined card attempt"+(v.declined===1?"":"s")+" recently — "
+    +v.decline_rate+"% of card attempts on your shop page.\n\n"
+    +"This is almost certainly not something you did. A public shop page can be "
+    +"found by people testing stolen card numbers, and because payments go "
+    +"straight to your own Stripe account, those attempts count against your "
+    +"Stripe record rather than ours. Left alone it can lead Stripe to hold your "
+    +"payouts.\n\nThings that stop it, quickest first:\n"
+    +"  • Raise the smallest amount you accept by card. Testers use tiny amounts.\n"
+    +"  • Turn off custom amounts so only your catalogue items can be bought.\n"
+    +"  • Turn your shop page off for a day — your QR keeps working once it is back.\n"
+    +"  • In your own Stripe dashboard, Radar is what actually blocks the attempts.\n\n"
+    +"Reply and we will help you set any of these up.";
+}
+
 function renderHealth(d){
   var h='<div class="grid">';
   h+=stat("stuck in progress",num(d.sales_stuck_in_progress),d.sales_stuck_in_progress?"bad":"");
@@ -593,7 +674,8 @@ function loadAll(){
     rpc("admin_accounts").then(renderAccounts).catch(fail("acctOut")),
     rpc("admin_volume_by_month").then(renderVolume).catch(fail("volOut")),
     rpc("admin_rail_mix").then(renderRails).catch(fail("railOut")),
-    rpc("admin_health").then(renderHealth).catch(fail("healthOut"))
+    rpc("admin_health").then(renderHealth).catch(fail("healthOut")),
+    rpc("admin_decline_watch",{p_days:7}).then(renderDeclines).catch(fail("declineOut"))
   ]);
 }
 
