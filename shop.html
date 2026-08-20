@@ -170,11 +170,17 @@ body.has-paybar{padding-bottom:110px}
    app's 620pt), the live paper receipt right (430, receipt paper 360) */
 .reg-receipt{display:none}
 @media (min-width:1000px){
+  /* The register earns a wider room than the shopper column: keypad capped
+     at 745 (the app's 620 + 20%), receipt 430, and the page + nav stretch to
+     hold both so Sign out sits at the true right edge. */
+  body.regwide .wrap{max-width:1240px}
   .reg-wrap{display:flex;gap:28px;align-items:flex-start}
-  .reg-left{flex:1;max-width:620px;margin:0 auto}
+  .reg-left{flex:1;max-width:745px;margin:0 auto}
+  .reg-head{display:none} /* the receipt masthead already names the stand */
   .reg-wrap .tape{display:none}
   .reg-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px}
   .reg-receipt .paper{width:360px;margin:0 auto;background:#fff;color:#1c1c1e;border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:26px 24px;font-family:var(--font-mono);font-size:.85rem}
+  .reg-receipt .paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px}
   .reg-receipt .paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
   .reg-receipt .paper .sub{text-align:center;color:#8e8e93;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
   .reg-receipt .paper .dash{border-top:1px dashed #c7c7cc;margin:10px 0}
@@ -185,9 +191,11 @@ body.has-paybar{padding-bottom:110px}
   .reg-receipt .paper .tot{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding-top:4px}
   .reg-receipt .paper .empty{color:#8e8e93;text-align:center;font-style:italic;padding:18px 0}
 }
-.reg-actions{display:flex;gap:10px;margin-top:16px}
-.reg-actions .cta{flex:1;text-align:center;padding:14px 10px}
-.reg-actions .ghost{flex:1;text-align:center}
+/* Charge is the register's one big lever: full keypad width, cash logging
+   tucked under it as the quiet secondary. */
+.reg-actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.reg-actions .cta{width:100%;text-align:center;padding:16px 10px;font-size:1.1rem}
+.reg-actions .ghost{width:100%;text-align:center}
 .reg-note{color:var(--muted);font-size:.82rem;font-style:italic;text-align:center;margin-top:14px}
 
 /* charge / QR screen */
@@ -346,8 +354,8 @@ footer a{margin:0 8px;color:var(--muted)}
           </div>
           <div class="tape" id="tape"></div>
           <div class="reg-actions">
-            <button class="ghost" id="cashBtn">Log cash</button>
             <button class="cta" id="chargeBtn">Charge</button>
+            <button class="ghost" id="cashBtn">Log cash</button>
           </div>
           <div class="payerr" id="regErr"></div>
           <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.<br>Charging needs signal — in a dead zone, take cash and log it when you&rsquo;re back.</p>
@@ -711,6 +719,9 @@ function show(id){
   var vendorish=id==="v-register"||id==="v-charge"||id==="v-paid";
   document.getElementById("navVendor").classList.toggle("hidden",!guest);
   document.getElementById("navSignout").classList.toggle("hidden",!vendorish);
+  /* Only the register gets the wide room (keypad + receipt); charge/paid and
+     every shopper view keep the phone-width column. */
+  document.body.classList.toggle("regwide",id==="v-register");
   window.scrollTo(0,0);
 }
 function $(id){return document.getElementById(id);}
@@ -1088,6 +1099,9 @@ function renderReceiptPane(){
   var el=$("regReceipt");
   if(!el)return;
   var lines=reg.linesForCharge(),html='<div class="paper">';
+  if(regProfile&&regProfile.logo_url&&/^https:\/\//.test(regProfile.logo_url)){
+    html+='<img class="rlogo" src="'+esc(regProfile.logo_url)+'" alt="">';
+  }
   html+='<h3>'+esc((regProfile&&regProfile.business_name)||"Your stand")+'</h3>';
   html+='<div class="sub">RECEIPT</div><div class="dash"></div>';
   if(!lines.length){
