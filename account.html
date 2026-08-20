@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-00Q9erkDlA69W3D0inykahzpfXaR4Q/ViX79Qlpe11A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-h7Rv+0A+Qd4t4Z0LcwPerHSuY8AgBlAdrxMq0pxwvXc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -1165,7 +1165,8 @@ function exportCSV(){
       +"&created_at=gte."+encodeURIComponent(startB)
       +"&created_at=lt."+encodeURIComponent(endB)
       +"&order=created_at.asc,id.asc&limit="+PAGE+"&offset="+offset
-      +"&select=id,created_at,processor,status,confirmation_method,subtotal_cents,total_cents,tax_cents";
+      +"&select=id,created_at,processor,status,confirmation_method,subtotal_cents,total_cents,tax_cents,"
+      +"external_ref,currency,fee_cents,net_cents,origin,market_date,sale_items(name_snapshot,quantity,unit_price_cents)";
     return authRest(q).then(function(r){
       if(!r.ok)throw 0;
       return r.json();
@@ -1176,8 +1177,28 @@ function exportCSV(){
       return page();
     });
   }
+  /* "2 × Apple @ 1.00; 1 × Jam @ 6.50" — the app's exact format
+     (LedgerModel.itemSummary); whole quantities print bare, weights keep
+     their decimals, never "2.0". */
+  function itemSummary(lines){
+    if(!lines||!lines.length)return "";
+    return lines.map(function(l){
+      var q=l.quantity==null?1:l.quantity;
+      var qt=(q===Math.round(q))?String(Math.round(q)):String(q);
+      var name=l.name_snapshot||"Item";
+      var price=l.unit_price_cents==null?"":moneyPlain(l.unit_price_cents);
+      return price===""?qt+" × "+name:qt+" × "+name+" @ "+price;
+    }).join("; ");
+  }
   page().then(function(all){
-    var out=["sale_id,datetime,processor,status,confirmation_method,subtotal,total,tax"];
+    /* SAME 15 columns, SAME order as the app (LedgerModel: "STABLE COLUMN
+       ORDER... appended, never inserted"). The copy above this button says
+       "Same columns as the app's export" — until now the web emitted 8 of
+       15, missing external_ref (the SNAP/match token split behind
+       reimbursement claims) and fee/net (without which gross never matches
+       the bank deposit). An Android or web-only vendor got the broken
+       version and was told it was the same (P3-28). */
+    var out=["sale_id,datetime,processor,status,confirmation_method,subtotal,total,tax,external_ref,currency,fee,net,origin,market_date,items"];
     all.forEach(function(x){
       out.push([
         x.id,
@@ -1187,7 +1208,14 @@ function exportCSV(){
         x.confirmation_method||"",
         moneyPlain(x.subtotal_cents),
         moneyPlain(x.total_cents),
-        x.tax_cents==null?"":moneyPlain(x.tax_cents)
+        x.tax_cents==null?"":moneyPlain(x.tax_cents),
+        x.external_ref||"",
+        (x.currency||"usd").toUpperCase(),
+        x.fee_cents==null?"":moneyPlain(x.fee_cents),
+        x.net_cents==null?"":moneyPlain(x.net_cents),
+        x.origin||"",
+        x.market_date||"",
+        itemSummary(x.sale_items)
       ].map(csvField).join(","));
     });
     var blob=new Blob([out.join("\n")],{type:"text/csv"});
