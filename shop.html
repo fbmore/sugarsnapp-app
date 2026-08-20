@@ -151,6 +151,40 @@ body.has-paybar{padding-bottom:110px}
 .tape .rule{border-top:1px dashed #b9c2b1;margin:10px 0}
 .tape .totrow{display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
 .tape .totrow .big{font-size:1.45rem;font-variant-numeric:tabular-nums}
+.tape .tl.inflight{color:var(--ink);font-weight:700}
+.tape .tl.done{color:var(--muted)}
+
+/* register keypad — Theme.swift KeyStyle: cream keys, vermillion operators,
+   ink clear with salmon glyph; press = scale .96 + opacity .8 over 80ms */
+.totwin{display:flex;align-items:baseline;justify-content:space-between;background:var(--total-window);color:var(--total-ink);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:14px 20px;margin-bottom:14px}
+.totwin .twlbl{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;color:rgba(255,255,255,.4)}
+.totwin .twamt{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1}
+.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:none;cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.keypad .key:active{transform:scale(.96);opacity:.8}
+.keypad .key.op{background:var(--accent);color:var(--key-cream)}
+.keypad .key.clearkey{grid-column:span 2;background:var(--ink);color:#f28c73}
+.reg-items .qbadge{margin-left:8px;background:var(--accent);color:var(--key-cream);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
+
+/* wide landscape = the iPad register: keypad column left (capped like the
+   app's 620pt), the live paper receipt right (430, receipt paper 360) */
+.reg-receipt{display:none}
+@media (min-width:1000px){
+  .reg-wrap{display:flex;gap:28px;align-items:flex-start}
+  .reg-left{flex:1;max-width:620px;margin:0 auto}
+  .reg-wrap .tape{display:none}
+  .reg-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px}
+  .reg-receipt .paper{width:360px;margin:0 auto;background:#fff;color:#1c1c1e;border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:26px 24px;font-family:var(--font-mono);font-size:.85rem}
+  .reg-receipt .paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
+  .reg-receipt .paper .sub{text-align:center;color:#8e8e93;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
+  .reg-receipt .paper .dash{border-top:1px dashed #c7c7cc;margin:10px 0}
+  .reg-receipt .paper .ln{display:flex;gap:8px;align-items:baseline;padding:2px 0}
+  .reg-receipt .paper .ln .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .reg-receipt .paper .ln .m{color:#8e8e93;white-space:nowrap}
+  .reg-receipt .paper .ln .amt{font-variant-numeric:tabular-nums}
+  .reg-receipt .paper .tot{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding-top:4px}
+  .reg-receipt .paper .empty{color:#8e8e93;text-align:center;font-style:italic;padding:18px 0}
+}
 .reg-actions{display:flex;gap:10px;margin-top:16px}
 .reg-actions .cta{flex:1;text-align:center;padding:14px 10px}
 .reg-actions .ghost{flex:1;text-align:center}
@@ -285,25 +319,43 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="reg-head">
         <h1>Register — <em id="regName"></em></h1>
       </div>
-      <div class="reg-items" id="regItems"></div>
-      <!-- amount entry — the web twin of the iOS keypad; always on for the
-           vendor (custom_amount_enabled only governs what SHOPPERS may do) -->
-      <div class="card custom-amt" id="regCustom">
-        <div class="ca-row">
-          <span class="ca-cur">$</span>
-          <input id="regAmt" type="text" inputmode="decimal" placeholder="0.00" autocomplete="off" aria-label="Amount in dollars">
-          <input id="regNote" type="text" maxlength="60" placeholder="Note (optional)" autocomplete="off" aria-label="Line note">
-          <button class="ghost" id="regAdd" type="button">Add</button>
+      <div class="reg-wrap">
+        <div class="reg-left">
+          <!-- The total window is fixed-contrast in both themes, like the app:
+               white on near-black, the old "CASH .90" indicator window. -->
+          <div class="totwin" aria-label="Total"><span class="twlbl">TOTAL</span><span class="twamt" id="twAmt">$0.00</span></div>
+          <div class="reg-items" id="regItems"></div>
+          <!-- The keypad — the web twin of the iOS register (RegisterModel.swift).
+               Cents-first: 9 5 0 reads $9.50. × then digits = quantity. + commits. -->
+          <div class="keypad" id="keypad">
+            <button type="button" class="key" data-d="7">7</button>
+            <button type="button" class="key" data-d="8">8</button>
+            <button type="button" class="key" data-d="9">9</button>
+            <button type="button" class="key op" data-op="mul" aria-label="Multiply">×</button>
+            <button type="button" class="key" data-d="4">4</button>
+            <button type="button" class="key" data-d="5">5</button>
+            <button type="button" class="key" data-d="6">6</button>
+            <button type="button" class="key op" data-op="add" aria-label="Add line">+</button>
+            <button type="button" class="key" data-d="1">1</button>
+            <button type="button" class="key" data-d="2">2</button>
+            <button type="button" class="key" data-d="3">3</button>
+            <button type="button" class="key op" data-op="back" aria-label="Backspace">⌫</button>
+            <button type="button" class="key" data-d="0">0</button>
+            <button type="button" class="key" data-d00>00</button>
+            <button type="button" class="key clearkey" data-op="clear" aria-label="Clear">C</button>
+          </div>
+          <div class="tape" id="tape"></div>
+          <div class="reg-actions">
+            <button class="ghost" id="cashBtn">Log cash</button>
+            <button class="cta" id="chargeBtn">Charge</button>
+          </div>
+          <div class="payerr" id="regErr"></div>
+          <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.<br>Charging needs signal — in a dead zone, take cash and log it when you&rsquo;re back.</p>
         </div>
-        <div class="payerr" id="regAmtErr"></div>
+        <!-- On wide landscape screens the compact tape gives way to the real
+             receipt assembling itself, exactly like the iPad register. -->
+        <aside class="reg-receipt" id="regReceipt" aria-hidden="true"></aside>
       </div>
-      <div class="tape" id="tape"></div>
-      <div class="reg-actions">
-        <button class="ghost" id="cashBtn">Log cash</button>
-        <button class="cta" id="chargeBtn">Charge</button>
-      </div>
-      <div class="payerr" id="regErr"></div>
-      <p class="reg-note">Payments settle to your own Stripe, PayPal, or Venmo account. SugarSnapp takes no cut — you pay only your processor&rsquo;s standard fee.</p>
     </section>
 
     <!-- charge (QR waiting) -->
@@ -347,6 +399,7 @@ footer a{margin:0 8px;color:var(--muted)}
   </div>
 </footer>
 
+<script src="scripts/register-model.js?v=80477d57cd"></script>
 <script>
 (function(){
 "use strict";
@@ -690,6 +743,11 @@ var oauthError=null,oauthReturned=false;
 })();
 var vendor=null,items=[],cart={},customLines=[]; // guest
 var regProfile=null,regItems=[],tape=[],accounts=[]; // vendor
+/* The keypad's brain — the same state machine as the iOS register
+   (scripts/register-model.js, mirrored tests). `tape` is now DERIVED from it
+   on every render so the existing charge/cash flows keep reading what they
+   always read: linesForCharge() shaped as {item:{id,name,price_cents},qty}. */
+var reg=new RegisterModel();
 var pollTimer=null,activeSale=null,activeProc=null;
 
 /* ---------- boot ---------- */
@@ -953,7 +1011,7 @@ function enterRegister(profile){
     accounts=res[1].filter(function(a){
       return a.external_id&&["stripe","paypal","venmo"].indexOf(a.processor)>=0;
     });
-    tape=[];
+    reg.clearAll();
     renderRegister();
   }).catch(function(){show("v-dead");});
 }
@@ -966,75 +1024,131 @@ function renderRegister(){
   regItems.forEach(function(it){
     var b=document.createElement("button");
     b.type="button";b.className="reg-item";
-    b.innerHTML='<div class="nm">'+esc(it.name)+'</div>'+
+    b.innerHTML='<div class="nm">'+esc(it.name)+'<span class="qbadge hidden"></span></div>'+
       '<div class="pr">'+money(it.price_cents)+(it.unit?' <span class="un">/ '+esc(it.unit)+'</span>':'')+'</div>';
-    b.onclick=function(){addTape(it);};
+    b.onclick=function(){reg.addItem({id:it.id,name:it.name,priceCents:it.price_cents});renderTape();};
+    b._regItem=it;
     grid.appendChild(b);
   });
   renderTape();
   show("v-register");
 }
-function addTape(it){
-  var line=tape.find(function(l){return l.item.id===it.id;});
-  if(line)line.qty=Math.min(line.qty+1,999);
-  else tape.push({item:it,qty:1});
-  renderTape();
+function tapeTotal(){return reg.grandTotal();}
+/* Rebuild `tape` from the model so saleLinesBody/createSale read the exact
+   lines the screen shows — including the in-flight one, like iOS
+   linesForCharge(): charging without pressing + captures what's typed. */
+function syncTape(){
+  tape=reg.linesForCharge().map(function(l){
+    return{item:{id:l.itemId,name:l.name,price_cents:l.unitCents},qty:l.quantity};
+  });
 }
-/* Typed amounts ride the tape as one-off lines: item_id null, the note (or
-   "Custom amount") as the snapshot name — the same row shape the iOS register
-   writes, so the ledger and receipts render them identically. Never merged
-   like catalog items: two $5 lines are two sales lines, as on the keypad. */
-$("regAdd").onclick=function(){
-  var errEl=$("regAmtErr");
-  errEl.style.display="none";
-  var raw=$("regAmt").value.replace(",",".").trim();
-  var cents=Math.round((parseFloat(raw)||0)*100);
-  var msg=null;
-  if(cents<50)msg="Enter at least $0.50.";
-  else if(cents>500000)msg="Amounts are capped at $5,000.";
-  if(msg){errEl.textContent=msg;errEl.style.display="block";return;}
-  tape.push({item:{id:null,name:$("regNote").value.trim().slice(0,60)||"Custom amount",price_cents:cents},qty:1});
-  $("regAmt").value="";$("regNote").value="";
-  $("regAmt").focus();
-  renderTape();
-};
-$("regAmt").addEventListener("keydown",function(e){
-  if(e.key==="Enter"){e.preventDefault();$("regAdd").onclick();}
-});
-function tapeTotal(){
-  return tape.reduce(function(s,l){return s+l.item.price_cents*l.qty;},0);
+function inflightText(){
+  if(!(reg.hasEntry()||reg.phase==="quantity"))return null;
+  return money(reg.entryCents)+(reg.phase==="quantity"?"  ×"+(reg.quantity===null?"":reg.quantity):"");
 }
 function renderTape(){
-  var el=$("tape");
-  if(!tape.length){
-    el.innerHTML='<div class="empty">Tap items to ring them up</div>';
+  syncTape();
+  $("twAmt").textContent=money(reg.grandTotal());
+  var el=$("tape"),html="",inflight=inflightText();
+  if(!reg.lines.length&&!inflight){
+    el.innerHTML='<div class="empty">Tap items or type an amount</div>';
   }else{
-    var html="";
-    tape.forEach(function(l,idx){
-      html+='<div class="tl"><span class="nm">'+esc(l.item.name)+'</span>'+
-        (l.qty>1?'<span class="m">'+money(l.item.price_cents)+' ×'+l.qty+'</span>':'')+
-        '<span class="amt">'+money(l.item.price_cents*l.qty)+'</span>'+
+    reg.lines.forEach(function(l,idx){
+      html+='<div class="tl done"><span class="nm">'+(l.name?esc(l.name):"Item")+'</span>'+
+        (l.quantity>1?'<span class="m">'+money(l.unitCents)+' ×'+l.quantity+'</span>':'')+
+        '<span class="amt">'+money(l.unitCents*l.quantity)+'</span>'+
         '<button type="button" aria-label="Remove one" data-i="'+idx+'">✕</button></div>';
     });
-    html+='<div class="rule"></div>'+
-      '<div class="totrow"><span>TOTAL</span><span class="big">'+money(tapeTotal())+'</span></div>';
+    if(inflight)html+='<div class="tl inflight"><span class="nm"></span><span class="amt">'+inflight+'</span></div>';
     el.innerHTML=html;
     el.querySelectorAll("button[data-i]").forEach(function(b){
-      b.onclick=function(){
-        var i=+b.getAttribute("data-i");
-        if(tape[i].qty>1)tape[i].qty--;else tape.splice(i,1);
-        renderTape();
-      };
+      b.onclick=function(){reg.removeLineAt(+b.getAttribute("data-i"));renderTape();};
     });
   }
-  var has=tape.length>0;
-  $("chargeBtn").disabled=!has||!accounts.length;
-  $("cashBtn").disabled=!has;
-  var t=tapeTotal();
+  /* chip badges — ×N mirrors the app's Items chips */
+  document.querySelectorAll("#regItems .reg-item").forEach(function(b){
+    var it=b._regItem,badge=b.querySelector(".qbadge");
+    if(!it||!badge)return;
+    var q=reg.quantityOf({name:it.name,priceCents:it.price_cents});
+    badge.textContent=q>0?"×"+q:"";
+    badge.classList.toggle("hidden",q===0);
+  });
+  renderReceiptPane();
+  var can=reg.canCharge();
+  $("chargeBtn").disabled=!can||!accounts.length;
+  $("cashBtn").disabled=!can;
+  var t=reg.grandTotal();
   $("chargeBtn").textContent=!accounts.length?"Charge (no accounts)"
     :(t===0?"Charge":"Charge "+money(t));
   $("regErr").style.display="none";
 }
+/* The wide-screen receipt pane: the actual receipt assembling itself, like
+   the iPad register. A receipt is paper — always light, whatever the theme. */
+function renderReceiptPane(){
+  var el=$("regReceipt");
+  if(!el)return;
+  var lines=reg.linesForCharge(),html='<div class="paper">';
+  html+='<h3>'+esc((regProfile&&regProfile.business_name)||"Your stand")+'</h3>';
+  html+='<div class="sub">RECEIPT</div><div class="dash"></div>';
+  if(!lines.length){
+    html+='<div class="empty">Ring up a sale…</div>';
+  }else{
+    lines.forEach(function(l){
+      html+='<div class="ln"><span class="nm">'+(l.name?esc(l.name):"Item")+'</span>'+
+        (l.quantity>1?'<span class="m">'+money(l.unitCents)+' ×'+l.quantity+'</span>':'')+
+        '<span class="amt">'+money(l.unitCents*l.quantity)+'</span></div>';
+    });
+    html+='<div class="dash"></div><div class="tot"><span>TOTAL</span><span>'+money(reg.grandTotal())+'</span></div>';
+  }
+  html+='</div>';
+  el.innerHTML=html;
+}
+/* keypad wiring — clicks map 1:1 onto the model; C long-press (600ms) wipes
+   everything at once, exactly like holding Clear on the app */
+(function(){
+  var kp=$("keypad");
+  if(!kp)return;
+  var clearHeld=false,clearTimer=null;
+  kp.addEventListener("click",function(e){
+    var b=e.target.closest("button");
+    if(!b)return;
+    if(b.hasAttribute("data-d00"))reg.tapDoubleZero();
+    else if(b.hasAttribute("data-d"))reg.tapDigit(+b.getAttribute("data-d"));
+    else switch(b.getAttribute("data-op")){
+      case "mul":reg.tapMultiply();break;
+      case "add":reg.tapAdd();break;
+      case "back":reg.backspace();break;
+      case "clear":if(clearHeld){clearHeld=false;break;}reg.clear();break;
+    }
+    renderTape();
+  });
+  var ck=kp.querySelector('[data-op="clear"]');
+  ["pointerdown","touchstart"].forEach(function(ev){
+    ck.addEventListener(ev,function(){
+      clearTimer=setTimeout(function(){clearHeld=true;reg.clearAll();renderTape();},600);
+    },{passive:true});
+  });
+  ["pointerup","pointerleave","touchend","touchcancel"].forEach(function(ev){
+    ck.addEventListener(ev,function(){if(clearTimer){clearTimeout(clearTimer);clearTimer=null;}},{passive:true});
+  });
+  /* physical keyboard — the web-only win: digits, x/*, +, Backspace,
+     Escape (clear), Enter (charge). Only while the register is showing. */
+  document.addEventListener("keydown",function(e){
+    if($("v-register").classList.contains("hidden"))return;
+    var t=e.target;
+    if(t&&(t.tagName==="INPUT"||t.tagName==="TEXTAREA"))return;
+    if(e.metaKey||e.ctrlKey||e.altKey)return;
+    if(e.key>="0"&&e.key<="9"){reg.tapDigit(+e.key);}
+    else if(e.key==="*"||e.key==="x"||e.key==="X"){reg.tapMultiply();}
+    else if(e.key==="+"){reg.tapAdd();}
+    else if(e.key==="Backspace"){reg.backspace();}
+    else if(e.key==="Escape"){reg.clear();}
+    else if(e.key==="Enter"){if(!$("chargeBtn").disabled)$("chargeBtn").onclick();return;}
+    else return;
+    e.preventDefault();
+    renderTape();
+  });
+})();
 function regError(msg){
   var el=$("regErr");
   el.textContent=msg;el.style.display="block";
@@ -1047,6 +1161,7 @@ function saleLinesBody(saleId){
   });
 }
 function createSale(extra){
+  syncTape(); // commit exactly what's on screen, in-flight line included
   var total=tapeTotal();
   var body={user_id:getSession().user_id,origin:"web_register",
     subtotal_cents:total,total_cents:total};
@@ -1061,7 +1176,7 @@ function createSale(extra){
   });
 }
 $("chargeBtn").onclick=function(){
-  if(!tape.length||!accounts.length)return;
+  if(!reg.canCharge()||!accounts.length)return;
   var btn=$("chargeBtn");btn.disabled=true;btn.textContent="One moment…";
   createSale({status:"pending"})
   .then(function(sale){
@@ -1072,7 +1187,7 @@ $("chargeBtn").onclick=function(){
   .finally(function(){btn.disabled=false;renderTape();});
 };
 $("cashBtn").onclick=function(){
-  if(!tape.length)return;
+  if(!reg.canCharge())return;
   var btn=$("cashBtn");btn.disabled=true;btn.textContent="Logging…";
   createSale({status:"paid",processor:"cash",confirmation_method:"manual",
     confirmed_at:new Date().toISOString()})
@@ -1135,7 +1250,8 @@ $("cancelBtn").onclick=function(){
   show("v-register");
 };
 function showPaid(cents,proc){
-  tape=[];
+  reg.clearAll();
+  syncTape();
   activeSale=null;
   $("paidAmt").textContent=money(cents);
   $("paidMeta").textContent=(PROC_NAMES[proc]||proc||"")+" · "+
