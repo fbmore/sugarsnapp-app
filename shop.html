@@ -221,7 +221,8 @@ body.has-paybar{padding-bottom:110px}
 .wait{color:var(--muted);font-size:.92rem;margin-top:14px}
 .wait .dotp{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:7px;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.25}50%{opacity:1}}
-.charge .cancel{margin-top:20px}
+.charge .sharerow{margin-top:14px}
+.charge .cancel{margin-top:10px}
 .paid-view{text-align:center;margin:40px 0}
 .paid-badge{display:inline-flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:50%;border:3px solid var(--accent);color:var(--accent);font-size:2.4rem;margin-bottom:12px}
 .paid-view h2{font-size:1.7rem;text-align:center}
@@ -393,6 +394,10 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="proc-tabs" id="procTabs"></div>
       <div class="qrbox"><canvas id="qrCanvas" width="10" height="10"></canvas></div>
       <div class="wait" id="chargeWait"><span class="dotp"></span>Waiting for payment&hellip;</div>
+      <!-- The web twin of the app's link fallback: same /r/<sale>/<processor>
+           URL the QR encodes, for customers who can't scan (or are on the
+           other end of a phone call / text thread). -->
+      <div class="sharerow"><button class="ghost" id="shareLinkBtn" type="button">Can&rsquo;t scan? Share the payment link</button></div>
       <div class="cancel"><button class="ghost" id="cancelBtn">Cancel sale</button></div>
     </section>
 
@@ -1287,6 +1292,21 @@ function startPoll(saleId){
   },2000);
 }
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+$("shareLinkBtn").onclick=function(){
+  if(!activeSale||!activeProc)return;
+  var url=PAY+activeSale.id+"/"+activeProc;
+  var b=$("shareLinkBtn"),orig=b.textContent;
+  if(navigator.share){
+    navigator.share({title:"Pay "+((regProfile&&regProfile.business_name)||"this stand"),url:url}).catch(function(){});
+  }else if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(function(){
+      b.textContent="Link copied";
+      setTimeout(function(){b.textContent=orig;},1600);
+    }).catch(function(){window.prompt("Payment link:",url);});
+  }else{
+    window.prompt("Payment link:",url);
+  }
+};
 $("cancelBtn").onclick=function(){
   var id=activeSale&&activeSale.id;
   stopPoll();
