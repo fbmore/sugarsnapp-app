@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-vNgn0GDdslWUAt2P4dmvfYAJwOOhPIrzLEmcu5fn8bg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-tsnAmkM5QlDrI5GSD50hJuS+LzXNLkjm4YaSQdqDHpM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -179,6 +179,30 @@
           <span class="saved" id="hSaved">Saved</span>
         </div>
         <div class="payerr" id="hErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" data-sec="stripe">
+        <div class="kicker">Smallest card payment</div>
+        <p class="expmsg" style="margin:6px 0 10px">Card testers use the smallest amount that will go
+          through, so a floor is the cheapest way to stop them. Leave it off unless you see a problem.</p>
+        <label class="fld"><span>Minimum</span>
+          <select id="cardMin">
+            <option value="">No minimum</option>
+            <option value="100">$1.00</option>
+            <option value="200">$2.00</option>
+            <option value="300">$3.00</option>
+            <option value="500">$5.00</option>
+            <option value="1000">$10.00</option>
+          </select></label>
+        <p id="cardMinAuto" class="expmsg" style="display:none;color:var(--bad);margin-top:8px">
+          We raised this for you after a run of declined card attempts on your shop page — that is
+          usually somebody testing stolen card numbers, not anything you did. Change it here and we
+          won&rsquo;t touch it again. Cash and your other payment options are unaffected.</p>
+        <div class="saverow">
+          <button class="cta" id="cardMinSave" type="button">Save</button>
+          <span class="saved" id="cardMinSaved">Saved</span>
+        </div>
+        <div class="payerr" id="cardMinErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
       <div class="card" id="railsCard" data-sec="rails">
@@ -545,7 +569,8 @@ function loadStand(){
   var s=getSession();if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
            "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled,"+
-           "market_tokens_enabled,visible_rails,address,website,contact_email,contact_phone,"+
+           "market_tokens_enabled,visible_rails,card_minimum_cents,card_minimum_set_by,"+
+           "address,website,contact_email,contact_phone,"+
            "checkout_enabled,checkout_slug")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
@@ -567,6 +592,10 @@ function loadStand(){
     checkoutSlug=p.checkout_slug||null;
     $("scOn").checked=!!p.checkout_enabled;
     loadRails(p);
+    /* A floor that moved on its own has to explain itself, so the reason is
+       shown beside the control rather than only in the email. */
+    $("cardMin").value = (p.card_minimum_cents==null) ? "" : String(p.card_minimum_cents);
+    $("cardMinAuto").style.display = (p.card_minimum_set_by==="auto") ? "block" : "none";
     paintCheckout();
   }).catch(function(){});
 }
@@ -639,6 +668,24 @@ function loadRails(p){
     renderRails();
   }).catch(function(){ /* offline: cash-only is the safe floor, and nothing
                           is written until the vendor presses Save. */ });
+}
+
+/* Saved through the RPC, not a column write: storing it also marks the floor
+   as the VENDOR's, after which the automatic defence leaves it alone. That is
+   the promise the notice email makes, so it is enforced server-side. */
+function saveCardMinimum(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("cardMinErr");err.style.display="none";
+  var raw=$("cardMin").value;
+  $("cardMinSave").disabled=true;
+  rpc("set_card_minimum",{p_cents: raw===""?null:parseInt(raw,10)})
+  .then(function(){
+    $("cardMinAuto").style.display="none";   // it is theirs now
+    flash("cardMinSaved");
+  }).catch(function(){
+    err.textContent="Couldn't save. Check your connection and try again.";
+    err.style.display="block";
+  }).then(function(){$("cardMinSave").disabled=false;});
 }
 
 function saveRails(){
@@ -1708,6 +1755,7 @@ $("sfSave").addEventListener("click",saveStand);
 $("sfTokens").addEventListener("change",function(){mtTokensTouched=true;});
 $("rdSave").addEventListener("click",saveReceipt);
 $("railsSave").addEventListener("click",saveRails);
+$("cardMinSave").addEventListener("click",saveCardMinimum);
 $("scOn").addEventListener("change",function(){setCheckout($("scOn").checked);});
 $("scCopy").addEventListener("click",function(){
   var t=$("scLink").textContent;
