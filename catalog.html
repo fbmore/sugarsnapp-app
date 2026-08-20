@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-BFPwCnFfGQ/eHPzbBca4tDjubeXYNhLv6X5C0chAtCc='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-3SWACXJbDNIsmR7tM1+ix6luIj1rVj7H47PzUJuEg2Y='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your catalog — SugarSnapp</title>
 <meta name="description" content="Edit the items on your SugarSnapp register and self-checkout page.">
 <meta name="robots" content="noindex">
@@ -97,7 +97,23 @@ function itemRowHtml(it,i){
       : '<button class="rm" type="button" data-act="retire" title="Remove from the register">&times;</button>')+
     '</div>';
 }
+var itemsLoaded=false; // a failed load must never look like an empty catalog (P1-12)
 function paintItems(){
+  if(!itemsLoaded){
+    /* Rendering "Nothing yet" on a failed load invited the vendor to retype
+       their whole storefront — which saveItems would then POST as brand-new
+       rows, duplicating every item shoppers see. Say what actually happened
+       and keep Save/Add off until a real load succeeds. */
+    $("itemRows").innerHTML='<div class="expmsg">Couldn&rsquo;t load your items — no signal, or the server didn&rsquo;t answer. '+
+      'Your catalog is safe on the server. <button class="ghost" id="itRetry" type="button">Retry</button></div>';
+    var b=document.getElementById("itRetry");
+    if(b)b.onclick=loadItems;
+    $("itSave").disabled=true;
+    $("itAdd").disabled=true;
+    return;
+  }
+  $("itSave").disabled=false;
+  $("itAdd").disabled=false;
   $("itemRows").innerHTML=itemRows.length
     ? itemRows.map(itemRowHtml).join("")
     : '<div class="expmsg">Nothing yet. Add your first item &mdash; a name and a price is enough.</div>';
@@ -116,16 +132,18 @@ function readItemRows(){
 }
 function loadItems(){
   authRest("items?select=id,name,price_cents,unit,active,sort_order&order=active.desc,sort_order.asc,created_at.asc")
-  .then(function(r){return r.ok?r.json():[];})
-  .then(function(rows){itemRows=rows;paintItems();})
-  .catch(function(){itemRows=[];paintItems();});
+  .then(function(r){if(!r.ok)throw 0;return r.json();})
+  .then(function(rows){itemRows=rows;itemsLoaded=true;paintItems();})
+  .catch(function(){itemsLoaded=false;paintItems();});
 }
 function saveItems(){
   var s=getSession();if(!s){show("v-login");return;}
   readItemRows();
   var err=$("itErr");err.style.display="none";
-  /* Validate everything before writing anything. A partial save leaves the
-     register showing some edits and not others, which is worse than refusing. */
+  /* Validate everything before writing anything. Validation is
+     all-or-nothing; the WRITES below are parallel and are not — the failure
+     handler reloads from the server precisely because a partial landing is
+     possible. */
   for(var i=0;i<itemRows.length;i++){
     var it=itemRows[i];
     if(it.active===false)continue;
@@ -150,8 +168,13 @@ function saveItems(){
     flash("itSaved");
     loadItems();
   }).catch(function(){
-    err.textContent="Couldn't save the catalog. Try again in a moment.";
+    /* The writes are parallel, NOT atomic: some may have landed. Reloading
+       from the server is what makes retry safe — new rows come back WITH
+       their ids, so tapping Save again patches them instead of POSTing
+       duplicates (P1-12). */
+    err.textContent="That didn't fully save — the list below is what the server has. Check it, then save again.";
     err.style.display="block";
+    loadItems();
   }).then(function(){$("itSave").disabled=false;});
 }
 
