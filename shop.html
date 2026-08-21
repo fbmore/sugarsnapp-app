@@ -1040,6 +1040,28 @@ function isLargeAmount(cents, profile){
   var t = largeAmountCents(profile);
   return t > 0 && cents >= t;
 }
+
+/* Ask once, then run. `go` is only called if the person confirms the figure,
+   and the button repeats the amount so the confirming tap lands on the number
+   rather than on a generic yes.
+
+   TOP LEVEL, deliberately. This lived inside the keypad IIFE, which made it
+   invisible to all three of its callers — Charge, Log payment, and the guest
+   Pay button — so every one of them threw ReferenceError and did nothing. It
+   belongs beside isLargeAmount/largeAmountCents, which are the only things it
+   depends on besides $ and money. */
+function confirmIfLarge(cents, profile, what, go){
+  if(!isLargeAmount(cents, profile)){ go(); return; }
+  $("bigConfirmAsk").textContent =
+    "That's "+money(cents)+" — a big one. Check the amount before you "+what+".";
+  $("bigGo").textContent = "Yes, "+what+" "+money(cents);
+  $("bigConfirm").classList.remove("hidden");
+  $("bigGo").onclick = function(){
+    $("bigConfirm").classList.add("hidden");
+    go();
+  };
+  $("bigFix").onclick = function(){ $("bigConfirm").classList.add("hidden"); };
+}
 function loadCustom(){
   var saved=[];
   try{saved=JSON.parse(localStorage.getItem("ss-custom-"+slug))||[];}catch(e){}
@@ -1524,21 +1546,6 @@ buildKeypad($("gKeypad"));
   }
   function endClearConfirm(){ $("clearConfirm").classList.add("hidden"); }
 
-  /* Ask once, then run. `go` is only called if the person confirms the figure,
-     and the button repeats the amount so the confirming tap lands on the
-     number rather than on a generic yes. */
-  function confirmIfLarge(cents, profile, what, go){
-    if(!isLargeAmount(cents, profile)){ go(); return; }
-    $("bigConfirmAsk").textContent =
-      "That's "+money(cents)+" — a big one. Check the amount before you "+what+".";
-    $("bigGo").textContent = "Yes, "+what+" "+money(cents);
-    $("bigConfirm").classList.remove("hidden");
-    $("bigGo").onclick = function(){
-      $("bigConfirm").classList.add("hidden");
-      go();
-    };
-    $("bigFix").onclick = function(){ $("bigConfirm").classList.add("hidden"); };
-  }
   $("clearKeep").onclick=endClearConfirm;
   $("clearWipe").onclick=function(){ endClearConfirm(); reg.clearAll(); renderTape(); };
 
