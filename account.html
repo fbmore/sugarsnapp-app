@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-jkuh16svDij543kn4gQia2cvvBL/rWpBBOUjUACOLWk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-DuXWO1S59hGr6fnpFojf0St+UsQN3fqkhTlw6Ba3qyo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -19,13 +19,14 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=6c94394098">
+<link rel="stylesheet" href="styles/ss.css?v=04b286acd7">
 </head>
 <body>
 <div class="wrap wide">
   <nav>
     <a href="index.html"><img class="brand-logo" src="logo.svg" alt="SugarSnapp"></a>
     <div class="navside" id="navSide">
+      <div class="navwho hidden" id="navWho"><b id="navWhoName"></b><span id="navWhoMail"></span></div>
       <div class="toggle hidden" id="viewToggle">
         <button id="tabVendor" type="button">Stand</button>
         <button id="tabOrganizer" type="button">Market</button>
@@ -37,7 +38,7 @@
       </select>
       <button id="signOut" class="hidden" type="button">Sign out</button>
     </div>
-    <button class="morebtn" id="moreBtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navSide">&#8943;</button>
+    <button class="morebtn" id="moreBtn" type="button" aria-label="Account menu" aria-expanded="false" aria-controls="navSide"><img id="navAvatar" alt="" hidden><span class="initials" id="navInitials">&#8943;</span></button>
   </nav>
   <main>
 
@@ -74,7 +75,7 @@
         <div class="err" id="loginErr"></div>
         <button class="cta" id="loginBtn" type="submit">Sign in</button>
         <p style="text-align:center;margin-top:14px;font-size:.9rem"><a href="reset.html">Forgot your password?</a></p>
-        <p style="text-align:center;margin-top:10px;font-size:.82rem;color:var(--muted)">On a shared computer? Sign out when you&rsquo;re done — the button lives top right.</p>
+        <p style="text-align:center;margin-top:10px;font-size:.82rem;color:var(--muted)">On a shared computer? Sign out when you&rsquo;re done &mdash; it&rsquo;s in the menu behind your picture, top right.</p>
       </form>
     </section>
 
@@ -483,10 +484,63 @@ function show(id){
      organizer mode exists, but are sent to the page that explains it rather than
      to an empty tent. */
   $("orgHint").classList.toggle("hidden",!(id==="v-vendor"&&!hasOrganizerSide));
+  $("navWho").classList.toggle("hidden",!authed);
+  paintAvatar(authed);
   window.scrollTo(0,0);
 }
 
+/* The header is a logo and one face, so the face has to say who you are.
+   Sources, in order: the identity provider's photo (Google sign-in puts it in
+   the JWT as avatar_url or picture), then the stand's own logo, then initials.
+   Everything comes out of the access token already in hand — no extra request
+   just to draw a 44px circle, and nothing to go stale in localStorage. */
+function jwtPayload(){
+  var s=getSession();
+  if(!s||!s.access_token)return null;
+  try{
+    var p=s.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+    while(p.length%4)p+="=";
+    return JSON.parse(decodeURIComponent(escape(atob(p))));
+  }catch(e){return null;}
+}
+function initialsFor(name,mail){
+  /* A name gives one letter per word ("Maple Lane Farm Stand" -> ML). An email
+     has no words, only punctuation, and splitting it the same way produced FG
+     for fbmore@gmail.com \u2014 the G is the mail host, which says nothing about
+     the person. So an email falls back to the first two letters of the part
+     before the @. */
+  var n=(name||"").trim();
+  if(n){
+    var w=n.split(/\s+/).filter(Boolean);
+    if(w.length>1)return (w[0].charAt(0)+w[1].charAt(0)).toUpperCase();
+    return w[0].substring(0,2).toUpperCase();
+  }
+  var local=(mail||"").trim().split("@")[0].replace(/[^A-Za-z0-9]/g,"");
+  return local?local.substring(0,2).toUpperCase():"\u22ef";
+}
+function paintAvatar(authed){
+  var img=$("navAvatar"),ini=$("navInitials");
+  if(!authed){img.hidden=true;ini.textContent="\u22ef";$("moreBtn").setAttribute("aria-label","Menu");return;}
+  $("moreBtn").setAttribute("aria-label","Account menu");
+  var p=jwtPayload()||{},m=p.user_metadata||{};
+  var mail=p.email||m.email||"";
+  var name=(standProfile&&standProfile.business_name)||m.full_name||m.name||"";
+  $("navWhoName").textContent=name||"Your account";
+  $("navWhoMail").textContent=mail;
+  ini.textContent=initialsFor(name,mail);
+  var url=m.avatar_url||m.picture||(standProfile&&standProfile.logo_url)||"";
+  if(!url){img.hidden=true;return;}
+  /* Show the photo only once it has actually decoded: a dead URL otherwise
+     leaves an empty circle where the initials used to be. */
+  img.onload=function(){img.hidden=false;};
+  img.onerror=function(){img.hidden=true;};
+  img.src=url;
+}
+
 /* ---------- vendor ledger ---------- */
+/* Cached so the header avatar can fall back to the stand logo without a
+   second fetch. Null until loadStand() lands; paintAvatar copes either way. */
+var standProfile=null;
 var vDay=new Date();
 function clampFuture(d){
   var today=new Date();today.setHours(0,0,0,0);
@@ -547,9 +601,12 @@ function loadVendorHeader(){
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     var p=rows[0]||{};
+    standProfile=p;
     if(p.business_name)$("vName").textContent=p.business_name;
     if(p.logo_url){$("vLogo").src=p.logo_url;$("vLogo").classList.remove("hidden");}
     pointLogoAtRegister(p.checkout_slug);
+    /* The header drew itself before this landed, so give it the real name. */
+    paintAvatar(!$("navWho").classList.contains("hidden"));
   }).catch(function(){});
 }
 /* ---------- terms acceptance ---------- */

@@ -92,24 +92,37 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .navside button{font-size:.92rem;color:var(--muted)}
 .navside select{font:inherit;font-size:.92rem;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 10px;cursor:pointer}
 .navside button:hover{color:var(--accent)}
-/* The header has four controls (view toggle, theme, sign out, and the logo).
-   At phone width they stacked over each other. Below 640px everything but the
-   logo lives behind one "⋯" button and drops down as a column; one set of
-   controls, one set of ids, nothing duplicated — the DOM node is the same,
-   only where it renders changes. */
-/* 44px: Apple's minimum comfortable tap target. Sits at the far right, after
-   Sign out, so the thumb finds it where every other app puts it. */
-.morebtn{display:none;align-items:center;justify-content:center;width:44px;height:44px;margin-left:auto;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:1.5rem;line-height:1;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
+/* The header is a logo and one avatar button, at every width.
+   It used to lay the view toggle, theme select and Sign out inline across the
+   desktop header and collapse them behind a "⋯" button below 640px — two
+   layouts, one set of ids. The phone dropdown was already the better pattern,
+   so it is now the only one: the controls live in the menu on a 1400px monitor
+   exactly as they do on a phone, and the header stops competing with the page.
+   Same DOM node, same ids, nothing duplicated. */
+/* 44px: Apple's minimum comfortable tap target, and big enough for a face to
+   be recognisable rather than a smudge. */
+.morebtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin-left:auto;padding:0;overflow:hidden;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:.95rem;font-weight:600;line-height:1;cursor:pointer;flex:none;-webkit-tap-highlight-color:transparent}
 .morebtn:active{background:var(--line)}
-@media(max-width:640px){
-  .morebtn{display:inline-flex}
-  .navside{display:none}
-  .navside.open{display:flex;flex-direction:column;align-items:stretch;gap:12px;position:absolute;right:0;top:calc(100% - 10px);min-width:220px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:45}
-  .navside.open .toggle{align-self:stretch;justify-content:stretch}
-  .navside.open .toggle button{flex:1}
-  .navside.open select{width:100%}
-  .navside.open button#signOut{text-align:left;padding:6px 4px}
-}
+.morebtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.morebtn img{width:100%;height:100%;object-fit:cover;display:block}
+/* A class selector beats the UA sheet's [hidden]{display:none}, so without
+   this the not-yet-loaded avatar still takes its 44px and shoves the
+   initials out of the circle. */
+.morebtn img[hidden]{display:none}
+/* The initials stand in until (or instead of) a photo. Hidden rather than
+   removed so a broken avatar URL falls back without a reflow. */
+.morebtn .initials{letter-spacing:.02em}
+.navside{display:none}
+.navside.open{display:flex;flex-direction:column;align-items:stretch;gap:12px;position:absolute;right:0;top:calc(100% - 10px);min-width:240px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:45}
+.navside.open .toggle{align-self:stretch;justify-content:stretch}
+.navside.open .toggle button{flex:1}
+.navside.open select{width:100%}
+.navside.open button#signOut{text-align:left;padding:6px 4px}
+/* Who you are signed in as. The menu is the only place it appears now that the
+   header is just a logo and a face, so it is not decoration. */
+.navwho{display:flex;flex-direction:column;gap:2px;padding:2px 4px 10px;border-bottom:1px solid var(--line)}
+.navwho b{font-size:.92rem;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.navwho span{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
 .note-card{text-align:center;margin:34px 0}
