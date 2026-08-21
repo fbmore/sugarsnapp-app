@@ -456,6 +456,13 @@ footer a{margin:0 8px;color:var(--muted)}
           <!-- Inline, like the trade-note step: a browser confirm() blocks the
                page and reads as a system error rather than a question about
                the vendor's own order. -->
+          <div class="lognote hidden" id="bigConfirm">
+            <span id="bigConfirmAsk"></span>
+            <div class="lognote-actions">
+              <button type="button" class="ghost" id="bigFix">Let me fix it</button>
+              <button type="button" class="cta" id="bigGo">Yes, that's right</button>
+            </div>
+          </div>
           <div class="lognote hidden" id="clearConfirm">
             <span id="clearConfirmAsk"></span>
             <div class="lognote-actions">
@@ -946,6 +953,8 @@ var regProfile=null,regItems=[],tape=[],accounts=[]; // vendor
    always read: linesForCharge() shaped as {item:{id,name,price_cents},qty}. */
 var reg=new RegisterModel();
 var pollTimer=null,activeSale=null,activeProc=null;
+/* Set only between confirming a large total and the click that follows. */
+var bigPayConfirmed=false;
 
 /* ---------- boot ---------- */
 function boot(){
@@ -1014,6 +1023,23 @@ function saveCart(){localStorage.setItem("ss-cart-"+slug,JSON.stringify(cart));}
    note ≤60 chars. Anything saved that no longer fits is dropped on load. */
 var CA_MIN=100,CA_MAX=500000,CA_LINES=5,CA_NOTE=60;
 function customAllowed(){return !!vendor&&vendor.custom_amount_enabled!==false;}
+
+/* "Is that right?" above a threshold.
+
+   Cents-first entry is fast and unforgiving — 1-0-0-0-0-0 is $1,000.00, one
+   key from $100.00 — and nothing asked. It matters most on the guest face,
+   where the stall is unattended: a shopper who overpays has nobody to tell,
+   and may just leave. $100 by default; a vendor can raise it, lower it, or
+   switch it off with 0. MIRRORS Config.largeAmountCents on iOS. */
+var LARGE_AMOUNT_DEFAULT_CENTS = 10000;
+function largeAmountCents(profile){
+  var v = profile && profile.large_amount_cents;
+  return (v === null || v === undefined) ? LARGE_AMOUNT_DEFAULT_CENTS : v;
+}
+function isLargeAmount(cents, profile){
+  var t = largeAmountCents(profile);
+  return t > 0 && cents >= t;
+}
 function loadCustom(){
   var saved=[];
   try{saved=JSON.parse(localStorage.getItem("ss-custom-"+slug))||[];}catch(e){}
@@ -1176,6 +1202,14 @@ $("payBtn").onclick=function(){
     lines.push(l.note?{amount_cents:l.amount_cents,note:l.note}:{amount_cents:l.amount_cents});
   });
   if(!lines.length)return;
+  if(isLargeAmount(cartTotal(), vendor) && !bigPayConfirmed){
+    confirmIfLarge(cartTotal(), vendor, "pay", function(){
+      bigPayConfirmed = true;
+      $("payBtn").click();
+    });
+    return;
+  }
+  bigPayConfirmed = false;
   var errEl=$("payErr");
   if(lines.length>50){errEl.textContent="That's a lot! Split into two checkouts, or see the vendor.";errEl.style.display="block";return;}
   if(cartTotal()>500000){errEl.textContent="Totals over $5,000 can't go through self-checkout — see the vendor.";errEl.style.display="block";return;}
@@ -1489,6 +1523,22 @@ buildKeypad($("gKeypad"));
     $("clearConfirm").classList.remove("hidden");
   }
   function endClearConfirm(){ $("clearConfirm").classList.add("hidden"); }
+
+  /* Ask once, then run. `go` is only called if the person confirms the figure,
+     and the button repeats the amount so the confirming tap lands on the
+     number rather than on a generic yes. */
+  function confirmIfLarge(cents, profile, what, go){
+    if(!isLargeAmount(cents, profile)){ go(); return; }
+    $("bigConfirmAsk").textContent =
+      "That's "+money(cents)+" — a big one. Check the amount before you "+what+".";
+    $("bigGo").textContent = "Yes, "+what+" "+money(cents);
+    $("bigConfirm").classList.remove("hidden");
+    $("bigGo").onclick = function(){
+      $("bigConfirm").classList.add("hidden");
+      go();
+    };
+    $("bigFix").onclick = function(){ $("bigConfirm").classList.add("hidden"); };
+  }
   $("clearKeep").onclick=endClearConfirm;
   $("clearWipe").onclick=function(){ endClearConfirm(); reg.clearAll(); renderTape(); };
 
@@ -1605,6 +1655,9 @@ function createSale(extra){
 }
 $("chargeBtn").onclick=function(){
   if(!reg.canCharge()||!accounts.length)return;
+  confirmIfLarge(reg.grandTotal(), regProfile, "charge", doCharge);
+};
+function doCharge(){
   var btn=$("chargeBtn");btn.disabled=true;btn.textContent="One moment…";
   createSale({status:"pending"})
   .then(function(sale){
@@ -1711,6 +1764,9 @@ function logPayment(rail, note){
   if((rail==="trade"||rail==="other") && note===undefined){ askNote(rail); return; }
   if(note && note.trim()!=="") body.note=note.trim();
   closeLogSheet();
+  confirmIfLarge(reg.grandTotal(), regProfile, "log", function(){ doLog(body); });
+}
+function doLog(body){
   var btn=$("logBtn");btn.disabled=true;btn.textContent="Logging…";
   createSale(body)
   .then(function(sale){showPaid(sale.total_cents,rail);})

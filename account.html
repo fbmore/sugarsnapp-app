@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-tsnAmkM5QlDrI5GSD50hJuS+LzXNLkjm4YaSQdqDHpM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-wJLSgdUxiXyv5y4ZV0GBbPzo2sZ4f3qi1uFyTik752A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -203,6 +203,27 @@
           <span class="saved" id="cardMinSaved">Saved</span>
         </div>
         <div class="payerr" id="cardMinErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+      </div>
+
+      <div class="card" data-sec="stripe">
+        <div class="kicker">Big sales</div>
+        <p class="expmsg" style="margin:6px 0 10px">The keypad fills in from the cents, so $1,000.00 is
+          one tap past $100.00. Above this amount the register shows the total and asks before
+          charging it. Your customers&rsquo; checkout page asks too.</p>
+        <label class="fld"><span>Confirm sales over</span>
+          <select id="bigAmt">
+            <option value="0">Never ask</option>
+            <option value="5000">$50.00</option>
+            <option value="10000">$100.00</option>
+            <option value="25000">$250.00</option>
+            <option value="50000">$500.00</option>
+            <option value="100000">$1,000.00</option>
+          </select></label>
+        <div class="saverow">
+          <button class="cta" id="bigAmtSave" type="button">Save</button>
+          <span class="saved" id="bigAmtSaved">Saved</span>
+        </div>
+        <div class="payerr" id="bigAmtErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
 
       <div class="card" id="railsCard" data-sec="rails">
@@ -570,6 +591,7 @@ function loadStand(){
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
            "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled,"+
            "market_tokens_enabled,visible_rails,card_minimum_cents,card_minimum_set_by,"+
+           "large_amount_cents,"+
            "address,website,contact_email,contact_phone,"+
            "checkout_enabled,checkout_slug")
   .then(function(r){return r.ok?r.json():[];})
@@ -596,6 +618,10 @@ function loadStand(){
        shown beside the control rather than only in the email. */
     $("cardMin").value = (p.card_minimum_cents==null) ? "" : String(p.card_minimum_cents);
     $("cardMinAuto").style.display = (p.card_minimum_set_by==="auto") ? "block" : "none";
+    /* Null means the platform default, not "off" — those are different, and
+       showing 0 for an unset threshold would tell a vendor they had switched
+       off a guard that is actually protecting them. */
+    $("bigAmt").value = String(p.large_amount_cents==null ? 10000 : p.large_amount_cents);
     paintCheckout();
   }).catch(function(){});
 }
@@ -686,6 +712,18 @@ function saveCardMinimum(){
     err.textContent="Couldn't save. Check your connection and try again.";
     err.style.display="block";
   }).then(function(){$("cardMinSave").disabled=false;});
+}
+
+function saveLargeAmount(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("bigAmtErr");err.style.display="none";
+  $("bigAmtSave").disabled=true;
+  rpc("set_large_amount",{p_cents: parseInt($("bigAmt").value,10)})
+  .then(function(){ flash("bigAmtSaved"); })
+  .catch(function(){
+    err.textContent="Couldn't save. Check your connection and try again.";
+    err.style.display="block";
+  }).then(function(){$("bigAmtSave").disabled=false;});
 }
 
 function saveRails(){
@@ -1756,6 +1794,7 @@ $("sfTokens").addEventListener("change",function(){mtTokensTouched=true;});
 $("rdSave").addEventListener("click",saveReceipt);
 $("railsSave").addEventListener("click",saveRails);
 $("cardMinSave").addEventListener("click",saveCardMinimum);
+$("bigAmtSave").addEventListener("click",saveLargeAmount);
 $("scOn").addEventListener("change",function(){setCheckout($("scOn").checked);});
 $("scCopy").addEventListener("click",function(){
   var t=$("scLink").textContent;
