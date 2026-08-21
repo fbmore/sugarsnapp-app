@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-wJLSgdUxiXyv5y4ZV0GBbPzo2sZ4f3qi1uFyTik752A='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-TOsub3PgweBHubtk61P/FaN/5GA6ub+Fx2BJoqzgTUM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -52,6 +52,9 @@
       <div class="kicker">Your account</div>
       <h2 style="font-size:1.35rem;margin-top:8px">Your market day, <em style="color:var(--accent)">from any browser</em></h2>
       <p style="color:var(--muted);font-size:.92rem;margin-top:6px">Same sign-in as the SugarSnapp app. Run your stand from any browser: sales and exports, your item list, how you get paid, and your plan.</p>
+      <!-- The duplicate-account trap: three doors into one account, and picking
+           a different door than last time quietly mints a second account. -->
+      <p id="lastAuthHint" hidden style="font-size:.85rem;color:var(--muted);margin-top:10px"></p>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
         <button type="button" id="oauthApple" class="obtn apple">
           <svg width="15" height="18" viewBox="0 0 15 18" fill="currentColor" aria-hidden="true"><path d="M12.44 9.56c.02 2.42 2.12 3.23 2.14 3.24-.02.06-.34 1.15-1.1 2.28-.67.98-1.36 1.95-2.45 1.97-1.07.02-1.42-.63-2.64-.63-1.23 0-1.61.61-2.62.65-1.05.04-1.85-1.05-2.52-2.02C1.87 13.06.83 9.44 2.24 6.99c.7-1.22 1.95-1.99 3.3-2.01 1.03-.02 2.01.7 2.64.7.63 0 1.81-.86 3.05-.73.52.02 1.98.21 2.92 1.58-.08.05-1.74 1.02-1.71 3.03zM10.41 3.65c.56-.68.94-1.62.83-2.56-.81.03-1.79.54-2.37 1.21-.52.6-.97 1.56-.85 2.48.9.07 1.82-.46 2.39-1.13z"/></svg>
@@ -1815,12 +1818,32 @@ $("sfLogoFile").addEventListener("change",function(){
 $("payConnect").addEventListener("click",startConnect);
 $("payRefresh").addEventListener("click",refreshConnect);
 $("payOff").addEventListener("click",disconnect);
+/* Last-used sign-in method. The click stamps a TENTATIVE method; boot()
+   promotes it once a session actually exists, so an abandoned OAuth hop
+   never becomes "last time you used Apple" for a Google account. Landing
+   back on the login view clears the tentative stamp for the same reason. */
+function noteAuthTry(m){try{localStorage.setItem("ss-auth-try",m);}catch(e){}}
+function commitAuthTry(){try{
+  var t=localStorage.getItem("ss-auth-try");
+  if(t){localStorage.setItem("ss-last-auth",t);localStorage.removeItem("ss-auth-try");}
+}catch(e){}}
+function clearAuthTry(){try{localStorage.removeItem("ss-auth-try");}catch(e){}}
+function paintLastAuth(){
+  var m=null;try{m=localStorage.getItem("ss-last-auth");}catch(e){}
+  if(!m)return;
+  var names={apple:"Apple",google:"Google",email:"your email and password"};
+  var el=$("lastAuthHint");
+  el.textContent="Last time you signed in with "+(names[m]||m)+" — use the same one to land in the same account.";
+  el.hidden=false;
+}
 function startOAuth(provider){
+  noteAuthTry(provider);
   location.href=SUPA+"/auth/v1/authorize?provider="+provider+
     "&redirect_to="+encodeURIComponent("https://getsugarsnapp.com/account.html");
 }
 $("oauthApple").addEventListener("click",function(){startOAuth("apple");});
 $("oauthGoogle").addEventListener("click",function(){startOAuth("google");});
+paintLastAuth();
 $("loginForm").addEventListener("submit",function(ev){
   ev.preventDefault();
   var err=$("loginErr");err.style.display="none";
@@ -1831,6 +1854,7 @@ $("loginForm").addEventListener("submit",function(ev){
   }).then(function(r){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
+      noteAuthTry("email");
       setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
       boot();
     });
