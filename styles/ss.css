@@ -24,6 +24,13 @@
 .acctnav a.on{background:var(--state-fill);color:var(--state-ink)}
 .acctmain>[data-sec]{display:none}
 .acctmain>[data-sec].on{display:block}
+/* ...but display:block silently un-flexes any section that IS a flex row.
+   The day nav is the only one: .acctmain>[data-sec].on (0,3,0) beat
+   .daynav (0,1,0), so the row was a block, margin-left:auto on "New charge"
+   had no flex line to push against, and the button sat tight against Today
+   instead of at the right edge. Restore the layout per-section rather than
+   weakening the show/hide rule every section depends on. */
+.acctmain>.daynav[data-sec].on{display:flex}
 .navtoggle{display:none;align-items:center;gap:10px;background:none;border:1px solid var(--line);border-radius:999px;padding:9px 16px;color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer;margin-bottom:16px}
 .navscrim{display:none}
 @media(max-width:900px){
