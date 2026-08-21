@@ -1228,8 +1228,28 @@ $("gKeypad").addEventListener("click",function(e){
     case "clear":gm.clearAll();break;
   }
   renderGuestEntry();
+  warnWhileTyping();
   syncPaybar();   // the amount on the keypad is part of what they owe
 });
+
+/* Say it while the digits are still going in, not after the tap.
+   CA_MAX was only ever checked inside guestAddLine(), which runs on Add to
+   order or Pay — so typing $10,000 looked completely fine, the Pay bar cheerfully
+   read "Pay $10000.00", and the refusal arrived only after you committed to it.
+   Over the cap there is no keystroke that helps: every further digit makes it
+   worse, so the moment it goes over is the moment to say so.
+   Deliberately silent BELOW the minimum — passing through $0.02 on the way to
+   $25.00 is just typing, and nagging about it would train people to ignore the
+   line that matters. */
+function warnWhileTyping(){
+  var errEl=$("caErr"),cents=gm.currentLineTotal();
+  if(cents>CA_MAX){
+    errEl.textContent="That's "+money(cents)+" — custom amounts are capped at "+money(CA_MAX)+".";
+    errEl.style.display="block";
+  }else if(errEl.textContent.indexOf("capped at")>-1){
+    errEl.style.display="none";   // back under: clear only OUR message
+  }
+}
 function syncPaybar(){
   var total=cartTotal();
   $("payTotal").textContent=money(total);
