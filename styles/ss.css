@@ -21,7 +21,7 @@
 .navgrp:first-child{margin-top:0}
 .acctnav a{display:block;padding:7px 10px;border-radius:8px;color:var(--muted);text-decoration:none;font-size:.94rem;line-height:1.35}
 .acctnav a:hover{background:var(--line);color:var(--ink)}
-.acctnav a.on{background:var(--accent);color:#fff}
+.acctnav a.on{background:var(--state-fill);color:var(--state-ink)}
 .acctmain>[data-sec]{display:none}
 .acctmain>[data-sec].on{display:block}
 .navtoggle{display:none;align-items:center;gap:10px;background:none;border:1px solid var(--line);border-radius:999px;padding:9px 16px;color:var(--ink);font:inherit;font-size:.95rem;cursor:pointer;margin-bottom:16px}
@@ -47,10 +47,18 @@
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
-  /* Status is semantic and separate from the brand accent — "ready to take
-     cards" in vermillion read as a warning. --ok matches the iOS cash rail
-     (Color.cashBrand #1f7a3c) so green means the same thing on both. */
-  --ok:#1f7a3c; --warn:#a86f16;
+  /* Two jobs, two colours. Vermillion means "you can act on this" — buttons,
+     focus rings, carets, steppers. Green means "this is how things are" —
+     the selected nav row, eyebrows, a saved confirmation, the current plan.
+     When both did the same job, an eyebrow looked as pressable as a button
+     and "Connected" read as a warning.
+     --state matches the iOS cash rail (Color.cashBrand #1f7a3c), so green
+     carries the same meaning on both platforms. --ok is the same colour under
+     the older name the status dots use. */
+  --state:#1f7a3c; --ok:#1f7a3c; --warn:#a86f16;
+  /* Filled green pills keep the dark green in BOTH themes: white on #1f7a3c
+     is 5.37:1, and a light-green fill could not carry white text at all. */
+  --state-fill:#1f7a3c; --state-ink:#ffffff;
   --key-cream:#f4ead5;         /* Color.keyCream  */
   /* Fixed in EVERY theme. Theme.swift: the total window is "the one
      deliberately fixed-contrast surface besides the QR itself" — and a QR
@@ -62,13 +70,15 @@
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
-  --ok:#43c463; --warn:#d9a441;
+  --state:#43c463; --ok:#43c463; --warn:#d9a441;
+  --state-fill:#1f7a3c; --state-ink:#ffffff;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
-  --ok:#43c463; --warn:#d9a441;
+  --state:#43c463; --ok:#43c463; --warn:#d9a441;
+  --state-fill:#1f7a3c; --state-ink:#ffffff;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -86,7 +96,15 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
    colour is set — which the baseline above now guarantees. */
 input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
 body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
-a{color:var(--accent)}
+/* Links are wayfinding, not calls to action: getsugarsnapp.com in the footer
+   competed with the Charge button for the same attention. Grey with an
+   underline keeps the affordance and drops the shout. Anything that ACTS
+   rather than navigates (.cta, .sale .lnk) opts back into vermillion. */
+a{color:var(--muted);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:from-font}
+a:hover{color:var(--ink)}
+/* A link whose whole content is an image or a badge has nothing to underline
+   but the picture itself. */
+a:has(> img:only-child),.brand,.cta-badge{text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:640px;margin:0 auto;padding:0 20px 60px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0;gap:12px;position:relative}
@@ -129,7 +147,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .navwho{display:flex;flex-direction:column;gap:2px;padding:2px 4px 10px;border-bottom:1px solid var(--line)}
 .navwho b{font-size:.92rem;color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .navwho span{font-size:.78rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--state)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin-bottom:14px}
 .note-card{text-align:center;margin:34px 0}
 .note-card h2{font-size:1.35rem;margin:8px 0 10px}
@@ -146,7 +164,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 /* view toggle */
 .toggle{display:inline-flex;border:1px solid var(--line);border-radius:999px;background:var(--surface);overflow:hidden}
 .toggle button{padding:7px 16px;font-size:.9rem;color:var(--muted)}
-.toggle button.on{background:var(--accent);color:#fff}
+.toggle button.on{background:var(--state-fill);color:var(--state-ink)}
 
 /* login */
 .login label{display:block;font-size:.85rem;color:var(--muted);margin:14px 0 4px}
@@ -229,7 +247,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
 .fld.row{display:flex;gap:10px;align-items:flex-end}
 .saverow{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
-.saved{font-size:.85rem;color:var(--accent);opacity:0;transition:opacity .2s}
+.saved{font-size:.85rem;color:var(--state);opacity:0;transition:opacity .2s}
 .saved.on{opacity:1}
 .itm{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
 .itm:first-child{border-top:none}
@@ -256,19 +274,19 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .plan{border:1px solid var(--line);border-radius:14px;padding:16px 16px 18px;background:var(--canvas);display:flex;flex-direction:column}
 /* The one you're on is the loudest thing in the row — the whole point of the
    card layout is answering "which am I on?" before "what else is there?". */
-.plan.current{border-color:var(--accent);border-width:2px;background:var(--surface);padding:15px 15px 17px}
+.plan.current{border-color:var(--state);border-width:2px;background:var(--surface);padding:15px 15px 17px}
 .plan .pname{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
-.plan.current .pname{color:var(--accent)}
+.plan.current .pname{color:var(--state)}
 .plan .pprice{font-family:var(--font-mono);font-weight:700;font-size:1.7rem;font-variant-numeric:tabular-nums;line-height:1.15;margin-top:6px}
 .plan .pper{font-size:.82rem;color:var(--muted);margin-bottom:10px}
 .plan ul{list-style:none;margin:0 0 14px;font-size:.88rem}
 .plan ul li{padding:3px 0 3px 16px;position:relative;color:var(--muted)}
-.plan ul li::before{content:"\2713";position:absolute;left:0;color:var(--accent)}
+.plan ul li::before{content:"\2713";position:absolute;left:0;color:var(--state)}
 .plan .pbtn{margin-top:auto}
 .plan .pbtn button{width:100%;text-align:center}
-.plan .badge{display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:2px 10px;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
+.plan .badge{display:inline-block;background:var(--state-fill);color:var(--state-ink);border-radius:999px;padding:2px 10px;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;margin-top:8px}
 .plan .oncard{font-size:.82rem;color:var(--muted);text-align:center;padding:10px 0 2px}
-.plan .save{font-size:.78rem;color:var(--accent);margin-top:-6px;margin-bottom:8px}
+.plan .save{font-size:.78rem;color:var(--state);margin-top:-6px;margin-bottom:8px}
 
 /* organizer */
 .ro-banner{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:.9rem;color:var(--muted);margin-bottom:14px}
@@ -277,7 +295,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .stat .v{font-family:var(--font-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
 .stat .k{font-size:.75rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
 .stat .sub2{font-size:.85rem;color:var(--muted);margin-top:2px}
-.delta-ok{color:var(--accent)}
+.delta-ok{color:var(--state)}
 .delta-off{color:var(--bad)}
 table.tal{width:100%;border-collapse:collapse;font-size:.92rem;margin-top:6px}
 table.tal th{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-align:left;font-weight:400;padding:4px 6px 6px 0}

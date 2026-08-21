@@ -33,6 +33,13 @@
 :root{
   color-scheme:light;
   --accent:#d95421;            /* Color.vermillion */
+  --state:#1f7a3c; --state-fill:#1f7a3c; --state-ink:#ffffff;
+  /* The receipt paper is #fff in EVERY theme, so anything drawn on it
+     must not follow the theme. --state flips to a light green in dark
+     mode, which multiplied onto white at .3 opacity drops the PAID
+     stamp from 1.54:1 to 1.28:1 — a watermark that faint on the one
+     element proving the sale is paid. Fixed, deliberately. */
+  --state-paper:#1f7a3c;
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
@@ -46,17 +53,24 @@
 }
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
-a{color:var(--accent)}
+/* Links navigate; they do not act. In vermillion, getsugarsnapp.com in the
+   footer competed with the Charge button. Grey keeps the affordance via the
+   underline and drops the shout; .cta and .lnk opt back into vermillion. */
+a{color:var(--muted);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:from-font}
+a:hover{color:var(--ink)}
+a:has(> img:only-child),.brand,.cta-badge,.acctnav a,.switch a{text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:560px;margin:0 auto;padding:0 20px 40px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
@@ -66,7 +80,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
 nav .links a{font-size:.92rem;text-decoration:none;color:var(--muted)}
 nav .links a:hover{color:var(--accent)}
-.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--state)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
 .note-card{text-align:center;margin:34px 0}
 .note-card h2{font-size:1.35rem;margin:8px 0 10px;text-align:center}
@@ -109,8 +123,8 @@ nav .links a:hover{color:var(--accent)}
    stamp. A stamp must sit OVER the paper, not replace it. If outdoor
    legibility resurfaces as a real complaint, fix it without occlusion
    (e.g. thicker glyphs), not with opacity. */
-.stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);text-align:center;color:var(--accent);border:4px solid var(--accent);border-radius:8px;padding:10px 28px 12px;pointer-events:none;mix-blend-mode:multiply;opacity:.3}
-.stamp::after{content:"";position:absolute;inset:3px;border:1.5px solid var(--accent);border-radius:5px}
+.stamp{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);text-align:center;color:var(--state-paper);border:4px solid var(--state-paper);border-radius:8px;padding:10px 28px 12px;pointer-events:none;mix-blend-mode:multiply;opacity:.3}
+.stamp::after{content:"";position:absolute;inset:3px;border:1.5px solid var(--state-paper);border-radius:5px}
 .stamp .word{font-family:var(--font-mono);font-weight:700;font-size:2.9rem;letter-spacing:.14em;line-height:1;text-transform:uppercase}
 .stamp .when{font-family:var(--font-mono);font-size:.74rem;font-weight:600;letter-spacing:.04em;margin-top:6px;white-space:nowrap}
 

@@ -33,6 +33,7 @@
 :root{
   color-scheme:light;
   --accent:#d95421;            /* Color.vermillion */
+  --state:#1f7a3c; --state-fill:#1f7a3c; --state-ink:#ffffff;
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
@@ -66,19 +67,26 @@
 }
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
   --key-edge:transparent;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
     --key-edge:transparent;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
-a{color:var(--accent)}
+/* Links navigate; they do not act. In vermillion, getsugarsnapp.com in the
+   footer competed with the Charge button. Grey keeps the affordance via the
+   underline and drops the shout; .cta and .lnk opt back into vermillion. */
+a{color:var(--muted);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:from-font}
+a:hover{color:var(--ink)}
+a:has(> img:only-child),.brand,.cta-badge,.acctnav a,.switch a{text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .wrap{max-width:560px;margin:0 auto;padding:0 20px}
 nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0}
@@ -88,7 +96,7 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{filter:invert(1)}}
 nav .links a,nav .links button{font-size:.92rem;text-decoration:none;color:var(--muted)}
 nav .links a:hover,nav .links button:hover{color:var(--accent)}
-.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--accent)}
+.kicker{text-transform:uppercase;letter-spacing:.22em;font-size:.72rem;color:var(--state)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:26px}
 .note-card{text-align:center;margin:34px 0}
 .note-card h2{font-size:1.35rem;margin:8px 0 10px;text-align:center}
@@ -115,7 +123,7 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .step button{width:36px;height:36px;font-size:1.25rem;line-height:1;color:var(--accent);border-radius:999px}
 .step button:disabled{color:var(--line);cursor:default}
 .step .q{min-width:26px;text-align:center;font-family:var(--font-mono);font-size:.98rem;font-variant-numeric:tabular-nums}
-.item.in-cart{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.item.in-cart{border-color:var(--state);box-shadow:0 0 0 1px var(--state) inset}
 
 /* custom amount */
 .custom-amt{margin-bottom:26px;padding:18px 20px}
@@ -141,8 +149,16 @@ body.has-paybar{padding-bottom:110px}
 
 /* trust block */
 .trust{border-top:1px solid var(--line);margin-top:8px;padding:22px 0 8px;text-align:center;color:var(--muted);font-size:.88rem}
-.trust .row{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--ink)}
-.trust .row img{height:15px;opacity:.85}
+.trust .row{display:inline-flex;align-items:center;gap:7px;margin-bottom:8px;color:var(--muted)}
+/* "Powered by" is words; SugarSnapp is the mark. Saying the name in text AND
+   showing the logo said it twice. The wordmark ships black, so dark themes
+   invert it to white and both are dropped to a light grey — this is a credit
+   line under someone else's stand, not our headline. */
+.trust .row .poweredmark{height:16px;width:auto;display:block;opacity:.7}
+:root[data-theme="dark"] .trust .row .poweredmark{filter:invert(1);opacity:.75}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .trust .row .poweredmark{filter:invert(1);opacity:.75}
+}
 .trust p{max-width:30em;margin:0 auto 6px}
 
 /* login */
@@ -199,7 +215,7 @@ body.has-paybar{padding-bottom:110px}
 .keypad .key:active{transform:scale(.96);opacity:.8}
 .keypad .key.op{background:var(--accent);color:var(--key-cream);border-color:transparent}
 .keypad .key.clearkey{grid-column:span 2;background:var(--key-ink);color:var(--key-clear-ink);border-color:transparent}
-.reg-items .qbadge{margin-left:8px;background:var(--accent);color:var(--key-cream);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
+.reg-items .qbadge{margin-left:8px;background:var(--state-fill);color:var(--state-ink);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
 
 /* wide landscape = the iPad register: keypad column left (capped like the
    app's 620pt), the live paper receipt right (430, receipt paper 360) */
@@ -274,7 +290,7 @@ body.has-paybar{padding-bottom:110px}
 .proc-tabs{display:flex;justify-content:center;gap:8px;margin:18px 0 14px;flex-wrap:wrap}
 .proc-tabs button{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px 6px 8px;font-size:.9rem;color:var(--muted)}
 .proc-tabs .pbadge{width:18px;height:18px;border-radius:50%;flex:none}
-.proc-tabs button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+.proc-tabs button.on{border-color:var(--state);color:var(--state);font-weight:700}
 .qrbox{display:inline-block;background:var(--qr-surface);border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 12px 30px rgba(31,42,29,.12)}
 .qrbox canvas{display:block;width:min(62vw,240px);height:auto;image-rendering:pixelated}
 .wait{color:var(--muted);font-size:.92rem;margin-top:14px}
@@ -283,7 +299,7 @@ body.has-paybar{padding-bottom:110px}
 .charge .sharerow{margin-top:14px}
 .charge .cancel{margin-top:10px}
 .paid-view{text-align:center;margin:40px 0}
-.paid-badge{display:inline-flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:50%;border:3px solid var(--accent);color:var(--accent);font-size:2.4rem;margin-bottom:12px}
+.paid-badge{display:inline-flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:50%;border:3px solid var(--state);color:var(--state);font-size:2.4rem;margin-bottom:12px}
 .paid-view h2{font-size:1.7rem;text-align:center}
 .paid-view h2 em{font-style:italic;color:var(--accent)}
 .paid-view .meta{color:var(--muted);margin:6px 0 24px}
@@ -381,7 +397,7 @@ footer a{margin:0 8px;color:var(--muted)}
         <aside class="shop-receipt hidden" id="shopReceipt"></aside>
       </div>
       <div class="trust">
-        <div class="row"><img src="mark.svg" alt=""><span><strong>Powered by SugarSnapp</strong></span></div>
+        <div class="row"><span>Powered by</span><img class="poweredmark" src="logo.svg" alt="SugarSnapp"></div>
         <p id="trustLine">Payments are processed by Stripe on this vendor&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — the vendor pays only Stripe&rsquo;s standard card fee.</p>
         <p>After you pay, show the vendor your <em>PAID</em> receipt — it appears in their register too.</p>
         <p><a href="https://getsugarsnapp.com">getsugarsnapp.com</a></p>

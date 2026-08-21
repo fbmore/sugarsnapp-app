@@ -27,6 +27,7 @@
 :root{
   color-scheme:light;
   --accent:#d95421;            /* Color.vermillion */
+  --state:#1f7a3c; --state-fill:#1f7a3c; --state-ink:#ffffff;
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
@@ -40,11 +41,13 @@
 }
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
+  --state:#43c463; --state-fill:#1f7a3c; --state-ink:#ffffff;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
   }
 }
@@ -54,7 +57,7 @@ body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-h
 .card img.logo{height:30px;margin-bottom:26px}
 h1{font-size:1.6rem;margin-bottom:10px}
 p{color:var(--muted);font-size:1rem}
-.tick{font-size:44px;color:var(--accent);margin-bottom:14px}
+.tick{font-size:44px;color:var(--state);margin-bottom:14px}
 .cta{display:inline-block;margin-top:26px;padding:13px 32px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none}
 .fine{font-size:.85rem;margin-top:18px;color:#9aa694}
 .error .tick{color:#b3402a}
