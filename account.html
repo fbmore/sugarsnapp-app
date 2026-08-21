@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-TOsub3PgweBHubtk61P/FaN/5GA6ub+Fx2BJoqzgTUM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-jkuh16svDij543kn4gQia2cvvBL/rWpBBOUjUACOLWk='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -567,11 +567,10 @@ function recordTermsIfNeeded(){
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     if(!rows.length||rows[0].terms_accepted_at)return;
-    return authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{
-      method:"PATCH",headers:{Prefer:"return=minimal"},
-      body:JSON.stringify({terms_version:TERMS_VERSION,
-                           terms_accepted_at:new Date().toISOString()})
-    });
+    /* accept_terms is write-once with a server-stamped time (1.5 cut):
+       a client that could write the columns could also forge them. */
+    return authRest("rpc/accept_terms",{method:"POST",
+      body:JSON.stringify({p_version:TERMS_VERSION})});
   }).catch(function(){/* Never block the page on this; retried next load. */});
 }
 
@@ -1466,32 +1465,28 @@ function renderOrganizerDay(){
 }
 function loadRoster(){
   var s=getSession();
-  authRest("markets?organizer_id=eq."+encodeURIComponent(s.user_id)+"&select=id,name,join_code")
+  /* join_code deliberately not selected: in the 1.5 cut the code is a
+     credential and leaves the readable column set (P3-29). The roster
+     join moved server-side too — market_roster returns exactly what
+     privacy.html promises, for markets this account owns. */
+  authRest("markets?organizer_id=eq."+encodeURIComponent(s.user_id)+"&select=id,name")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(markets){
     if(!markets.length)return;
-    var ids=markets.map(function(m){return m.id;}).join(",");
-    /* market_checkins identifies the vendor by user_id. This asked for
-       vendor_id, which does not exist — PostgREST 400'd, r.ok was false, and
-       the code fell through to "No vendors checked in today." every time. The
-       roster had therefore never worked for a real organizer. */
-    return authRest("market_checkins?market_id=in.("+ids+")&market_date=eq."+dstr(new Date())+"&select=market_id,user_id")
-    .then(function(r){return r.ok?r.json():[];})
-    .then(function(cks){
+    return Promise.all(markets.map(function(m){
+      return authRest("rpc/market_roster",{method:"POST",
+        body:JSON.stringify({p_market:m.id,p_date:dstr(new Date())})})
+        .then(function(r){return r.ok?r.json():[];});
+    })).then(function(lists){
+      var rows=[].concat.apply([],lists);
       $("oRosterCard").classList.remove("hidden");
-      if(!cks.length){
+      if(!rows.length){
         $("oRoster").innerHTML='<div class="emptyday">No vendors checked in today.</div>';
         return;
       }
-      var vids=cks.map(function(c){return c.user_id;}).join(",");
-      return authRest("profiles?id=in.("+vids+")&select=id,business_name")
-      .then(function(r){return r.ok?r.json():[];})
-      .then(function(profs){
-        var names={};profs.forEach(function(p){names[p.id]=p.business_name;});
-        $("oRoster").innerHTML=cks.map(function(c){
-          return '<div class="ae">'+esc(names[c.user_id]||"A stand")+"</div>";
-        }).join("");
-      });
+      $("oRoster").innerHTML=rows.map(function(v){
+        return '<div class="ae">'+esc(v.business_name||"A stand")+"</div>";
+      }).join("");
     });
   }).catch(function(){});
 }
