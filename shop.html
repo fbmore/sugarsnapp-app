@@ -213,6 +213,17 @@ body.has-paybar{padding-bottom:110px}
 .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
 .keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--key-ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:1px solid var(--key-edge);cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .keypad .key:active{transform:scale(.96);opacity:.8}
+/* Hover is for the vendor on a laptop; the register itself is touch, where a
+   :hover sticks to the last key tapped and reads as "still selected". The
+   hover/pointer query keeps it off touch entirely.
+   Direction has to follow the fill: the cream keys are near-white, so lifting
+   them further does nothing and darkening is what reads as a lift. The
+   vermillion operators and the near-black Clear key go the other way. */
+@media (hover:hover) and (pointer:fine){
+  .keypad .key{transition:transform .08s ease-out,opacity .08s ease-out,filter .12s ease-out}
+  .keypad .key:hover{filter:brightness(.955)}
+  .keypad .key.op:hover,.keypad .key.clearkey:hover{filter:brightness(1.12)}
+}
 .keypad .key.op{background:var(--accent);color:var(--key-cream);border-color:transparent}
 .keypad .key.clearkey{grid-column:span 2;background:var(--key-ink);color:var(--key-clear-ink);border-color:transparent}
 .reg-items .qbadge{margin-left:8px;background:var(--state-fill);color:var(--state-ink);border-radius:999px;padding:1px 8px;font-size:.78rem;font-family:var(--font-mono)}
