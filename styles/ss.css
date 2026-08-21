@@ -47,6 +47,10 @@
   --ink:#2b211c;               /* Color.keyInk    */
   --muted:#6f6259; --canvas:#f2f2f7; --surface:#ffffff;
   --line:rgba(43,33,28,.12); --bad:#8a3b2e; --field:#f2f2f7;
+  /* Status is semantic and separate from the brand accent — "ready to take
+     cards" in vermillion read as a warning. --ok matches the iOS cash rail
+     (Color.cashBrand #1f7a3c) so green means the same thing on both. */
+  --ok:#1f7a3c; --warn:#a86f16;
   --key-cream:#f4ead5;         /* Color.keyCream  */
   /* Fixed in EVERY theme. Theme.swift: the total window is "the one
      deliberately fixed-contrast surface besides the QR itself" — and a QR
@@ -58,11 +62,13 @@
 :root[data-theme="dark"]{
   --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
   --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
+  --ok:#43c463; --warn:#d9a441;
 }
 @media(prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --ink:#f2efe9; --muted:#9b9089; --canvas:#000000; --surface:#1c1c1e;
     --line:rgba(255,255,255,.14); --bad:#ff6b57; --field:#2c2c2e; color-scheme:dark;
+  --ok:#43c463; --warn:#d9a441;
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
@@ -239,8 +245,8 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .logonone{width:66px;height:66px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center}
 .conn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
-.dot.ok{background:var(--accent)}
-.dot.warn{background:#c98a2b}
+.dot.ok{background:var(--ok)}
+.dot.warn{background:var(--warn)}
 .dot.no{background:var(--line)}
 .expmsg{font-size:.88rem;color:var(--muted);margin-top:8px}
 
