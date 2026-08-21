@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+mc6J2tJgEmKOL2t9JWK2AD/MZw9qRoyIyLzug7IhLs='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-e61902ZAqJS2dP5aNGUakaDLp5ekoQXHE3X8zZSchPI='; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Ops — SugarSnapp</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -529,6 +529,11 @@ function renderAccounts(rows){
     (r.other_rails||[]).forEach(function(x){rails.push(esc(x));});
     h+='<tr>'+
       '<td>'+esc(r.business_name||"—")+
+        /* Both channels at a glance: login email reaches every vendor
+           (relay addresses forward); "public:" is what their receipts
+           print — its absence is the nudge-them signal. */
+        (r.login_email?'<br><a class="tiny" href="mailto:'+esc(r.login_email)+'">'+esc(r.login_email)+'</a>':'')+
+        (r.contact_email&&r.contact_email!==r.login_email?'<br><span class="tiny">public: '+esc(r.contact_email)+'</span>':'')+
         (r.is_apple_relay?'<br><span class="tiny">apple relay</span>':'')+'</td>'+
       '<td>'+esc(r.category)+'</td>'+
       '<td>'+esc(r.signin_provider)+'</td>'+
