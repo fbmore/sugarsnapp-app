@@ -256,6 +256,17 @@ footer a{margin:0 10px;color:var(--muted)}
 </footer>
 
 <script>
+/* Auth-link safety net: a recovery (or other auth) link fired without a
+   redirect_to lands on the site URL — this page — with its payload in the
+   hash or query, where it used to evaporate. Bounce it to reset.html, which
+   already forwards any auth payload onward. Stale links land here too, as
+   #error=…&error_code=otp_expired — reset.html shows those honestly. */
+(function(){
+  var p=location.search+location.hash;
+  if(/type=recovery|error_code=otp_expired/.test(p)){
+    location.replace("reset.html"+location.search+location.hash);
+  }
+})();
 (function(){
   const slides=document.getElementById('slides'),dots=document.getElementById('dots'),n=4;let i=0,timer;
   for(let k=0;k<n;k++){const b=document.createElement('button');b.className='dot'+(k?'':' on');b.setAttribute('aria-label','Slide '+(k+1));b.onclick=()=>go(k,true);dots.appendChild(b);}
