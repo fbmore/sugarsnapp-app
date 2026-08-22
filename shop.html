@@ -1020,11 +1020,14 @@ var RAIL_DISPLAY_ONLY={tap_to_pay:1,ebt:1};
    MIRRORS Processor.isWebhookVerified on iOS. */
 var WEBHOOK_VERIFIED={stripe:1,tap_to_pay:1};
 
-var RAIL_HELD_UNTIL_1_4_LIVE={check:1,zelle:1,cashapp:1,apple_cash:1,
-                              bank_transfer:1,trade:1,comped:1,other:1};
-
+/* The eight-rail hold is gone: it existed because 1.3 decodes a day of sales
+   as one array and throws on a rail it cannot name, so logging a cheque
+   blanked that vendor's whole ledger day. 1.4 — which tolerates an unknown
+   rail — is READY_FOR_SALE, so the condition the hold was named for is met.
+   What remains is display-only: tap_to_pay is a device capability rather than
+   a choice, and EBT is written through its own token flow. */
 function OFFERABLE(r){
-  return !RAIL_DISPLAY_ONLY[r] && !RAIL_HELD_UNTIL_1_4_LIVE[r];
+  return !RAIL_DISPLAY_ONLY[r];
 }
 var PROC_NAMES={cash:"Cash",venmo:"Venmo",paypal:"PayPal",stripe:"Stripe",tap_to_pay:"Card · Tap to Pay",ebt:"EBT",check:"Check",zelle:"Zelle",cashapp:"Cash App",apple_cash:"Apple Cash",bank_transfer:"Bank transfer",trade:"Trade",comped:"Comped",other:"Other"};
 

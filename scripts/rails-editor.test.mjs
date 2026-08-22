@@ -75,12 +75,22 @@ function save(stored, ticked) {
   return written.split(',');
 }
 
-test('rails curated in the app survive a save from the web', () => {
-  // A vendor who put Check and Trade on their shortlist in iOS.
-  const stored = ['cash', 'venmo', 'check', 'trade'];
-  const after = save(stored, ['cash', 'venmo']);   // only these four render here
-  assert.ok(after.includes('check'), 'Check was deleted by an editor that never showed it');
-  assert.ok(after.includes('trade'), 'Trade was deleted by an editor that never showed it');
+test('a rail this editor does not RENDER survives a save from the web', () => {
+  // The invariant, not the rail list: an editor may only remove what it showed
+  // the person. It used to be Check and Trade that this protected, while the
+  // 1.4 hold kept them off this page; now the editor shows those, so the two
+  // it still hides are the ones that would be silently deleted.
+  const after = save(['cash', 'venmo', 'tap_to_pay', 'ebt'], ['cash', 'venmo']);
+  assert.ok(after.includes('tap_to_pay'), 'tap_to_pay was deleted by an editor that never showed it');
+  assert.ok(after.includes('ebt'), 'EBT was deleted by an editor that never showed it');
+});
+
+test('a rail the editor now DOES show can be removed by un-ticking it', () => {
+  // The other half of the same rule, and the reason the hidden list could
+  // shrink safely: once Check is on screen, leaving it unticked is a decision.
+  const after = save(['cash', 'venmo', 'check', 'trade'], ['cash', 'venmo']);
+  assert.ok(!after.includes('check'), 'Check is rendered now, so un-ticking must remove it');
+  assert.ok(!after.includes('trade'), 'Trade is rendered now, so un-ticking must remove it');
 });
 
 test('un-ticking a rail the editor DOES show still removes it', () => {
@@ -98,11 +108,15 @@ test('cash cannot be removed', () => {
 });
 
 test('the editor never offers a rail the registers refuse', () => {
-  for (const rail of ['tap_to_pay', 'ebt', 'check', 'trade', 'comped']) {
+  // Only the display-only pair now. tap_to_pay is a device capability rather
+  // than a shortlist entry; EBT goes through its own token flow.
+  for (const rail of ['tap_to_pay', 'ebt']) {
     assert.ok(RAIL_NOT_CURATABLE[rail], `${rail} must not be tickable while the registers won't offer it`);
   }
-  for (const rail of ['cash', 'venmo', 'paypal', 'stripe']) {
-    assert.ok(!RAIL_NOT_CURATABLE[rail], `${rail} should be curatable`);
+  for (const rail of ['cash', 'venmo', 'paypal', 'stripe',
+                      'check', 'zelle', 'cashapp', 'apple_cash',
+                      'bank_transfer', 'trade', 'comped', 'other']) {
+    assert.ok(!RAIL_NOT_CURATABLE[rail], `${rail} should be curatable now that 1.4 is live`);
   }
 });
 

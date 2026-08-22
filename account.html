@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-z/RBje1VlJVoucbIyaBJcGmgi5y5R90whFnsSX41oAY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-2TCd4oUJeoAKS+LJtihgeu/KXDxfH4n13JIZqFSdPf4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -735,8 +735,12 @@ function renderRails(){
      person, and so not part of the default hand-log shortlist. */
   var WEBHOOK_VERIFIED_RAIL={stripe:1,tap_to_pay:1};
 
-  var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1,check:1,zelle:1,cashapp:1,
-                          apple_cash:1,bank_transfer:1,trade:1,comped:1,other:1};
+  /* Only the two the web registers never OFFER as a choice: tap_to_pay is a
+     device capability, and EBT is written through its own token flow. The
+     other eight came off this list with the 1.4 hold — the editor shows them
+     now, which is what makes removing an unticked one a deliberate act rather
+     than a silent deletion (see the preservation rule in saveRails). */
+  var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1};
   Object.keys(PROC_NAMES).forEach(function(p){
     if(RAIL_NOT_CURATABLE[p])return;
     var on = chosen.indexOf(p) >= 0;
@@ -898,11 +902,12 @@ function saveRails(){
      canonical order. Newly ticked rails go on the end.
 
      Critically, a rail this editor does not RENDER must survive a save here.
-     iOS curates all fourteen rails; this page can only offer the four the web
-     registers will honour today. Filtering purely on `ticked` therefore
-     deleted every rail the vendor had chosen in the app — a vendor who put
-     Check and Trade on their shortlist lost both by saving an unrelated change
-     here. An editor may only remove what it actually showed the person. */
+     That rule is why the list above could shrink safely: this page now shows
+     twelve of the fourteen, so an unticked one is a decision. The two it still
+     hides — tap_to_pay and EBT — must survive regardless, exactly as the other
+     eight had to while the 1.4 hold was on and a vendor who curated Check in
+     the app would otherwise lose it by saving an unrelated change here.
+     An editor may only remove what it actually showed the person. */
   var prev = railsOrder || [];
   var ordered = prev.filter(function(r){
     return ticked.indexOf(r) >= 0 || RAIL_NOT_CURATABLE[r];

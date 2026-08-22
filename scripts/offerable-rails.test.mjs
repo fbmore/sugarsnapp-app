@@ -27,7 +27,6 @@ function evalFromPage(...snippets) {
 
 const { PROC_NAMES, OFFERABLE, WEBHOOK_VERIFIED } = evalFromPage(
   /var RAIL_DISPLAY_ONLY=\{[^}]*\};/,
-  /var RAIL_HELD_UNTIL_1_4_LIVE=\{[\s\S]*?\};/,
   /var WEBHOOK_VERIFIED=\{[^}]*\};/,
   /function OFFERABLE\([^)]*\)\{[^}]*\}/,
   /var PROC_NAMES=\{[^}]*\};/,
@@ -62,14 +61,26 @@ test('the rails that ARE honourable all remain reachable', () => {
   }
 });
 
-test('the eight new rails stay held while 1.3 is what vendors have installed', () => {
-  // Not a style preference: 1.3 decodes a day of sales as one array and throws
-  // on a rail it cannot name, so logging one here blanks that vendor's ledger.
+test('the eight held rails are offerable now that 1.4 is live', () => {
+  // The hold existed because 1.3 decodes a day of sales as one array and throws
+  // on a rail it cannot name, so logging a cheque blanked that vendor's whole
+  // ledger day. 1.4 tolerates an unknown rail and is READY_FOR_SALE, so the
+  // condition the hold was named for is met. Asserting the release rather than
+  // deleting the test: a rail silently dropping back out is the regression.
   const { all } = split(['cash']);
   for (const rail of ['check', 'zelle', 'cashapp', 'apple_cash',
                       'bank_transfer', 'trade', 'comped', 'other']) {
-    assert.ok(!all.includes(rail),
-      `${rail} is offerable before 1.4 is live — a vendor on 1.3 who logs one sees an empty ledger day`);
+    assert.ok(all.includes(rail), `${rail} is no longer offerable on the web register`);
+  }
+});
+
+test('display-only rails are still never OFFERED as a choice', () => {
+  // The two that were never about the 1.4 hold: tap_to_pay is a device
+  // capability rather than a shortlist entry, and EBT is written through its
+  // own token flow, where a mis-tap writes federal-audit-flavoured data.
+  const { all } = split(['cash']);
+  for (const rail of ['tap_to_pay', 'ebt']) {
+    assert.ok(!all.includes(rail), `${rail} must not be offerable as a log-payment choice`);
   }
 });
 
