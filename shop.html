@@ -315,23 +315,29 @@ body.has-paybar.has-declare{padding-bottom:172px}
      rather than being duplicated below: a second button would be a second
      handler, and on a long order the lower copy is the one below the fold
      anyway — it would solve the problem only for orders that do not have it. */
-  .payside{width:430px;flex:none;display:flex;flex-direction:column;gap:14px}
-  /* sticky BOTTOM, not top: the button now follows the receipt, so the case
-     to defend against is a long order pushing it below the fold. Bottom-sticky
-     pins it to the foot of the viewport until its real position scrolls into
-     view, then it settles under the receipt where it belongs. */
-  .payside .paybar{position:sticky;bottom:22px;z-index:30;display:flex;align-items:center;
-    justify-content:stretch;gap:14px;margin:0;padding:14px 18px;
-    background:var(--surface);border:1px solid var(--line);border-radius:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .payside{width:430px;flex:none;display:flex;flex-direction:column;gap:12px}
+  /* Attached to the receipt, not floating. Bottom-sticky kept it on screen
+     but detached it — scroll a little and the button drifted to the foot of
+     the viewport with a lane of black between it and the order it belongs to.
+     Sitting under the paper reads as one object; on a long order it goes below
+     the fold, which is the trade, and the phone keeps its fixed bar regardless.
+     No container of its own: the receipt is the card here, and a second panel
+     around two buttons boxed them for no reason. Matched to the paper's 360px
+     so the column reads as one width instead of three. */
+  .payside .paybar{position:static;display:block;width:100%;max-width:360px;
+    margin:0 auto;padding:0;background:none;border:none;box-shadow:none}
   /* The TOTAL window across the way already carries the figure in 3.4rem
      type. Repeating it here in small print puts the same number on screen
      twice, and they disagree for a frame while you type. */
   .payside .paybar .paytot{display:none}
-  .payside .paybar .payact{flex:1;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  .payside .paybar .payact{display:flex;flex-direction:column;gap:10px;align-items:stretch}
   .payside .paybar .cta{width:100%;padding:15px 30px;font-size:1.05rem;text-align:center}
   .payside .paybar .ghost{width:100%;text-align:center}
-  .payside .shop-receipt{width:100%;margin:0}
+  /* The 420px floor is the VENDOR pane's — it keeps the register's right-hand
+     column from collapsing while a sale is being rung up. Here it was padding
+     the aside out below the paper and reading as a gap between the receipt and
+     its own buttons. The shopper's column has the keypad to give it height. */
+  .payside .shop-receipt{width:100%;margin:0;min-height:0;padding:0}
   .shop-catalog{width:250px;flex:none;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
   .shop-catalog .cathead{display:flex}
   /* minmax(0,1fr), not 1fr: a bare 1fr is minmax(AUTO,1fr), and the auto
