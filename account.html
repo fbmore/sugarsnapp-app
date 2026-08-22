@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-2TCd4oUJeoAKS+LJtihgeu/KXDxfH4n13JIZqFSdPf4='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-KKZXFjlbnAIISwb4ciwdEAMPYLUbIogOxSxlBYb/hQw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -808,6 +808,16 @@ function paintTrustNote(){
     : "Their sale waits in your ledger with a Confirm button. Nothing counts until you press it.";
 }
 
+/* THESE COLUMN NAMES ARE LOAD-BEARING IN FOUR PLACES. Renaming one here means
+   renaming it in all of them, and three will fail silently rather than loudly:
+
+     1. this write
+     2. checkout_catalog's resolved rail list (a migration, re-emitted whole)
+     3. _shared/declared_rails.ts, which authorises every shopper claim
+     4. iOS Profile decode + AppSession's select (13cee86) — a Swift decode of
+        a column that no longer exists takes the whole profile with it
+
+   Only the grant enumeration in 20260820000014 would complain out loud. */
 function saveShopperRails(){
   var picks=[],boxes=$("scRailPicks").querySelectorAll("[data-srail]");
   for(var i=0;i<boxes.length;i++){
