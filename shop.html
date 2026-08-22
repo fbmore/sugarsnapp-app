@@ -316,6 +316,24 @@ body.has-paybar.has-declare{padding-bottom:172px}
      handler, and on a long order the lower copy is the one below the fold
      anyway — it would solve the problem only for orders that do not have it. */
   .payside{width:430px;flex:none;display:flex;flex-direction:column;gap:12px}
+  /* The catalog is a list and grows with the stall; the other two columns are
+     a fixed set of controls. Pinning them means a shopper scrolling a long
+     catalog keeps the total, the keypad and their order in view instead of
+     leaving them behind.
+
+     Only when the viewport can actually HOLD them. A sticky column taller than
+     the window pins its top and puts its bottom permanently out of reach —
+     which on the centre column would be the Add-to-order button. Below 900px
+     tall everything scrolls normally, which is correct rather than merely
+     safe. */
+  @media (min-height:900px){
+    .shop-left,.payside{position:sticky;top:22px;align-self:flex-start}
+  }
+  /* In a 430px column the trust copy is a paragraph, not a banner. */
+  .payside .trust{border-top:1px solid var(--line);margin:4px 0 0;padding:14px 0 0;
+    text-align:center;color:var(--muted);font-size:.82rem;max-width:360px;align-self:center}
+  .payside .trust p{max-width:none;margin:0 0 8px}
+  .payside .trust .row{margin-bottom:8px}
   /* Attached to the receipt, not floating. Bottom-sticky kept it on screen
      but detached it — scroll a little and the button drifted to the foot of
      the viewport with a lane of black between it and the order it belongs to.
@@ -532,14 +550,18 @@ footer a{margin:0 8px;color:var(--muted)}
               <div class="payerr" id="payErr"></div>
             </div>
           </div>
+          <!-- Reassurance belongs at the decision, not in a footer nobody
+               scrolls to. Whose Stripe account this is and what the receipt
+               will mean are the two things a stranger wants to know in the
+               second before they tap Pay. -->
+          <div class="trust">
+            <div class="row"><span>Powered by</span><img class="poweredmark" src="logo.svg" alt="SugarSnapp"></div>
+            <p id="trustLine">Payments are processed by Stripe on this vendor&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — the vendor pays only Stripe&rsquo;s standard card fee.</p>
+            <p>After you pay by card, show the vendor your <em>PAID</em> receipt — it appears in their register too. If you tell them you paid another way, they confirm it and the receipt stamps itself.</p>
+          </div>
         </div>
       </div>
-      <div class="trust">
-        <div class="row"><span>Powered by</span><img class="poweredmark" src="logo.svg" alt="SugarSnapp"></div>
-        <p id="trustLine">Payments are processed by Stripe on this vendor&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — the vendor pays only Stripe&rsquo;s standard card fee.</p>
-        <p>After you pay by card, show the vendor your <em>PAID</em> receipt — it appears in their register too. If you tell them you paid another way, they confirm it and the receipt stamps itself.</p>
-        <p><a href="https://getsugarsnapp.com">getsugarsnapp.com</a></p>
-      </div>
+
     </section>
 
     <!-- Kiosk: the stand's own iPad, logged out, left where anyone can use it.
