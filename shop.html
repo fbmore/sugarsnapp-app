@@ -1335,12 +1335,30 @@ function closeDeclSheet(){ $("declSheet").classList.add("hidden"); }
 $("declClose").onclick=closeDeclSheet;
 $("payOtherBtn").onclick=openDeclSheet;
 
+/* "They paid, somehow" is not a record anyone can reconcile, so Other asks.
+   Inline in the same sheet, the way the vendor's own trade/other note works. */
 function declarePayment(rail){
+  if(rail==="other"){ askDeclNote(); return; }
   /* Same guard as Charge, Log payment and card Pay. A shopper mis-keying a
      custom amount is the case it was built for — unattended, and they leave. */
   confirmIfLarge(cartTotal(), vendor, "record", function(){ doDeclare(rail); });
 }
-function doDeclare(rail){
+function askDeclNote(){
+  $("declRails").innerHTML =
+    '<label class="fld" style="grid-column:1/-1"><span>How did you pay?</span>'
+    + '<input type="text" id="declNoteIn" maxlength="60" placeholder="Cheque, bank transfer, IOU\u2026" autocomplete="off"></label>'
+    + '<button type="button" class="ghost" id="declNoteBack">Back</button>'
+    + '<button type="button" class="cta" id="declNoteGo">Record it</button>';
+  $("declNoteBack").onclick=renderDeclRails;
+  $("declNoteGo").onclick=function(){
+    var v=$("declNoteIn").value.trim();
+    if(!v){ $("declErr").textContent="Say how you paid."; $("declErr").style.display="block"; return; }
+    confirmIfLarge(cartTotal(), vendor, "record", function(){ doDeclare("other", v); });
+  };
+  $("declNoteIn").focus();
+}
+
+function doDeclare(rail, railNote){
   var errEl=$("declErr");
   errEl.style.display="none";
   if(guestPendingCents()>0 && !guestAddLine()) return;
@@ -1353,7 +1371,8 @@ function doDeclare(rail){
   var tiles=$("declRails").querySelectorAll(".lograil");
   for(var i=0;i<tiles.length;i++)tiles[i].disabled=true;
   fn("guest-checkout",{method:"POST",body:JSON.stringify({
-      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines, rail:rail})})
+      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines, rail:rail,
+      rail_note:railNote||undefined})})
   .then(function(r){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error||"That didn't go through. Try again, or see the vendor.");

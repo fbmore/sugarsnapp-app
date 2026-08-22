@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-1qzDLGTuzC/HWSMqlezyYOMSwbRPpuDxo1OqAHOxRbM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Zn7dkbRf3QJMsSeM8oomg5XrdC+Ud0KMsqPVLOvmSa8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -749,10 +749,10 @@ function renderRails(){
    explicit empty string means the vendor switched them all off, which is a
    decision the fallback must not undo.
 
-   Only the four assertable rails appear. Cards confirm themselves, and the
-   held rails cannot be written by anyone until 1.4 is live — offering a
-   tickbox for one would be a promise the server refuses to keep. */
-var SHOPPER_RAILS=["cash","venmo","paypal","ebt"];
+   Cards are absent because they confirm themselves; trade and comped because
+   they are the stand's own dispositions, not ways a shopper can have paid. */
+var SHOPPER_RAILS=["cash","venmo","paypal","check","cashapp","apple_cash",
+                   "zelle","bank_transfer","ebt","other"];
 var shopperRailSet=null;
 
 function loadShopperRails(p){
