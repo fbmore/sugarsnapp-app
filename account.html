@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-DuXWO1S59hGr6fnpFojf0St+UsQN3fqkhTlw6Ba3qyo='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-1qzDLGTuzC/HWSMqlezyYOMSwbRPpuDxo1OqAHOxRbM='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -252,6 +252,24 @@
             <button class="ghost" id="scCopy" type="button">Copy</button></div>
         </div>
         <div id="scErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+
+        <!-- The honour-system half. Hidden until the page itself is on, since
+             none of it means anything without a storefront to show it. -->
+        <div id="scRailsBox" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+          <div class="fld"><span>Ways a shopper can say they paid</span>
+            <div class="expmsg" style="margin-bottom:8px">Cards go through Stripe and confirm themselves. These are the ways someone can tell you they paid by hand.</div>
+            <div id="scRailPicks"></div>
+          </div>
+          <label class="fld"><span>When a shopper says they paid</span>
+            <select id="scTrust">
+              <option value="confirm">Hold it until I confirm &mdash; for a staffed stall</option>
+              <option value="declared">Take their word for it &mdash; for an unattended stand</option>
+            </select>
+            <div class="expmsg" id="scTrustNote" style="margin-top:6px"></div>
+          </label>
+          <button class="ghost" id="scRailsSave" type="button">Save</button>
+          <span class="saved" id="scRailsSaved">Saved</span>
+        </div>
       </div>
 
       <div class="card" id="standCard" data-sec="stand">
@@ -650,6 +668,7 @@ function loadStand(){
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
            "&select=business_name,sales_tax_rate_percent,business_category,custom_amount_enabled,"+
            "market_tokens_enabled,visible_rails,card_minimum_cents,card_minimum_set_by,"+
+           "self_checkout_rails,self_checkout_trust,"+
            "large_amount_cents,"+
            "address,website,contact_email,contact_phone,"+
            "checkout_enabled,checkout_slug")
@@ -673,6 +692,7 @@ function loadStand(){
     checkoutSlug=p.checkout_slug||null;
     $("scOn").checked=!!p.checkout_enabled;
     loadRails(p);
+    loadShopperRails(p);
     /* A floor that moved on its own has to explain itself, so the reason is
        shown beside the control rather than only in the email. */
     $("cardMin").value = (p.card_minimum_cents==null) ? "" : String(p.card_minimum_cents);
@@ -720,6 +740,77 @@ function renderRails(){
          +  '</label>';
   });
   el.innerHTML = html;
+}
+
+/* ── which rails a SHOPPER may claim ─────────────────────────────────────
+   Deliberately its own list rather than reusing visible_rails: wanting to log
+   a trade yourself is not the same as wanting a stranger to pick it. Null
+   means "never curated" and falls back to the register's shortlist; an
+   explicit empty string means the vendor switched them all off, which is a
+   decision the fallback must not undo.
+
+   Only the four assertable rails appear. Cards confirm themselves, and the
+   held rails cannot be written by anyone until 1.4 is live — offering a
+   tickbox for one would be a promise the server refuses to keep. */
+var SHOPPER_RAILS=["cash","venmo","paypal","ebt"];
+var shopperRailSet=null;
+
+function loadShopperRails(p){
+  var raw = p && p.self_checkout_rails;
+  if(typeof raw === "string"){
+    shopperRailSet = raw === "" ? [] : raw.split(",");
+  }else{
+    /* Never curated: mirror the register's shortlist, minus what a shopper
+       cannot assert. Matches checkout_catalog's fallback exactly — if these
+       two disagree, a vendor sees one thing here and shoppers get another. */
+    var base = (p && typeof p.visible_rails === "string" && p.visible_rails !== "")
+      ? p.visible_rails.split(",") : ["cash"];
+    shopperRailSet = base.filter(function(r){ return SHOPPER_RAILS.indexOf(r) >= 0; });
+  }
+  $("scTrust").value = (p && p.self_checkout_trust === "declared") ? "declared" : "confirm";
+  paintShopperRails();
+}
+
+function paintShopperRails(){
+  var tokensOn = $("sfTokens") && $("sfTokens").checked;
+  $("scRailPicks").innerHTML = SHOPPER_RAILS.map(function(r){
+    /* EBT follows the market's token program, exactly as the register does.
+       Shown-but-disabled rather than hidden, so a vendor whose market runs a
+       program can see where it will appear once tokens are on. */
+    var blocked = r === "ebt" && !tokensOn;
+    return '<label class="fld" style="margin:4px 0"><span>'
+      + '<input type="checkbox" data-srail="'+esc(r)+'" style="margin-right:7px"'
+      + (shopperRailSet.indexOf(r)>=0 && !blocked ? " checked" : "")
+      + (blocked ? " disabled" : "") + ">"
+      + esc(PROC_NAMES[r]||r)
+      + (blocked ? ' <span class="expmsg">&mdash; needs market tokens on</span>' : "")
+      + "</span></label>";
+  }).join("");
+  paintTrustNote();
+}
+
+function paintTrustNote(){
+  $("scTrustNote").textContent = $("scTrust").value === "declared"
+    ? "Their sale lands as paid straight away. Right for an unattended stand."
+    : "Their sale waits in your ledger with a Confirm button. Nothing counts until you press it.";
+}
+
+function saveShopperRails(){
+  var picks=[],boxes=$("scRailPicks").querySelectorAll("[data-srail]");
+  for(var i=0;i<boxes.length;i++){
+    if(boxes[i].checked && !boxes[i].disabled) picks.push(boxes[i].getAttribute("data-srail"));
+  }
+  var s=getSession(); if(!s)return;
+  var btn=$("scRailsSave"); btn.disabled=true;
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{method:"PATCH",
+    body:JSON.stringify({ self_checkout_rails: picks.join(","),
+                          self_checkout_trust: $("scTrust").value })})
+  .then(function(r){
+    btn.disabled=false;
+    if(!r.ok)throw new Error();
+    shopperRailSet=picks;
+    flash("scRailsSaved");
+  }).catch(function(){ btn.disabled=false; });
 }
 
 function loadRails(p){
@@ -858,6 +949,9 @@ function paintCheckout(){
   }else{
     note.textContent="Off by default. Turning this on publishes your item list at a public checkout link.";
   }
+  /* None of the honour-system settings mean anything without a storefront
+     for a shopper to stand in front of. */
+  $("scRailsBox").classList.toggle("hidden",!(on&&stripeReady));
   var haveLink=on&&!!checkoutSlug;
   link.classList.toggle("hidden",!haveLink);
   if(haveLink){$("scLink").textContent="https://getsugarsnapp.com/shop.html?v="+checkoutSlug;}
@@ -1171,7 +1265,7 @@ function loadVendorDay(){
     +"&created_at=gte."+encodeURIComponent(b[0])
     +"&created_at=lt."+encodeURIComponent(b[1])
     +"&order=created_at.desc"
-    +"&select=id,created_at,processor,status,total_cents";
+    +"&select=id,created_at,processor,status,total_cents,self_declared";
   $("vErr").style.display="none";
   authRest(q).then(function(r){
     if(!r.ok)throw 0;
@@ -1213,14 +1307,22 @@ function renderVendorDay(sales){
     var dead=x.status==="refunded"||x.status==="canceled";
     // Status chip sits OUTSIDE the struck span: the struck amount already
     // says "void" — striking the word CANCELED itself just looks broken.
-    var st=x.status==="paid"?"":'<span class="st '+esc(x.status)+'">'+esc(x.status.replace("_"," "))+"</span>";
+    var stTxt=(x.status==="pending"&&x.self_declared)?"they said they paid":x.status.replace("_"," ");
+    var st=x.status==="paid"?"":'<span class="st '+esc(x.status)+'">'+esc(stTxt)+"</span>";
     // No "—" placeholder: a canceled sale never picked a processor.
     var proc=PROC_NAMES[x.processor]||x.processor||"";
     /* Paid rows get the two things a vendor actually needs to do to a past
        sale from a browser: send the receipt, or take it back. Mirrors the
        app's SaleDetailView — same verbs, same copy, same server functions. */
     var acts="";
-    if(x.status==="paid"){
+    /* A shopper's claim, waiting on the vendor. It is the only pending row a
+       vendor can act on: a pending CARD sale is waiting on Stripe, and a
+       Confirm button there would assert money arrived that never did. */
+    if(x.status==="pending"&&x.self_declared){
+      acts='<div class="acts" data-sale="'+esc(x.id)+'">'
+        +'<button class="lnk" type="button" data-act="confirm">Confirm '+esc(proc||"payment")+'</button>'
+        +'<span class="actmsg"></span></div>';
+    }else if(x.status==="paid"){
       var stripeRail=x.processor==="stripe"||x.processor==="tap_to_pay";
       acts='<div class="acts" data-sale="'+esc(x.id)+'">'
         +'<button class="lnk" type="button" data-act="receipt">Email receipt</button>'
@@ -1835,8 +1937,32 @@ $("vSales").addEventListener("click",function(ev){
     case "refund":openRefund(id,parseInt(b.getAttribute("data-cents"),10)||0,b.getAttribute("data-stripe")==="1",b.getAttribute("data-proc"));break;
     case "refund-go":doRefund(id);break;
     case "cancel":closeInline(id);break;
+    case "confirm":confirmDeclared(id,b);break;
   }
 });
+
+/* Turning a shopper's claim into a real sale.
+   Through an RPC, not a PATCH on sales.status: status is the column that
+   decides whether money counts as received, and handing the client a grant on
+   it to serve one button is the mistake that put card_minimum_set_by in a
+   client's reach. */
+function confirmDeclared(id,btn){
+  var msg=btn.parentNode.querySelector(".actmsg");
+  btn.disabled=true;btn.textContent="Confirming…";
+  authRest("rpc/confirm_declared_sale",{method:"POST",
+    body:JSON.stringify({p_sale_id:id})})
+  .then(function(r){
+    if(!r.ok)throw new Error();
+    /* Reload rather than patch the row in place: confirming changes the day
+       total and the by-payment-type breakdown too, and a row that says paid
+       above a total that has not moved is worse than a second of waiting. */
+    loadVendorDay();
+  })
+  .catch(function(){
+    btn.disabled=false;btn.textContent="Confirm";
+    if(msg)msg.textContent="Couldn't confirm — try again.";
+  });
+}
 $("vSales").addEventListener("keydown",function(ev){
   if(ev.key==="Enter"&&ev.target.matches(".inl input[type=email]")){
     ev.preventDefault();sendReceipt(ev.target.closest(".sale").getAttribute("data-sale"));
@@ -1845,7 +1971,14 @@ $("vSales").addEventListener("keydown",function(ev){
 
 /* --- the Android path: stand, card rail, catalog --- */
 $("sfSave").addEventListener("click",saveStand);
-$("sfTokens").addEventListener("change",function(){mtTokensTouched=true;});
+$("sfTokens").addEventListener("change",function(){
+  mtTokensTouched=true;
+  /* EBT's availability to shoppers follows the token program, so the picker
+     has to react the moment that changes rather than after a reload. */
+  if(shopperRailSet)paintShopperRails();
+});
+$("scRailsSave").addEventListener("click",saveShopperRails);
+$("scTrust").addEventListener("change",paintTrustNote);
 $("rdSave").addEventListener("click",saveReceipt);
 $("railsSave").addEventListener("click",saveRails);
 $("cardMinSave").addEventListener("click",saveCardMinimum);

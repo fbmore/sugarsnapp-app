@@ -465,8 +465,23 @@ footer a{margin:0 8px;color:var(--muted)}
             <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
             <div class="payact">
               <button class="cta" id="payBtn" disabled>Pay</button>
+              <!-- Only when the stand actually takes something else. A stall
+                   that is card-only never learns this button exists. -->
+              <button class="ghost hidden" id="payOtherBtn" type="button">I paid another way</button>
               <div class="payerr" id="payErr"></div>
             </div>
+          </div>
+          <!-- Reuses the vendor's own rail tiles (.lograils/.lograil, railColor,
+               railMark) rather than a second picker, so the two faces cannot
+               show the same rail two different ways. -->
+          <div class="card logsheet hidden" id="declSheet">
+            <div class="logsheet-head">
+              <span id="declHead">How did you pay?</span>
+              <button class="ghost" id="declClose" type="button">Cancel</button>
+            </div>
+            <div class="lograils" id="declRails"></div>
+            <div class="reg-note" id="declNote"></div>
+            <div class="payerr" id="declErr"></div>
           </div>
         </div>
         <!-- The order, as the paper it will become. Hidden until something's
@@ -1280,6 +1295,78 @@ function guestAddLine(){
   return true;
 }
 $("caAdd").onclick=guestAddLine;
+
+/* ── "I paid another way" ────────────────────────────────────────────────
+   The honour-system half of self-checkout. The stand's rails come RESOLVED
+   from checkout_catalog — held rails and EBT-without-a-token-program are
+   already filtered out server-side, and guest-checkout re-checks every claim
+   regardless of what got drawn here. This list is a rendering hint. */
+function shopperRails(){
+  var r = vendor && vendor.self_checkout_rails;
+  return Object.prototype.toString.call(r)==="[object Array]" ? r : [];
+}
+function trustsShopper(){ return vendor && vendor.self_checkout_trust==="declared"; }
+
+function renderDeclRails(){
+  $("declRails").innerHTML = shopperRails().map(function(p){
+    return '<button type="button" class="lograil" data-rail="'+esc(p)+'"'
+         + ' style="background:'+railColor(p)+'">'
+         + '<span class="lmark">'+esc(railMark(p))+'</span>'
+         + '<span>'+esc(PROC_NAMES[p]||p)+'</span></button>';
+  }).join("");
+  /* Say plainly what the tap does. A stand that takes the shopper's word and
+     one that holds it for checking are different promises, and the shopper is
+     the person least able to find that out any other way. */
+  $("declNote").textContent = trustsShopper()
+    ? "This marks "+money(cartTotal())+" as paid. The stand sees it straight away."
+    : "This tells the stand you paid "+money(cartTotal())+". They confirm it when they see you.";
+  var tiles=$("declRails").querySelectorAll(".lograil");
+  for(var i=0;i<tiles.length;i++){
+    tiles[i].onclick=function(){ declarePayment(this.getAttribute("data-rail")); };
+  }
+}
+function openDeclSheet(){
+  if(cartTotal()<=0)return;
+  $("declErr").style.display="none";
+  renderDeclRails();
+  $("declSheet").classList.remove("hidden");
+}
+function closeDeclSheet(){ $("declSheet").classList.add("hidden"); }
+$("declClose").onclick=closeDeclSheet;
+$("payOtherBtn").onclick=openDeclSheet;
+
+function declarePayment(rail){
+  /* Same guard as Charge, Log payment and card Pay. A shopper mis-keying a
+     custom amount is the case it was built for — unattended, and they leave. */
+  confirmIfLarge(cartTotal(), vendor, "record", function(){ doDeclare(rail); });
+}
+function doDeclare(rail){
+  var errEl=$("declErr");
+  errEl.style.display="none";
+  if(guestPendingCents()>0 && !guestAddLine()) return;
+  var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
+    .filter(function(l){return l.quantity>0;});
+  customLines.forEach(function(l){
+    lines.push({amount_cents:l.amount_cents,note:l.note||null});
+  });
+  if(!lines.length){errEl.textContent="Add something first.";errEl.style.display="block";return;}
+  var tiles=$("declRails").querySelectorAll(".lograil");
+  for(var i=0;i<tiles.length;i++)tiles[i].disabled=true;
+  fn("guest-checkout",{method:"POST",body:JSON.stringify({
+      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines, rail:rail})})
+  .then(function(r){
+    return r.json().catch(function(){return{};}).then(function(j){
+      if(!r.ok)throw new Error(j.error||"That didn't go through. Try again, or see the vendor.");
+      localStorage.removeItem("ss-cart-"+slug);
+      localStorage.removeItem("ss-custom-"+slug);
+      location.href=j.receipt_url;
+    });
+  }).catch(function(e){
+    for(var i=0;i<tiles.length;i++)tiles[i].disabled=false;
+    errEl.textContent=e.message||"That didn't go through.";
+    errEl.style.display="block";
+  });
+}
 /* Fold the catalog away, like the register's. A shopper who has already added
    what they came for wants the keypad and the receipt, not a list. */
 $("shopCatToggle").onclick=function(){
@@ -1325,6 +1412,12 @@ function syncPaybar(){
   var total=cartTotal();
   $("payTotal").textContent=money(total);
   $("shopTwAmt").textContent=money(total);
+  /* Only offered when the stand actually takes something besides cards, and
+     only once there is something to pay for. */
+  var other=$("payOtherBtn");
+  other.classList.toggle("hidden", shopperRails().length===0);
+  other.disabled = total===0;
+  if(total===0)closeDeclSheet();
   var btn=$("payBtn");
   btn.disabled=total===0;
   btn.textContent=total===0?"Pay":"Pay "+money(total);

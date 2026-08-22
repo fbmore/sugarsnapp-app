@@ -318,6 +318,7 @@ function render(j){
   var paid=sale.status==="paid";
   if(paid)meta.push("Paid via "+(PROC_NAMES[sale.processor]||sale.processor||"—"));
   else if(sale.status==="canceled")meta.push("Canceled");
+  else if(sale.self_declared)meta.push("You said you paid by "+(PROC_NAMES[sale.processor]||sale.processor||"—"));
   else meta.push("Awaiting payment");
   $("rMeta").innerHTML=meta.join("<br>");
 
@@ -334,6 +335,19 @@ function render(j){
     $("awaiting").classList.add("hidden");
     $("saveHint").textContent="This sale was canceled by the vendor — nothing was charged.";
     stopPoll();
+  }else if(sale.self_declared){
+    /* A claim, not a charge. No PAID stamp: the stamp says a webhook watched
+       the money move, and nothing watched this. It becomes a real stamped
+       receipt the moment the vendor confirms — the poll is already running,
+       so the page changes under the shopper without them doing anything.
+       No retry-pay link either: there is no payment to retry, and offering
+       one would invite paying a second time for what they already handed over. */
+    $("stamp").classList.add("hidden");
+    $("awaiting").classList.add("hidden");
+    $("retryPay").classList.add("hidden");
+    $("saveHint").textContent=
+      "Show this to the vendor. They'll confirm it, and this page will stamp itself PAID.";
+    startPoll();
   }else{
     $("stamp").classList.add("hidden");
     $("awaiting").classList.remove("hidden");
