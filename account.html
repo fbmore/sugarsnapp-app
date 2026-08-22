@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Zn7dkbRf3QJMsSeM8oomg5XrdC+Ud0KMsqPVLOvmSa8='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-z/RBje1VlJVoucbIyaBJcGmgi5y5R90whFnsSX41oAY='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -248,8 +248,17 @@
         <div class="expmsg" id="scNote" style="margin:6px 0 10px">Checking&hellip;</div>
         <label class="fld"><span><input type="checkbox" id="scOn" style="margin-right:7px">Public checkout page</span></label>
         <div id="scLinkRow" class="hidden">
+          <div class="expmsg" style="margin-bottom:4px">Shopper link &mdash; the one on your QR sign</div>
           <div class="linkrow"><code id="scLink"></code>
             <button class="ghost" id="scCopy" type="button">Copy</button></div>
+          <!-- Same page, one flag. On a tablet you leave out at the stand, Pay
+               must NOT take a card: the device is shared, so a card typed on it
+               is one Back button from the next person. The kiosk link makes Pay
+               show a QR the shopper finishes on their own phone instead. -->
+          <div class="expmsg" style="margin:12px 0 4px">Kiosk link &mdash; for a tablet you leave out at the stand</div>
+          <div class="linkrow"><code id="scKioskLink"></code>
+            <button class="ghost" id="scKioskCopy" type="button">Copy</button></div>
+          <div class="expmsg" style="margin-top:6px">Pay shows a QR code instead of taking a card, so nobody types their card into your tablet. It clears itself after each sale.</div>
         </div>
         <div id="scErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
 
@@ -954,7 +963,11 @@ function paintCheckout(){
   $("scRailsBox").classList.toggle("hidden",!(on&&stripeReady));
   var haveLink=on&&!!checkoutSlug;
   link.classList.toggle("hidden",!haveLink);
-  if(haveLink){$("scLink").textContent="https://getsugarsnapp.com/shop.html?v="+checkoutSlug;}
+  if(haveLink){
+    var base="https://getsugarsnapp.com/shop.html?v="+checkoutSlug;
+    $("scLink").textContent=base;
+    $("scKioskLink").textContent=base+"&kiosk=1";
+  }
 }
 
 function setCheckout(on){
@@ -1984,15 +1997,17 @@ $("railsSave").addEventListener("click",saveRails);
 $("cardMinSave").addEventListener("click",saveCardMinimum);
 $("bigAmtSave").addEventListener("click",saveLargeAmount);
 $("scOn").addEventListener("change",function(){setCheckout($("scOn").checked);});
-$("scCopy").addEventListener("click",function(){
-  var t=$("scLink").textContent;
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(t).then(function(){
-      var b=$("scCopy");b.textContent="Copied";
-      setTimeout(function(){b.textContent="Copy";},1600);
-    }).catch(function(){});
-  }
-});
+/* Two links, one behaviour — written once so they cannot drift. */
+function copyLink(srcId,btnId){
+  var t=$(srcId).textContent;
+  if(!(navigator.clipboard&&navigator.clipboard.writeText))return;
+  navigator.clipboard.writeText(t).then(function(){
+    var b=$(btnId);b.textContent="Copied";
+    setTimeout(function(){b.textContent="Copy";},1600);
+  }).catch(function(){});
+}
+$("scCopy").addEventListener("click",function(){copyLink("scLink","scCopy");});
+$("scKioskCopy").addEventListener("click",function(){copyLink("scKioskLink","scKioskCopy");});
 $("hSave").addEventListener("click",saveHandles);
 $("hPaypal").addEventListener("input",paintPaypalHint);
 $("sfLogoPick").addEventListener("click",function(){$("sfLogoFile").click();});

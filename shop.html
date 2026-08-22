@@ -536,6 +536,37 @@ footer a{margin:0 8px;color:var(--muted)}
       </div>
     </section>
 
+    <!-- Kiosk: the stand's own iPad, logged out, left where anyone can use it.
+         The shopper rings up their own order but must NOT pay on this device —
+         it is shared, and card details typed here are one Back button from the
+         next person. So Pay hands the sale to their phone instead. -->
+    <section id="v-kiosk" class="charge hidden">
+      <div class="kicker">Scan to pay</div>
+      <div class="amt" id="kAmt"></div>
+      <div class="who">Pay on your own phone. Your card never touches this iPad.</div>
+      <div class="qrbox"><canvas id="kQr" width="10" height="10"></canvas></div>
+      <div class="wait" id="kWait"><span class="dotp"></span>Waiting for payment&hellip;</div>
+      <div class="sharerow"><button class="ghost" id="kShare" type="button">Can&rsquo;t scan? Get a link</button></div>
+      <div class="cancel"><button class="ghost" id="kCancel" type="button">Cancel</button></div>
+    </section>
+
+    <!-- Kiosk, settled. Offers the receipt, then clears itself: an iPad left
+         showing the last stranger's total is the next stranger's problem. -->
+    <section id="v-kioskdone" class="charge hidden">
+      <div class="paid-badge">&#10003;</div>
+      <h2 style="margin:0 0 4px">Paid <span id="kdAmt"></span></h2>
+      <div class="who" id="kdWhat">Thanks!</div>
+      <div class="email-row" id="kdEmailRow" style="margin-top:18px">
+        <form id="kdEmailForm">
+          <input type="email" id="kdEmail" placeholder="you@example.com" autocomplete="email" maxlength="254">
+          <button type="submit" class="ghost" id="kdEmailBtn">Email me a receipt</button>
+        </form>
+        <div class="msg hidden" id="kdEmailMsg"></div>
+      </div>
+      <div class="cancel"><button class="cta" id="kdNext" type="button">Next customer</button></div>
+      <div class="who" id="kdTick" style="margin-top:10px"></div>
+    </section>
+
     <!-- vendor login -->
     <section id="v-login" class="card login hidden" style="margin:30px 0">
       <div class="kicker">Vendor sign in</div>
@@ -1042,7 +1073,7 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){
   return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
 
 /* ---------- view switching ---------- */
-var VIEWS=["v-loading","v-missing","v-off","v-dead","v-shop","v-login","v-register","v-charge","v-paid"];
+var VIEWS=["v-loading","v-missing","v-off","v-dead","v-shop","v-login","v-register","v-charge","v-paid","v-kiosk","v-kioskdone"];
 function show(id){
   VIEWS.forEach(function(v){document.getElementById(v).classList.toggle("hidden",v!==id);});
   var guest=id==="v-shop";
@@ -1333,6 +1364,98 @@ function guestAddLine(){
 }
 $("caAdd").onclick=guestAddLine;
 
+/* ── kiosk ───────────────────────────────────────────────────────────────
+   The stand's own iPad, signed out, left where anyone can pick it up. Same
+   storefront, one difference that matters: the shopper must not pay ON this
+   device. It is shared, so a card typed here is one Back button away from the
+   next person, and nobody should have to trust a stranger's tablet with it.
+   Pay therefore hands the sale to their phone as a QR.
+
+   Marked by ?kiosk=1 on the URL, never remembered. A device flag would be a
+   trap: a shopper who once opened the kiosk link on their own phone would be
+   stuck unable to pay on it, with no way to tell why. */
+var KIOSK = new URLSearchParams(location.search).get("kiosk") === "1";
+var kioskSale=null, kioskPoll=null, kioskIdle=null, kioskLeft=0;
+
+function kioskCharge(){
+  if(guestPendingCents()>0 && !guestAddLine()) return;
+  var lines=Object.keys(cart).map(function(id){return{item_id:id,quantity:cart[id]};})
+    .filter(function(l){return l.quantity>0;});
+  customLines.forEach(function(l){ lines.push({amount_cents:l.amount_cents,note:l.note||null}); });
+  if(!lines.length)return;
+  var btn=$("payBtn"); btn.disabled=true; btn.textContent="One moment…";
+  fn("guest-checkout",{method:"POST",body:JSON.stringify({
+      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines})})
+  .then(function(r){ return r.json().catch(function(){return{};}).then(function(j){
+    if(!r.ok)throw new Error(j.error||"That didn't go through. See the vendor.");
+    kioskSale={id:j.sale_id,total:j.total_cents,url:j.pay_url};
+    $("kAmt").textContent=money(j.total_cents);
+    drawQR($("kQr"), j.pay_url, "stripe");
+    $("kWait").innerHTML='<span class="dotp"></span>Waiting for payment…';
+    show("v-kiosk");
+    startKioskPoll();
+  });})
+  .catch(function(e){
+    btn.disabled=false; syncPaybar();
+    $("payErr").textContent=e.message||"That didn't go through.";
+    $("payErr").style.display="block";
+  });
+}
+
+/* Anonymous, so it polls the receipt function rather than the table — a kiosk
+   has no session, and RLS gives anon SELECT on nothing useful. */
+function startKioskPoll(){
+  stopKioskPoll();
+  kioskPoll=setInterval(function(){
+    if(!kioskSale)return;
+    fetch(SUPA+"/functions/v1/receipt?sale="+encodeURIComponent(kioskSale.id),
+          {headers:{apikey:ANON}})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(j){
+      var st=j&&j.sale&&j.sale.status;
+      if(st==="paid")kioskPaid();
+      else if(st==="canceled")kioskReset();
+    }).catch(function(){});
+  },2500);
+}
+function stopKioskPoll(){ if(kioskPoll){clearInterval(kioskPoll);kioskPoll=null;} }
+
+function kioskPaid(){
+  stopKioskPoll();
+  $("kdAmt").textContent=kioskSale?money(kioskSale.total):"";
+  $("kdEmailMsg").classList.add("hidden");
+  $("kdEmail").value="";
+  $("kdEmailRow").classList.remove("hidden");
+  show("v-kioskdone");
+  startKioskIdle();
+}
+
+/* Ten seconds, restarted by ANY interaction. Someone typing their email must
+   never have the page cleared out from under them mid-address. */
+function startKioskIdle(){
+  kioskLeft=10;
+  stopKioskIdle();
+  kioskIdle=setInterval(function(){
+    kioskLeft--;
+    $("kdTick").textContent = kioskLeft>0 ? "Clearing in "+kioskLeft+"…" : "";
+    if(kioskLeft<=0)kioskReset();
+  },1000);
+  $("kdTick").textContent="Clearing in 10…";
+}
+function stopKioskIdle(){ if(kioskIdle){clearInterval(kioskIdle);kioskIdle=null;} }
+function bumpKioskIdle(){ if(kioskIdle)startKioskIdle(); }
+
+function kioskReset(){
+  stopKioskPoll(); stopKioskIdle();
+  kioskSale=null;
+  cart={}; customLines=[];
+  try{ localStorage.removeItem("ss-cart-"+slug); localStorage.removeItem("ss-custom-"+slug); }catch(e){}
+  gm.clearAll(); renderGuestEntry();
+  renderShop();
+  $("payErr").style.display="none";
+  show("v-shop");
+}
+
 /* ── "I paid another way" ────────────────────────────────────────────────
    The honour-system half of self-checkout. The stand's rails come RESOLVED
    from checkout_catalog — held rails and EBT-without-a-token-program are
@@ -1484,7 +1607,42 @@ function syncPaybar(){
   $("payErr").style.display="none";
   renderShopReceipt();
 }
+$("kShare").onclick=function(){
+  if(!kioskSale)return;
+  if(navigator.share){navigator.share({title:"Pay",url:kioskSale.url}).catch(function(){});}
+  else{ prompt("Copy this link to pay:", kioskSale.url); }
+};
+$("kCancel").onclick=kioskReset;
+$("kdNext").onclick=kioskReset;
+/* Any touch on the settled screen restarts the ten seconds — nobody should
+   lose a half-typed email address to a countdown. */
+["click","keydown","input","touchstart"].forEach(function(ev){
+  $("v-kioskdone").addEventListener(ev,bumpKioskIdle,{passive:true});
+});
+$("kdEmailForm").addEventListener("submit",function(ev){
+  ev.preventDefault();
+  if(!kioskSale)return;
+  var addr=$("kdEmail").value.trim(); if(!addr)return;
+  var btn=$("kdEmailBtn"); btn.disabled=true; btn.textContent="Sending…";
+  stopKioskIdle();                    // do not clear mid-send
+  fetch(SUPA+"/functions/v1/email-receipt",{method:"POST",
+    headers:{apikey:ANON,"Content-Type":"application/json"},
+    body:JSON.stringify({sale:kioskSale.id,email:addr})})
+  .then(function(r){
+    btn.disabled=false; btn.textContent="Email me a receipt";
+    var m=$("kdEmailMsg"); m.classList.remove("hidden");
+    m.textContent=r.ok?"Sent — check your inbox.":"Couldn't send that one.";
+    if(r.ok)$("kdEmailRow").classList.add("hidden");
+    startKioskIdle();
+  }).catch(function(){
+    btn.disabled=false; btn.textContent="Email me a receipt";
+    startKioskIdle();
+  });
+});
+
 $("payBtn").onclick=function(){
+  /* A kiosk hands the sale to the shopper's phone instead of charging here. */
+  if(KIOSK){ kioskCharge(); return; }
   /* Commit whatever is still on the keypad first, through the SAME validation
      Add uses — a pending $0.50 must be refused here for the reason it is
      refused there, not silently rounded into the order. This mirrors the
