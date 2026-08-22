@@ -316,7 +316,11 @@ body.has-paybar.has-declare{padding-bottom:172px}
      handler, and on a long order the lower copy is the one below the fold
      anyway — it would solve the problem only for orders that do not have it. */
   .payside{width:430px;flex:none;display:flex;flex-direction:column;gap:14px}
-  .payside .paybar{position:sticky;top:22px;z-index:30;display:flex;align-items:center;
+  /* sticky BOTTOM, not top: the button now follows the receipt, so the case
+     to defend against is a long order pushing it below the fold. Bottom-sticky
+     pins it to the foot of the viewport until its real position scrolls into
+     view, then it settles under the receipt where it belongs. */
+  .payside .paybar{position:sticky;bottom:22px;z-index:30;display:flex;align-items:center;
     justify-content:stretch;gap:14px;margin:0;padding:14px 18px;
     background:var(--surface);border:1px solid var(--line);border-radius:18px;
     box-shadow:0 10px 30px rgba(0,0,0,.25)}
@@ -509,6 +513,11 @@ footer a{margin:0 8px;color:var(--muted)}
           </div>
         </div>
         <div class="payside" id="paySide">
+          <!-- The order comes first: a shopper decides by looking at what they
+               are buying, then acts. Pay sits under it and sticks to the
+               bottom of the viewport when a long receipt would push it off,
+               so it is never the thing you have to scroll to find. -->
+          <aside class="shop-receipt hidden" id="shopReceipt"></aside>
           <div class="paybar hidden" id="paybar">
             <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
             <div class="payact">
@@ -517,10 +526,6 @@ footer a{margin:0 8px;color:var(--muted)}
               <div class="payerr" id="payErr"></div>
             </div>
           </div>
-          <!-- The order, as the paper it will become. Hidden until something's
-               on it; the right-hand pane on wide screens, an in-flow card on
-               phones. Same renderer as the vendor register's receipt. -->
-          <aside class="shop-receipt hidden" id="shopReceipt"></aside>
         </div>
       </div>
       <div class="trust">
