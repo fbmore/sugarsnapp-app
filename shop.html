@@ -465,6 +465,10 @@ footer a{margin:0 8px;color:var(--muted)}
     </div>
     <div class="links">
       <button id="navVendor" class="hidden">Vendor? Sign in</button>
+      <!-- An armed kiosk offers no way IN, only a way out, and that costs the
+           PIN. Sign-in on a shared iPad is the doorway this whole mode exists
+           to shut. -->
+      <button id="navKioskExit" class="hidden">Kiosk mode</button>
       <button id="navSignout" class="hidden">Sign out</button>
     </div>
   </nav>
@@ -572,6 +576,25 @@ footer a{margin:0 8px;color:var(--muted)}
          is about to put on someone's ledger, and it deserves the screen while
          they make it. Reuses the vendor's own rail tiles (.lograils, railColor,
          railMark) so the two faces cannot draw the same rail two ways. -->
+    <!-- Arming and leaving the kiosk. Same modal furniture as the rail
+         picker, because it is the same kind of moment: a short, deliberate
+         decision that deserves the screen. -->
+    <div class="modal hidden" id="kioskPinModal">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="kpTitle" style="max-width:420px;text-align:center">
+        <h2 id="kpTitle" style="margin:0 0 6px;font-size:1.2rem">Lock this iPad as a kiosk</h2>
+        <p id="kpBody" class="reg-note" style="margin:0 0 14px">Use the same PIN you use in the app. Shoppers can ring up an order and pay on their own phone, but cannot reach your register.</p>
+        <input id="kpPin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="8"
+               autocomplete="off" placeholder="PIN"
+               style="width:140px;text-align:center;letter-spacing:.5em;font-size:1.3rem;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--ink)">
+        <div class="payerr" id="kpErr" style="margin-top:10px"></div>
+        <div style="display:flex;gap:10px;margin-top:16px">
+          <button class="ghost" id="kpCancel" type="button" style="flex:1">Cancel</button>
+          <button class="cta" id="kpGo" type="button" style="flex:1">Lock it</button>
+        </div>
+        <p class="reg-note" id="kpHint" style="margin-top:14px">Tip: turn on iOS Guided Access as well — triple-click the side button. This PIN stops a shopper leaving the storefront; only Guided Access stops them leaving the browser.</p>
+      </div>
+    </div>
+
     <div class="modal hidden" id="declSheet">
       <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="declHead">
         <div class="logsheet-head">
@@ -1131,7 +1154,10 @@ function show(id){
   document.getElementById("paybar").classList.toggle("hidden",!guest);
   document.body.classList.toggle("has-paybar",guest);
   var vendorish=id==="v-register"||id==="v-charge"||id==="v-paid";
-  document.getElementById("navVendor").classList.toggle("hidden",!guest);
+  /* Never offer sign-in on an armed kiosk — that is the doorway to the
+     register, and the shopper holding it is a stranger. */
+  document.getElementById("navVendor").classList.toggle("hidden",!guest||KIOSK);
+  document.getElementById("navKioskExit").classList.toggle("hidden",!KIOSK);
   document.getElementById("navSignout").classList.toggle("hidden",!vendorish);
   /* The register and the shopper storefront get the wide room (left column +
      receipt); charge/paid and the note views keep the phone-width column. */
@@ -1188,6 +1214,15 @@ function boot(){
       show("v-login");
       var e=$("loginErr");e.textContent=msg;e.style.display="block";
     });
+  }
+  /* BEFORE the session lookup, deliberately. An armed kiosk must never reach
+     enterRegister: on the one device this feature exists for — the vendor's
+     own iPad — a lingering session would otherwise hand whoever picks it up
+     the register, the ledger and the settings. That is the hole kiosk mode was
+     supposed to close and, until this check moved above the lookup, the exact
+     hole it left open. */
+  if(kioskArmed()){
+    return guestBoot();
   }
   var s=getSession();
   var tryVendor=s
@@ -1425,7 +1460,107 @@ $("caAdd").onclick=guestAddLine;
    Marked by ?kiosk=1 on the URL, never remembered. A device flag would be a
    trap: a shopper who once opened the kiosk link on their own phone would be
    stuck unable to pay on it, with no way to tell why. */
-var KIOSK = new URLSearchParams(location.search).get("kiosk") === "1";
+/* Kiosk is a DEVICE state, not a URL. The flag only ARMS it; once armed it
+   stays armed for this browser whatever the address bar says, and only the PIN
+   turns it off. A lock one URL edit from gone is not a lock.
+
+   The PIN is the same four digits the vendor uses on the app, but it cannot be
+   the same STORE: a browser cannot read the iPhone's Keychain. So it is
+   entered once here and kept as a salted hash — the digits themselves are
+   never written down, same as on iOS.
+
+   Honest limit: this cannot lock the address bar. It stops a shopper WANDERING
+   out of the kiosk into the register; it cannot stop someone determined to
+   leave the page. iOS Guided Access is the other half, and the Settings copy
+   says so rather than implying we do more than we do. */
+var KIOSK_KEY = "ss-kiosk-" + slug;
+function kioskArmed(){
+  try{ return !!JSON.parse(localStorage.getItem(KIOSK_KEY)); }catch(e){ return false; }
+}
+var KIOSK = kioskArmed();
+
+function pinDigest(pin, saltHex){
+  var enc = new TextEncoder().encode(saltHex + ":" + pin);
+  return crypto.subtle.digest("SHA-256", enc).then(function(buf){
+    return Array.from(new Uint8Array(buf)).map(function(b){
+      return b.toString(16).padStart(2,"0"); }).join("");
+  });
+}
+function armKiosk(pin){
+  var salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+    .map(function(b){return b.toString(16).padStart(2,"0");}).join("");
+  return pinDigest(pin, salt).then(function(hash){
+    localStorage.setItem(KIOSK_KEY, JSON.stringify({salt:salt,hash:hash}));
+    KIOSK = true;
+  });
+}
+function kioskPinMatches(pin){
+  var rec; try{ rec = JSON.parse(localStorage.getItem(KIOSK_KEY)); }catch(e){ rec=null; }
+  if(!rec) return Promise.resolve(false);
+  return pinDigest(pin, rec.salt).then(function(h){
+    /* Length-independent compare. Not that a timing attack on a farm stand's
+       iPad is likely — it costs one line and the habit is worth more than the
+       threat. */
+    if(h.length !== rec.hash.length) return false;
+    var diff=0; for(var i=0;i<h.length;i++) diff |= h.charCodeAt(i)^rec.hash.charCodeAt(i);
+    return diff===0;
+  });
+}
+function disarmKiosk(){ localStorage.removeItem(KIOSK_KEY); KIOSK=false; }
+
+/* ── arming and leaving ──────────────────────────────────────────────── */
+var kpMode="arm";
+function openKioskPin(mode){
+  kpMode=mode;
+  $("kpTitle").textContent = mode==="arm" ? "Lock this iPad as a kiosk" : "Leave kiosk mode";
+  $("kpBody").textContent  = mode==="arm"
+    ? "Use the same PIN you use in the app. Shoppers can ring up an order and pay on their own phone, but cannot reach your register."
+    : "Enter the PIN this kiosk was locked with.";
+  $("kpGo").textContent = mode==="arm" ? "Lock it" : "Unlock";
+  $("kpHint").style.display = mode==="arm" ? "" : "none";
+  $("kpErr").style.display="none";
+  $("kpPin").value="";
+  $("kioskPinModal").classList.remove("hidden");
+  document.body.style.overflow="hidden";
+  $("kpPin").focus();
+}
+function closeKioskPin(){
+  $("kioskPinModal").classList.add("hidden");
+  document.body.style.overflow="";
+  /* Drop ?kiosk=1 so a refused arming does not re-prompt on every reload. */
+  if(kpMode==="arm" && !kioskArmed() && location.search.indexOf("kiosk=1")>-1){
+    history.replaceState(null,"",location.pathname+"?v="+encodeURIComponent(slug));
+  }
+}
+function kioskPinSubmit(){
+  var pin=$("kpPin").value.trim(), err=$("kpErr");
+  if(pin.length<4){ err.textContent="At least 4 digits."; err.style.display="block"; return; }
+  if(kpMode==="arm"){
+    armKiosk(pin).then(function(){
+      closeKioskPin();
+      history.replaceState(null,"",location.pathname+"?v="+encodeURIComponent(slug));
+      location.reload();          // boot again, this time as a kiosk
+    });
+  }else{
+    kioskPinMatches(pin).then(function(ok){
+      if(!ok){ err.textContent="That isn't the PIN this kiosk was locked with."; err.style.display="block"; return; }
+      disarmKiosk();
+      closeKioskPin();
+      location.reload();
+    });
+  }
+}
+$("navKioskExit").onclick=function(){ openKioskPin("leave"); };
+/* ?kiosk=1 ARMS rather than switches: it asks for the PIN that will lock the
+   device, then reloads into the mode. Ignored if already armed — re-prompting
+   a working kiosk on every reload would be its own denial of service. */
+if(new URLSearchParams(location.search).get("kiosk")==="1" && !kioskArmed()){
+  setTimeout(function(){ openKioskPin("arm"); },400);
+}
+$("kpGo").onclick=kioskPinSubmit;
+$("kpCancel").onclick=closeKioskPin;
+$("kpPin").addEventListener("keydown",function(ev){ if(ev.key==="Enter")kioskPinSubmit(); });
+$("kioskPinModal").addEventListener("click",function(ev){ if(ev.target===this)closeKioskPin(); });
 var kioskSale=null, kioskPoll=null, kioskIdle=null, kioskLeft=0;
 
 function kioskCharge(){
