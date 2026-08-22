@@ -150,7 +150,10 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
    Charge sits on the vendor face. The TOTAL window above already carries the
    figure, so the bar's own "Your total" would be the same number twice, in
    two places that disagree while you type — it goes. */
+/* Clearance for the fixed bar. It grew a second button — "I paid another way"
+   sits under Pay — so the old 110px let the footer slide beneath it. */
 body.has-paybar{padding-bottom:110px}
+body.has-paybar.has-declare{padding-bottom:172px}
 .payerr{color:#8a3b2e;font-size:.9rem;margin:10px 0 0;text-align:center;display:none}
 
 /* trust block */
@@ -251,6 +254,23 @@ body.has-paybar{padding-bottom:110px}
 /* the paper receipt — shared by the register pane and the shopper's order
    card. A receipt is paper: always light, whatever the theme. */
 .paper{width:100%;max-width:360px;margin:0 auto;background:#fff;color:#1c1c1e;border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.12);padding:26px 24px;font-family:var(--font-mono);font-size:.85rem}
+/* The stand's masthead, in the nav where our logo used to be. Name and kicker
+   share a baseline so the pair costs one line instead of three — the space
+   that buys goes to the order itself. */
+.standhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;min-width:0}
+.standhead h1{font-size:1.45rem;margin:0;line-height:1.15;overflow-wrap:anywhere}
+.standkick{text-transform:uppercase;letter-spacing:.18em;font-size:.68rem;color:var(--state);white-space:nowrap}
+@media(max-width:560px){
+  /* On a phone the pair wraps; the kicker keeps its own line rather than
+     squeezing the stand's name to two words. */
+  .standhead{gap:2px}
+  .standhead h1{font-size:1.25rem}
+}
+/* Where the stall is, on the receipt — the same lines the printed one carries. */
+.paper .rcontact{text-align:center;color:#6b6b6b;font-size:.74rem;line-height:1.5;margin:2px 0 8px}
+.paper .brandfoot{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:14px;opacity:.6}
+.paper .brandfoot img{height:11px}
+.paper .brandfoot span{font-family:var(--font-mono);font-size:.66rem;color:#555}
 .paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px}
 .paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
 .paper .sub{text-align:center;color:#6b6b6b;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
@@ -290,6 +310,24 @@ body.has-paybar{padding-bottom:110px}
   .reg-receipt,.shop-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px;margin:0}
   .shop-receipt.hidden{display:none}
   .shop-receipt.is-empty{display:block}
+  /* Pay sits at the top of the receipt column, on the same band as the TOTAL
+     window, so the eye goes total -> button -> what you are buying. It STICKS
+     rather than being duplicated below: a second button would be a second
+     handler, and on a long order the lower copy is the one below the fold
+     anyway — it would solve the problem only for orders that do not have it. */
+  .payside{width:430px;flex:none;display:flex;flex-direction:column;gap:14px}
+  .payside .paybar{position:sticky;top:22px;z-index:30;display:flex;align-items:center;
+    justify-content:stretch;gap:14px;margin:0;padding:14px 18px;
+    background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  /* The TOTAL window across the way already carries the figure in 3.4rem
+     type. Repeating it here in small print puts the same number on screen
+     twice, and they disagree for a frame while you type. */
+  .payside .paybar .paytot{display:none}
+  .payside .paybar .payact{flex:1;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  .payside .paybar .cta{width:100%;padding:15px 30px;font-size:1.05rem;text-align:center}
+  .payside .paybar .ghost{width:100%;text-align:center}
+  .payside .shop-receipt{width:100%;margin:0}
   .shop-catalog{width:250px;flex:none;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
   .shop-catalog .cathead{display:flex}
   /* minmax(0,1fr), not 1fr: a bare 1fr is minmax(AUTO,1fr), and the auto
@@ -375,7 +413,15 @@ footer a{margin:0 8px;color:var(--muted)}
 <body>
 <div class="wrap">
   <nav>
+    <!-- Whose stall this is. On a shopper's storefront the masthead is the
+         VENDOR — they are the one selling, and our logo at the top of someone
+         else's stand claims a prominence we have not earned. Ours goes on the
+         receipt and in the footer, once each. The mark stays for the register
+         and sign-in views, where there is no stand to name yet. -->
     <a class="brand" id="brandLink" href="https://getsugarsnapp.com"><img src="logo.svg" alt="SugarSnapp" class="brand-logo"></a>
+    <div class="standhead hidden" id="standHead">
+      <h1 id="shopName"></h1><span class="standkick">Shop as you go · Skip the line</span>
+    </div>
     <div class="links">
       <button id="navVendor" class="hidden">Vendor? Sign in</button>
       <button id="navSignout" class="hidden">Sign out</button>
@@ -414,14 +460,6 @@ footer a{margin:0 8px;color:var(--muted)}
 
     <!-- guest shopfront -->
     <section id="v-shop" class="hidden">
-      <div class="kicker" style="margin-bottom:10px">Shop as you go · Skip the line</div>
-      <div class="stand">
-        <img id="shopLogo" alt="" class="hidden">
-        <div>
-          <h1 id="shopName"></h1>
-          <div class="sub" id="shopSub"></div>
-        </div>
-      </div>
       <div class="shop-wrap">
         <!-- Same shell as the vendor register: catalog left, keypad centre,
              live receipt right. Reuses .reg-catalog verbatim so the shopper's
@@ -457,20 +495,6 @@ footer a{margin:0 8px;color:var(--muted)}
             <div class="payerr" id="caErr"></div>
             <div class="ca-lines hidden" id="caLines"></div>
           </div>
-          <!-- ONE Pay button, repositioned by CSS: a fixed bar under the thumb
-               on a phone, the register's big lever under the keypad on a wide
-               screen. Two buttons would be two handlers, which is exactly how
-               confirmIfLarge went missing from Charge. -->
-          <div class="paybar hidden" id="paybar">
-            <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
-            <div class="payact">
-              <button class="cta" id="payBtn" disabled>Pay</button>
-              <!-- Only when the stand actually takes something else. A stall
-                   that is card-only never learns this button exists. -->
-              <button class="ghost hidden" id="payOtherBtn" type="button">I paid another way</button>
-              <div class="payerr" id="payErr"></div>
-            </div>
-          </div>
           <!-- Reuses the vendor's own rail tiles (.lograils/.lograil, railColor,
                railMark) rather than a second picker, so the two faces cannot
                show the same rail two different ways. -->
@@ -484,10 +508,20 @@ footer a{margin:0 8px;color:var(--muted)}
             <div class="payerr" id="declErr"></div>
           </div>
         </div>
-        <!-- The order, as the paper it will become. Hidden until something's
-             on it; the right-hand pane on wide screens, an in-flow card on
-             phones. Same renderer as the vendor register's receipt. -->
-        <aside class="shop-receipt hidden" id="shopReceipt"></aside>
+        <div class="payside" id="paySide">
+          <div class="paybar hidden" id="paybar">
+            <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
+            <div class="payact">
+              <button class="cta" id="payBtn" disabled>Pay</button>
+              <button class="ghost hidden" id="payOtherBtn" type="button">I paid another way</button>
+              <div class="payerr" id="payErr"></div>
+            </div>
+          </div>
+          <!-- The order, as the paper it will become. Hidden until something's
+               on it; the right-hand pane on wide screens, an in-flow card on
+               phones. Same renderer as the vendor register's receipt. -->
+          <aside class="shop-receipt hidden" id="shopReceipt"></aside>
+        </div>
       </div>
       <div class="trust">
         <div class="row"><span>Powered by</span><img class="poweredmark" src="logo.svg" alt="SugarSnapp"></div>
@@ -1070,7 +1104,7 @@ function boot(){
   }
   var s=getSession();
   var tryVendor=s
-    ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails")
+    ?authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails,address,website")
       .then(function(r){return r.ok?r.json():[];})
       .then(function(rows){return rows[0]&&rows[0].checkout_slug===slug?rows[0]:null;})
       .catch(function(){return null;})
@@ -1195,14 +1229,12 @@ function cartTotal(){
 function renderShop(){
   var name=vendor.business_name||"This stand";
   document.title=name+" — SugarSnapp";
+  /* The masthead becomes the stand's. Address, website and logo are NOT
+     repeated here — they are on the receipt beside the order, where a shopper
+     needs them at the moment they might write one down. */
   $("shopName").textContent=name;
-  var subBits=[];
-  if(vendor.address)subBits.push(vendor.address);
-  if(vendor.website)subBits.push(vendor.website);
-  $("shopSub").textContent=subBits.join(" · ");
-  if(vendor.logo_url&&/^https:\/\//.test(vendor.logo_url)){
-    $("shopLogo").src=vendor.logo_url;$("shopLogo").classList.remove("hidden");
-  }
+  $("standHead").classList.remove("hidden");
+  $("brandLink").classList.add("hidden");
   $("trustLine").innerHTML="Payments are processed by <strong>Stripe</strong> on "+esc(name)+
     "&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — "+
     esc(name)+" pays only Stripe&rsquo;s standard card fee.";
@@ -1434,7 +1466,11 @@ function syncPaybar(){
   /* Only offered when the stand actually takes something besides cards, and
      only once there is something to pay for. */
   var other=$("payOtherBtn");
-  other.classList.toggle("hidden", shopperRails().length===0);
+  var offers=shopperRails().length>0;
+  other.classList.toggle("hidden", !offers);
+  /* The bar is taller with two buttons; the page has to clear the taller one
+     or the footer hides under it. */
+  document.body.classList.toggle("has-declare", offers);
   other.disabled = total===0;
   if(total===0)closeDeclSheet();
   var btn=$("payBtn");
@@ -1513,7 +1549,7 @@ $("loginForm").onsubmit=function(ev){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
       setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
-      return authRest("profiles?id=eq."+encodeURIComponent(j.user.id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails")
+      return authRest("profiles?id=eq."+encodeURIComponent(j.user.id)+"&select=id,business_name,logo_url,checkout_slug,visible_rails,address,website")
         .then(function(r2){return r2.ok?r2.json():[];})
         .then(function(rows){
           if(rows[0]&&rows[0].checkout_slug===slug)return enterRegister(rows[0]);
@@ -1652,13 +1688,24 @@ function renderTape(){
 /* One paper, two faces: the register's live pane and the shopper's order
    card render through the same function so they can never drift. Lines are
    {name, unitCents, quantity}; unnamed lines print as "Item", like iOS. */
-function renderPaper(el,name,logoUrl,lines,totalCents,emptyMsg){
+/* The live pane and the printed receipt are the same document. Anything the
+   shopper will be handed on paper has to be visible while they are still
+   deciding — the stand's name, where it is, and who made the till. That is
+   also why the header above no longer repeats any of it. */
+function renderPaper(el,name,logoUrl,lines,totalCents,emptyMsg,contact){
   if(!el)return;
   var html='<div class="paper">';
   if(logoUrl&&/^https:\/\//.test(logoUrl)){
     html+='<img class="rlogo" src="'+esc(logoUrl)+'" alt="">';
   }
   html+='<h3>'+esc(name||"Your stand")+'</h3>';
+  /* Address and site only. Phone and email are deliberately never exposed to
+     an anonymous shopper (terms §3) — the emailed receipt carries those,
+     because by then the vendor has a sale to answer for. */
+  var cl=(contact||[]).filter(Boolean);
+  if(cl.length){
+    html+='<div class="rcontact">'+cl.map(esc).join("<br>")+'</div>';
+  }
   html+='<div class="sub">RECEIPT</div><div class="dash"></div>';
   if(!lines.length){
     html+='<div class="empty">'+esc(emptyMsg||"Ring up a sale…")+'</div>';
@@ -1670,6 +1717,9 @@ function renderPaper(el,name,logoUrl,lines,totalCents,emptyMsg){
     });
     html+='<div class="dash"></div><div class="tot"><span>TOTAL</span><span>'+money(totalCents)+'</span></div>';
   }
+  /* The one place SugarSnapp signs its name on this page. It is the vendor's
+     stall, not ours — the header says so now, and this is the footnote. */
+  html+='<div class="brandfoot"><img src="mark.svg" alt=""><span>SugarSnapp</span></div>';
   html+='</div>';
   el.innerHTML=html;
 }
@@ -1677,7 +1727,8 @@ function renderReceiptPane(){
   renderPaper($("regReceipt"),
     regProfile&&regProfile.business_name,
     regProfile&&regProfile.logo_url,
-    reg.linesForCharge(),reg.grandTotal());
+    reg.linesForCharge(),reg.grandTotal(),null,
+    [regProfile&&regProfile.address, regProfile&&regProfile.website]);
 }
 /* The shopper's order as the paper it will become.
    On a WIDE screen it holds the right-hand column from the moment the page
@@ -1702,7 +1753,8 @@ function renderShopReceipt(){
   el.classList.remove("hidden");
   el.classList.toggle("is-empty",!lines.length);
   renderPaper(el,vendor&&vendor.business_name,vendor&&vendor.logo_url,lines,cartTotal(),
-              "Add something to start your order…");
+              "Add something to start your order…",
+              [vendor&&vendor.address, vendor&&vendor.website]);
 }
 /* One source of truth for the key layout, both faces: 7-8-9-×, 4-5-6-+,
    1-2-3-⌫, 0-00-C(span 2). Wiring stays with each face (the + key means
