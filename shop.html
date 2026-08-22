@@ -144,6 +144,12 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .paybar .tot{font-family:var(--font-mono);font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
 .paybar .lbl{display:block;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-weight:400}
 .paybar .cta{padding:13px 30px;white-space:nowrap}
+.paybar .payact{text-align:right}
+/* Wide screens: the bar stops being a bar. It unpins into the column and
+   becomes the register's primary lever, directly under the keypad where
+   Charge sits on the vendor face. The TOTAL window above already carries the
+   figure, so the bar's own "Your total" would be the same number twice, in
+   two places that disagree while you type — it goes. */
 body.has-paybar{padding-bottom:110px}
 .payerr{color:#8a3b2e;font-size:.9rem;margin:10px 0 0;text-align:center;display:none}
 
@@ -180,6 +186,12 @@ body.has-paybar{padding-bottom:110px}
 .reg-catalog.closed .chev{transform:rotate(-90deg)}
 .reg-catalog.closed .catbody{display:none}
 .reg-catalog .reg-items{margin-top:10px}
+/* Below the wide breakpoint the shopper's catalog is just the item list it
+   always was — no panel, no fold. Borrowing .reg-catalog for the wide layout
+   must not hand a phone a chrome it never had. */
+.shop-catalog{background:none;border:none;border-radius:0;padding:0;margin:0}
+.shop-catalog .cathead{display:none}
+.shop-catalog .catbody{display:block}
 .reg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;-webkit-user-select:none;user-select:none}
 .reg-item:active{border-color:var(--accent);background:#f2f7ef}
 .reg-item .nm{font-size:.98rem;line-height:1.25}
@@ -210,6 +222,12 @@ body.has-paybar{padding-bottom:110px}
 .totwin{display:flex;align-items:baseline;justify-content:space-between;background:var(--total-window);color:var(--total-ink);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:14px 20px;margin-bottom:14px}
 .totwin .twlbl{font-family:var(--font-mono);font-size:.72rem;letter-spacing:.14em;color:rgba(255,255,255,.4)}
 .totwin .twamt{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:clamp(2rem,6vw,3.4rem);line-height:1.1}
+/* Phones keep the pay bar as their running total, so the window would be the
+   same figure twice on the one screen with no room for it. Must be BOTH more
+   specific than .totwin and after it — .shop-totwin alone ties on specificity
+   and loses on source order, which is how it shipped visible the first time.
+   The wide block turns it back on. */
+.totwin.shop-totwin{display:none}
 .keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
 .keypad .key{min-height:64px;border-radius:16px;background:var(--key-cream);color:var(--key-ink);font-family:var(--font-mono);font-weight:500;font-size:1.35rem;border:1px solid var(--key-edge);cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 .keypad .key:active{transform:scale(.96);opacity:.8}
@@ -270,6 +288,30 @@ body.has-paybar{padding-bottom:110px}
   .reg-wrap .tape{display:none}
   .reg-receipt,.shop-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px;margin:0}
   .shop-receipt.hidden{display:none}
+  .shop-catalog{width:250px;flex:none;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+  .shop-catalog .cathead{display:flex}
+  /* minmax(0,1fr), not 1fr: a bare 1fr is minmax(AUTO,1fr), and the auto
+     minimum is the card's min-content — which the nowrap price and a
+     two-word item name push past 250px, so the cards spilled out of the
+     panel they are supposed to sit in. */
+  .shop-catalog .items{grid-template-columns:minmax(0,1fr);margin-top:10px;margin-bottom:0}
+  /* In a 250px rail there is no room for name + price + stepper on one line.
+     Squeezing them produced a stepper hanging out past the card edge and
+     names broken mid-syllable ("Sourdoug h loaf"). The register's own catalog
+     cards get away with a row because tapping them IS the add — the shopper
+     needs a quantity control, so the card stacks instead. */
+  .shop-catalog .item{min-width:0;padding:12px 14px;flex-direction:column;align-items:stretch;gap:9px}
+  .shop-catalog .item>div:first-child{min-width:0}
+  .shop-catalog .item .nm{min-width:0}
+  .shop-catalog .item .step{align-self:flex-end}
+  .shop-catalog.closed{width:auto}
+  .totwin.shop-totwin{display:flex}
+  body.has-paybar{padding-bottom:0}
+  .paybar{position:static;display:block;padding:0;margin-top:16px;background:none;
+    border-top:none;box-shadow:none}
+  .paybar .paytot{display:none}
+  .paybar .payact{text-align:center}
+  .paybar .cta{width:100%;padding:16px 10px;font-size:1.1rem}
 }
 /* Charge is the register's one big lever: full keypad width, cash logging
    tucked under it as the quiet secondary. */
@@ -379,8 +421,20 @@ footer a{margin:0 8px;color:var(--muted)}
         </div>
       </div>
       <div class="shop-wrap">
+        <!-- Same shell as the vendor register: catalog left, keypad centre,
+             live receipt right. Reuses .reg-catalog verbatim so the shopper's
+             face and the vendor's cannot drift apart. -->
+        <aside class="reg-catalog shop-catalog hidden" id="shopCatalog">
+          <button type="button" class="cathead" id="shopCatToggle" aria-expanded="true" aria-controls="shopCatBody">Catalog <span class="catn" id="shopCatCount"></span><span class="chev">&#9662;</span></button>
+          <div class="catbody" id="shopCatBody">
+            <div class="items" id="shopItems"></div>
+          </div>
+        </aside>
         <div class="shop-left">
-          <div class="items" id="shopItems"></div>
+          <!-- The order total INCLUDING whatever is still on the keypad —
+               cartTotal() is the guest twin of the register's grandTotal().
+               Wide screens only; on a phone the pay bar already says it. -->
+          <div class="totwin shop-totwin" aria-label="Your total"><span class="twlbl">YOUR TOTAL</span><span class="twamt" id="shopTwAmt">$0.00</span></div>
           <!-- custom amount — only when the vendor allows it. The same
                register keypad, turned to face the shopper: cents-first entry
                with the live display doing the explaining. When the stand has
@@ -400,6 +454,17 @@ footer a{margin:0 8px;color:var(--muted)}
             </div>
             <div class="payerr" id="caErr"></div>
             <div class="ca-lines hidden" id="caLines"></div>
+          </div>
+          <!-- ONE Pay button, repositioned by CSS: a fixed bar under the thumb
+               on a phone, the register's big lever under the keypad on a wide
+               screen. Two buttons would be two handlers, which is exactly how
+               confirmIfLarge went missing from Charge. -->
+          <div class="paybar hidden" id="paybar">
+            <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
+            <div class="payact">
+              <button class="cta" id="payBtn" disabled>Pay</button>
+              <div class="payerr" id="payErr"></div>
+            </div>
           </div>
         </div>
         <!-- The order, as the paper it will become. Hidden until something's
@@ -560,14 +625,6 @@ footer a{margin:0 8px;color:var(--muted)}
   </main>
 </div>
 
-<!-- guest sticky pay bar -->
-<div class="paybar hidden" id="paybar">
-  <div><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
-  <div style="text-align:right">
-    <button class="cta" id="payBtn" disabled>Pay</button>
-    <div class="payerr" id="payErr"></div>
-  </div>
-</div>
 
 <footer>
   <div>Made by Francesco Bertocci LLC · © 2026</div>
@@ -1139,6 +1196,11 @@ function renderShop(){
      storefront, so it stands alone and says so. */
   var solo=!items.length&&customAllowed();
   $("customCard").classList.toggle("solo",solo);
+  /* The catalog panel only earns its column when there IS a catalog. In
+     honesty-box mode the keypad is the whole storefront and an empty 250px
+     rail beside it would just look broken. */
+  $("shopCatalog").classList.toggle("hidden",!items.length);
+  $("shopCatCount").textContent=items.length?String(items.length):"";
   $("caKicker").textContent=solo?"Enter what you owe":"Something not listed?";
   renderCustom();
   var grid=$("shopItems");
@@ -1216,6 +1278,13 @@ function guestAddLine(){
   return true;
 }
 $("caAdd").onclick=guestAddLine;
+/* Fold the catalog away, like the register's. A shopper who has already added
+   what they came for wants the keypad and the receipt, not a list. */
+$("shopCatToggle").onclick=function(){
+  var box=$("shopCatalog"),open=!box.classList.contains("closed");
+  box.classList.toggle("closed",open);
+  this.setAttribute("aria-expanded",open?"false":"true");
+};
 $("gKeypad").addEventListener("click",function(e){
   var b=e.target.closest("button");
   if(!b)return;
@@ -1253,6 +1322,7 @@ function warnWhileTyping(){
 function syncPaybar(){
   var total=cartTotal();
   $("payTotal").textContent=money(total);
+  $("shopTwAmt").textContent=money(total);
   var btn=$("payBtn");
   btn.disabled=total===0;
   btn.textContent=total===0?"Pay":"Pay "+money(total);
