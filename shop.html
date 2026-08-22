@@ -265,6 +265,7 @@ body.has-paybar{padding-bottom:110px}
 .paper .empty{color:#6b6b6b;text-align:center;font-style:italic;padding:18px 0}
 .reg-receipt{display:none}
 .shop-receipt{margin:16px 0}
+.shop-receipt.is-empty{display:none}
 /* guest amount entry: the live display does the cents-first explaining */
 .gentry{display:flex;align-items:baseline;gap:6px;font-family:var(--font-mono);font-weight:700;font-size:2rem;font-variant-numeric:tabular-nums;padding:8px 2px 2px}
 .gentry .gqty{color:var(--muted);font-size:1.1rem}
@@ -288,6 +289,7 @@ body.has-paybar{padding-bottom:110px}
   .reg-wrap .tape{display:none}
   .reg-receipt,.shop-receipt{display:block;width:430px;flex:none;background:rgba(43,33,28,.04);border-radius:14px;padding:24px 0;min-height:420px;margin:0}
   .shop-receipt.hidden{display:none}
+  .shop-receipt.is-empty{display:block}
   .shop-catalog{width:250px;flex:none;margin-bottom:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
   .shop-catalog .cathead{display:flex}
   /* minmax(0,1fr), not 1fr: a bare 1fr is minmax(AUTO,1fr), and the auto
@@ -1565,8 +1567,12 @@ function renderReceiptPane(){
     regProfile&&regProfile.logo_url,
     reg.linesForCharge(),reg.grandTotal());
 }
-/* The shopper's order as the paper it will become. Hidden until something is
-   on it — an empty receipt sells nothing. */
+/* The shopper's order as the paper it will become.
+   On a WIDE screen it holds the right-hand column from the moment the page
+   opens, the way the register's does — the empty paper is what tells a
+   stranger their taps are going to land somewhere, before they have tapped
+   anything. On a phone it is still hidden until there is something on it,
+   where an empty card would just push the keypad below the fold. */
 function renderShopReceipt(){
   var el=$("shopReceipt");
   if(!el)return;
@@ -1578,8 +1584,13 @@ function renderShopReceipt(){
   customLines.forEach(function(l){
     lines.push({name:l.note||null,unitCents:l.amount_cents,quantity:1});
   });
-  el.classList.toggle("hidden",!lines.length);
-  if(lines.length)renderPaper(el,vendor&&vendor.business_name,vendor&&vendor.logo_url,lines,cartTotal());
+  /* Always rendered now, empty or not; .is-empty lets CSS decide where an
+     empty one is worth the room. Toggling .hidden here would have meant the
+     wide layout could not show it at all. */
+  el.classList.remove("hidden");
+  el.classList.toggle("is-empty",!lines.length);
+  renderPaper(el,vendor&&vendor.business_name,vendor&&vendor.logo_url,lines,cartTotal(),
+              "Add something to start your order…");
 }
 /* One source of truth for the key layout, both faces: 7-8-9-×, 4-5-6-+,
    1-2-3-⌫, 0-00-C(span 2). Wiring stays with each face (the + key means
