@@ -387,6 +387,19 @@ body.has-paybar.has-declare{padding-bottom:172px}
 .reg-actions .cta{width:100%;text-align:center;padding:16px 10px;font-size:1.1rem}
 .reg-actions .ghost{width:100%;text-align:center}
 .logsheet{margin-top:14px;border-top:1px solid var(--line);padding-top:14px}
+/* The declare modal. Fixed to the viewport, so it does not care which column
+   or sticky context it was written into. */
+.modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.modal.hidden{display:none}
+.modal-card{width:100%;max-width:560px;max-height:calc(100vh - 40px);overflow-y:auto;
+  background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:20px 22px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.modal-card .logsheet-head{margin-bottom:14px}
+/* 560px holds three tiles a row, so ten rails are two or three rows rather
+   than a column ten deep. */
+.modal-card .lograils{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.modal-card .reg-note{margin-top:14px}
 .logsheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;font-weight:600}
 .logsheet-head .ghost{padding:6px 14px;font-size:.9rem}
 .lograils{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -523,18 +536,6 @@ footer a{margin:0 8px;color:var(--muted)}
             <div class="payerr" id="caErr"></div>
             <div class="ca-lines hidden" id="caLines"></div>
           </div>
-          <!-- Reuses the vendor's own rail tiles (.lograils/.lograil, railColor,
-               railMark) rather than a second picker, so the two faces cannot
-               show the same rail two different ways. -->
-          <div class="card logsheet hidden" id="declSheet">
-            <div class="logsheet-head">
-              <span id="declHead">How did you pay?</span>
-              <button class="ghost" id="declClose" type="button">Cancel</button>
-            </div>
-            <div class="lograils" id="declRails"></div>
-            <div class="reg-note" id="declNote"></div>
-            <div class="payerr" id="declErr"></div>
-          </div>
         </div>
         <div class="payside" id="paySide">
           <!-- The order comes first: a shopper decides by looking at what they
@@ -563,6 +564,25 @@ footer a{margin:0 8px;color:var(--muted)}
       </div>
 
     </section>
+
+    <!-- "I paid another way", as a modal. It began life inline in the pay
+         column, which is 430px wide — fine for the one rail a default stand
+         offers, hopeless for the ten a curated one can. A modal is also the
+         honest shape for it: this is a statement about money that the shopper
+         is about to put on someone's ledger, and it deserves the screen while
+         they make it. Reuses the vendor's own rail tiles (.lograils, railColor,
+         railMark) so the two faces cannot draw the same rail two ways. -->
+    <div class="modal hidden" id="declSheet">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="declHead">
+        <div class="logsheet-head">
+          <span id="declHead">How did you pay?</span>
+          <button class="ghost" id="declClose" type="button">Cancel</button>
+        </div>
+        <div class="lograils" id="declRails"></div>
+        <div class="reg-note" id="declNote"></div>
+        <div class="payerr" id="declErr"></div>
+      </div>
+    </div>
 
     <!-- Kiosk: the stand's own iPad, logged out, left where anyone can use it.
          The shopper rings up their own order but must NOT pay on this device —
@@ -1521,8 +1541,22 @@ function openDeclSheet(){
   $("declErr").style.display="none";
   renderDeclRails();
   $("declSheet").classList.remove("hidden");
+  document.body.style.overflow="hidden";     // no scrolling the page behind it
+  var first=$("declRails").querySelector(".lograil");
+  if(first)first.focus();
 }
-function closeDeclSheet(){ $("declSheet").classList.add("hidden"); }
+function closeDeclSheet(){
+  $("declSheet").classList.add("hidden");
+  document.body.style.overflow="";
+}
+/* Backdrop and Escape both close it. A modal a shopper cannot back out of is
+   worse than no modal — they are standing at a stall with a queue behind. */
+$("declSheet").addEventListener("click",function(ev){
+  if(ev.target===this)closeDeclSheet();
+});
+document.addEventListener("keydown",function(ev){
+  if(ev.key==="Escape" && !$("declSheet").classList.contains("hidden"))closeDeclSheet();
+});
 $("declClose").onclick=closeDeclSheet;
 $("payOtherBtn").onclick=openDeclSheet;
 
