@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-KKZXFjlbnAIISwb4ciwdEAMPYLUbIogOxSxlBYb/hQw='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-EH3ktnxZ0d7Zmr65ZECGYSOIUiIqGAprZlq6lAo61Rg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -248,7 +248,19 @@
         <div class="expmsg" id="scNote" style="margin:6px 0 10px">Checking&hellip;</div>
         <label class="fld"><span><input type="checkbox" id="scOn" style="margin-right:7px">Public checkout page</span></label>
         <div id="scLinkRow" class="hidden">
-          <div class="expmsg" style="margin-bottom:4px">Shopper link &mdash; the one on your QR sign</div>
+          <!-- The handle IS the address: getsugarsnapp.com/<handle>. Claimed
+               and renamed only through claim_checkout_slug — a rename FREES
+               the old name, so every previously shared link dies. The warning
+               lives next to the button, where the decision is made. -->
+          <label class="fld"><span>Your handle &mdash; getsugarsnapp.com/&hellip;</span>
+            <input id="scHandle" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="maple-lane-farm"></label>
+          <div class="saverow">
+            <button class="cta" id="scClaim" type="button">Change handle</button>
+            <span class="saved" id="scClaimSaved">Changed</span>
+          </div>
+          <div class="expmsg" style="margin-top:6px">Changing your handle breaks every link you have already shared &mdash; old QR signs stop working and a locked kiosk tablet must be re-locked at the new link. Do it before you print, not after.</div>
+          <div id="scHandleErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:8px"></div>
+          <div class="expmsg" style="margin:14px 0 4px">Shopper link &mdash; the one on your QR sign</div>
           <div class="linkrow"><code id="scLink"></code>
             <button class="ghost" id="scCopy" type="button">Copy</button></div>
           <!-- Same page, one flag. On a tablet you leave out at the stand, Pay
@@ -576,12 +588,12 @@ function clampFuture(d){
 }
 /* Signed in, the SugarSnapp mark is the way back to the register — the same
    gesture as tapping the Register tab in the app. The register lives at
-   shop.html?v=<slug>, so it only exists once self-checkout has minted a slug;
-   until then the mark keeps pointing home. */
+   /<slug> (the site-worker serves it as shop.html), so it only exists once
+   self-checkout has minted a slug; until then the mark keeps pointing home. */
 function pointLogoAtRegister(slug){
   var a=document.querySelector("nav a.brandlink")||document.querySelector("nav > a");
   if(a){
-    a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
+    a.href=slug?("/"+encodeURIComponent(slug)):"index.html";
     a.title=slug?"Open your register":"";
   }
   /* The "New charge" button at the top of the ledger is the same destination
@@ -596,7 +608,7 @@ function pointLogoAtRegister(slug){
   if(!b)return;
   b.hidden=false;
   if(slug){
-    b.href="shop.html?v="+encodeURIComponent(slug);
+    b.href="/"+encodeURIComponent(slug);
     b.textContent="New charge";
     b.onclick=null;
   }else{
@@ -610,7 +622,7 @@ function pointLogoAtRegister(slug){
         .then(function(r){if(!r.ok)throw 0;return r.json();})
         .then(function(minted){
           checkoutSlug=minted; // paintCheckout reads this — same slug, one mint path
-          location.href="shop.html?v="+encodeURIComponent(minted);
+          location.href="/"+encodeURIComponent(minted);
         })
         .catch(function(){
           b.textContent="Couldn’t open — check signal, tap to retry";
@@ -980,9 +992,11 @@ function paintCheckout(){
   var haveLink=on&&!!checkoutSlug;
   link.classList.toggle("hidden",!haveLink);
   if(haveLink){
-    var base="https://getsugarsnapp.com/shop.html?v="+checkoutSlug;
+    var base="https://getsugarsnapp.com/"+checkoutSlug;
     $("scLink").textContent=base;
-    $("scKioskLink").textContent=base+"&kiosk=1";
+    $("scKioskLink").textContent=base+"?kiosk=1";
+    /* Don't clobber a rename mid-typing: only refill when it isn't focused. */
+    if(document.activeElement!==$("scHandle"))$("scHandle").value=checkoutSlug;
   }
 }
 
@@ -2024,6 +2038,31 @@ function copyLink(srcId,btnId){
 }
 $("scCopy").addEventListener("click",function(){copyLink("scLink","scCopy");});
 $("scKioskCopy").addEventListener("click",function(){copyLink("scKioskLink","scKioskCopy");});
+/* Rename path: claim_checkout_slug slugifies server-side and answers with a
+   status the UI can name — 422 invalid, 403 reserved, 409 taken. The server
+   is the only writer (profiles.checkout_slug is not self-writable). */
+$("scClaim").addEventListener("click",function(){
+  var s=getSession();if(!s){show("v-login");return;}
+  var err=$("scHandleErr");err.style.display="none";
+  var b=$("scClaim");b.disabled=true;
+  authRest("rpc/claim_checkout_slug",{method:"POST",
+    body:JSON.stringify({desired:$("scHandle").value})})
+    .then(function(r){
+      if(r.ok)return r.json().then(function(h){
+        checkoutSlug=h;$("scHandle").blur();paintCheckout();
+        pointLogoAtRegister(h);flash("scClaimSaved");
+      });
+      err.textContent=
+        r.status===409?"That handle is taken.":
+        r.status===403?"That name is reserved.":
+        r.status===422?"4–40 characters: letters, numbers and dashes.":
+        r.status===404?"Handles aren’t live yet — try again shortly.":
+        "Couldn’t change your handle. Try again.";
+      err.style.display="block";
+    }).catch(function(){
+      err.textContent="No signal — try again in a moment.";err.style.display="block";
+    }).then(function(){b.disabled=false;});
+});
 $("hSave").addEventListener("click",saveHandles);
 $("hPaypal").addEventListener("input",paintPaypalHint);
 $("sfLogoPick").addEventListener("click",function(){$("sfLogoFile").click();});

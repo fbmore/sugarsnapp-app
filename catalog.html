@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Mljv0bKFzVK/c+lgpSMUCdzJR582M9O6M7MN8lviRGE='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-/IpUKaFZv+VGCCddiCS/sk1ZVOxsrW7pTemQ16sMZMQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your catalog — SugarSnapp</title>
 <meta name="description" content="Edit the items on your SugarSnapp register and self-checkout page.">
 <meta name="robots" content="noindex">
@@ -241,7 +241,7 @@ $("itemRows").addEventListener("click",function(ev){
   .then(function(rows){
     var slug=rows[0]&&rows[0].checkout_slug;
     var a=document.querySelector("nav > a"); if(!a) return;
-    a.href=slug?("shop.html?v="+encodeURIComponent(slug)):"index.html";
+    a.href=slug?("/"+encodeURIComponent(slug)):"index.html";
     if(slug)a.title="Open your register";
   }).catch(function(){});
 })();
