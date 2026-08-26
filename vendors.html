@@ -46,6 +46,15 @@ h1 em{font-style:italic;color:var(--accent)}
 .cta-badge img{height:56px;display:block}
 .alt{display:block;margin-top:16px;font-size:.95rem;color:var(--muted)}
 .alt a{color:var(--accent)}
+.payrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;margin:26px auto 0;max-width:640px}
+.paychip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-height:40px}
+.paychip img{display:block;height:18px;width:auto}
+.paychip .mini{height:15px}
+.paychip .lg-stripe{height:21px}
+.paychip .lg-visa{height:12px}
+.paychip .lg-amex,.paychip .lg-mc{height:17px}
+.paychip .lg-venmo{height:15px}
+.paychip.txt{font-family:Georgia,serif;font-size:.92rem;color:var(--ink)}
 section>h2,.band h2{font-size:1.7rem;text-align:center}
 section>h2 em,.band h2 em{font-style:italic;color:var(--accent)}
 .film{margin:56px auto 0;max-width:820px}
@@ -112,6 +121,12 @@ footer a{margin:0 10px;color:var(--muted)}
     <p class="sub">No card reader, no dongle, no cut. Type an amount, show one QR, and every sale &mdash; card, PayPal, Venmo, cash, or EBT &mdash; lands in one honest daily ledger.</p>
     <a class="cta-badge" href="https://apps.apple.com/app/id6796169333"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
     <span class="alt">No iPhone? <a href="account.html">Ring up sales from any browser &rarr;</a></span>
+    <div class="payrow" role="img" aria-label="Accepted payments: cards via Stripe including Visa, Mastercard, American Express and Apple Pay; Venmo; PayPal; plus cash and EBT">
+      <span class="paychip"><img class="lg-stripe" src="pay/stripe.svg" alt="Stripe"><img class="mini lg-visa" src="pay/visa.svg" alt="Visa"><img class="mini lg-mc" src="pay/mastercard.svg" alt="Mastercard"><img class="mini lg-amex" src="pay/amex.svg" alt="American Express"><img class="mini" src="pay/applepay.svg" alt="Apple Pay"></span>
+      <span class="paychip"><img class="lg-venmo" src="pay/venmo.svg" alt="Venmo"></span>
+      <span class="paychip"><img src="pay/paypal.svg" alt="PayPal"></span>
+      <span class="paychip txt">+ cash &amp; EBT</span>
+    </div>
   </header>
 
   <figure class="film">

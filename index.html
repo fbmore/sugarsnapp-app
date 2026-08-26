@@ -42,6 +42,19 @@ h1 em{font-style:italic;color:var(--accent)}
 .cta.soon{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
 .cta-badge{display:inline-block;margin-top:34px}
 .cta-badge img{height:56px;display:block}
+.alt{display:block;margin-top:16px;font-size:.95rem;color:var(--muted)}
+.alt a{color:var(--accent)}
+.payrow{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;margin:28px auto 0;max-width:640px}
+.paychip{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;min-height:40px}
+.paychip img{display:block;height:18px;width:auto}
+.paychip .mini{height:15px}
+.paychip .lg-stripe{height:21px}
+.paychip .lg-visa{height:12px}
+.paychip .lg-amex,.paychip .lg-mc{height:17px}
+.paychip .lg-venmo{height:15px}
+.paychip.txt{font-family:Georgia,serif;font-size:.92rem;color:var(--ink)}
+.paycap{margin-top:14px;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+
 .pager{max-width:520px;margin:64px auto 0;background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}
 .slides{display:flex;transition:transform .45s ease}
 .slide{min-width:100%;padding:40px 36px 28px;text-align:center}
@@ -113,8 +126,16 @@ footer a{margin:0 10px;color:var(--muted)}
     <img class="hero-shot" src="hero-phones.webp" alt="SugarSnapp on four iPhones: the register keypad, the payment picker, a receipt, and the daily ledger" width="1800" height="1010">
     <div class="kicker">For market stalls, craft fairs &amp; pop-ups</div>
     <h1>Type an amount.<br>Show a QR. <em>Get paid.</em></h1>
-    <p class="sub">SugarSnapp is a dead-simple register for market vendors. Customers scan the payment app they already use, and every sale — card, PayPal, Venmo, cash, or EBT — lands in one clean daily ledger.</p>
+    <p class="sub">SugarSnapp is a dead-simple register for market vendors &mdash; on iPhone, iPad, or any browser. Customers scan the payment app they already use, and every sale — card, PayPal, Venmo, cash, or EBT — lands in one clean daily ledger.</p>
     <a class="cta-badge" href="https://apps.apple.com/app/id6796169333"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+    <span class="alt">No iPhone? <a href="account.html">Ring up sales from any browser &rarr;</a></span>
+    <div class="paycap">Every way your customers&nbsp;pay</div>
+    <div class="payrow" role="img" aria-label="Accepted payments: cards via Stripe including Visa, Mastercard, American Express and Apple Pay; Venmo; PayPal; plus cash and EBT">
+      <span class="paychip"><img class="lg-stripe" src="pay/stripe.svg" alt="Stripe"><img class="mini lg-visa" src="pay/visa.svg" alt="Visa"><img class="mini lg-mc" src="pay/mastercard.svg" alt="Mastercard"><img class="mini lg-amex" src="pay/amex.svg" alt="American Express"><img class="mini" src="pay/applepay.svg" alt="Apple Pay"></span>
+      <span class="paychip"><img class="lg-venmo" src="pay/venmo.svg" alt="Venmo"></span>
+      <span class="paychip"><img src="pay/paypal.svg" alt="PayPal"></span>
+      <span class="paychip txt">+ cash &amp; EBT</span>
+    </div>
   </header>
 
   <div class="pager" id="pager">
