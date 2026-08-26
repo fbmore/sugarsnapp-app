@@ -192,8 +192,13 @@ body.has-paybar.has-declare{padding-bottom:172px}
 /* Below the wide breakpoint the shopper's catalog is just the item list it
    always was — no panel, no fold. Borrowing .reg-catalog for the wide layout
    must not hand a phone a chrome it never had. */
-.shop-catalog{background:none;border:none;border-radius:0;padding:0;margin:0}
-.shop-catalog .cathead{display:none}
+/* On a phone the catalog is a real panel with a real toggle. Six items already
+   push the keypad, the total and Pay off the bottom of the screen, and a stand
+   with thirty makes the page unusable — so it collapses, and starts collapsed
+   (set in renderShop, since a class cannot be applied from CSS). The count in
+   the header is what tells a shopper there is something to open. */
+.shop-catalog{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin:0 0 14px}
+.shop-catalog .cathead{display:flex}
 .shop-catalog .catbody{display:block}
 .reg-item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;cursor:pointer;-webkit-user-select:none;user-select:none}
 .reg-item:active{border-color:var(--accent);background:#f2f7ef}
@@ -1384,6 +1389,13 @@ function renderShop(){
      rail beside it would just look broken. */
   $("shopCatalog").classList.toggle("hidden",!items.length);
   $("shopCatCount").textContent=items.length?String(items.length):"";
+  /* Collapsed on a phone, open on a wide screen where it has its own column
+     and costs nothing. renderShop only runs on boot and on a kiosk reset —
+     never on an item tap — so this cannot close the list under someone who
+     just opened it. */
+  var narrow = window.matchMedia("(max-width:999px)").matches;
+  $("shopCatalog").classList.toggle("closed", narrow);
+  $("shopCatToggle").setAttribute("aria-expanded", narrow?"false":"true");
   $("caKicker").textContent=solo?"Enter what you owe":"Something not listed?";
   renderCustom();
   var grid=$("shopItems");
