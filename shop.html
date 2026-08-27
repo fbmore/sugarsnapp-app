@@ -115,8 +115,16 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 
 /* item cards */
 .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:26px}
-.item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.item .nm{font-size:1.02rem;line-height:1.3}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* One line per item: name, price, stepper. Stacking name over price made each
+   row ~90px, so thirty items was 2,700px of thumbing on a phone. This is ~56px
+   and helps every stand, not just the large ones. */
+.item .itxt{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.item .nm{font-size:1.02rem;line-height:1.3;flex:1;min-width:0;overflow-wrap:break-word}
+.catfilter{width:100%;box-sizing:border-box;margin:10px 0 4px;padding:11px 14px;border:1px solid var(--line);
+  border-radius:12px;background:var(--field);color:var(--ink);font:inherit;font-size:.95rem}
+.catfilter:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.nomatch{color:var(--muted);font-style:italic;padding:14px 2px;grid-column:1/-1}
 .item .un{color:var(--muted);font-size:.85rem;font-style:italic}
 .item .pr{font-family:var(--font-mono);font-weight:700;font-size:1.05rem;white-space:nowrap}
 .step{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;background:var(--canvas)}
@@ -451,6 +459,9 @@ footer a{margin:0 8px;color:var(--muted)}
    within reach. */
 @media (max-width:999px){
   .reg-catalog .catbody{max-height:38vh;overflow-y:auto}
+  /* ...but not the shopper's, which collapses instead. A scroll area nested
+     inside the page scroll is a trap on a phone: the list eats the gesture. */
+  .shop-catalog .catbody{max-height:none;overflow:visible}
 }
 @media(max-width:400px){.item{padding:13px 14px}.paybar .cta{padding:12px 22px}}
 .ca-hint{font-size:.82rem;color:var(--muted);margin:-2px 0 8px}
@@ -517,6 +528,8 @@ footer a{margin:0 8px;color:var(--muted)}
         <aside class="reg-catalog shop-catalog hidden" id="shopCatalog">
           <button type="button" class="cathead" id="shopCatToggle" aria-expanded="true" aria-controls="shopCatBody">Catalog <span class="catn" id="shopCatCount"></span><span class="chev">&#9662;</span></button>
           <div class="catbody" id="shopCatBody">
+            <input class="catfilter hidden" id="shopFilter" type="search"
+                   placeholder="Find an item" autocomplete="off" aria-label="Filter items">
             <div class="items" id="shopItems"></div>
           </div>
         </aside>
@@ -1365,6 +1378,60 @@ function cartTotal(){
     customLines.reduce(function(sum,l){return sum+l.amount_cents;},0)+
     guestPendingCents();
 }
+/* A filter earns its place only when the list is long enough to be a chore.
+   Below this a shopper thumbs through faster than they can type, and the box
+   is more chrome than it saves. */
+var FILTER_AT = 12;
+
+/* Case- and accent-insensitive substring. Deliberately NOT fuzzy: on a list of
+   dozens, fuzzy matching surprises people — it feels clever when it hits and
+   broken when it misses, and neither is explainable at a stall. */
+function normName(x){
+  return String(x||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+function renderItemRows(q){
+  var grid=$("shopItems");
+  grid.innerHTML="";
+  var needle=normName(q).trim();
+  var list=needle ? items.filter(function(it){ return normName(it.name).indexOf(needle)>=0; }) : items;
+
+  /* Say WHICH count is being shown. "Catalog 6" over a filtered list would
+     read as a stand with six things, not a stand with twenty-four. */
+  $("shopCatCount").textContent = needle
+    ? list.length+" of "+items.length
+    : (items.length?String(items.length):"");
+
+  if(!items.length&&!customAllowed()){
+    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>No items listed yet \u2014 pay at the stand.</p></div>';
+  }else if(needle && !list.length){
+    grid.innerHTML='<div class="nomatch">Nothing matches \u201c'+esc(q)+'\u201d.</div>';
+  }
+
+  list.forEach(function(it){
+    var el=document.createElement("div");
+    el.className="item";
+    el.innerHTML='<div class="itxt"><span class="nm">'+esc(it.name)+'</span>'+
+      '<span class="pr">'+money(it.price_cents)+(it.unit?' <span class="un">/ '+esc(it.unit)+'</span>':'')+'</span></div>'+
+      '<div class="step"><button type="button" aria-label="Remove one">\u2212</button>'+
+      '<span class="q">0</span>'+
+      '<button type="button" aria-label="Add one">+</button></div>';
+    var minus=el.querySelectorAll("button")[0],plus=el.querySelectorAll("button")[1],qEl=el.querySelector(".q");
+    function sync(){
+      var qty=cart[it.id]||0;
+      qEl.textContent=qty;
+      minus.disabled=qty===0;
+      plus.disabled=qty>=999;
+      el.classList.toggle("in-cart",qty>0);
+      syncPaybar();
+    }
+    minus.onclick=function(){if(cart[it.id]>1)cart[it.id]--;else delete cart[it.id];saveCart();sync();};
+    plus.onclick=function(){cart[it.id]=Math.min((cart[it.id]||0)+1,999);saveCart();sync();};
+    sync();
+    grid.appendChild(el);
+  });
+}
+
 function renderShop(){
   var name=vendor.business_name||"This stand";
   document.title=name+" — SugarSnapp";
@@ -1398,33 +1465,9 @@ function renderShop(){
   $("shopCatToggle").setAttribute("aria-expanded", narrow?"false":"true");
   $("caKicker").textContent=solo?"Enter what you owe":"Something not listed?";
   renderCustom();
-  var grid=$("shopItems");
-  grid.innerHTML="";
-  if(!items.length&&!customAllowed()){
-    grid.innerHTML='<div class="card note-card" style="grid-column:1/-1"><p>No items listed yet — pay at the stand.</p></div>';
-  }
-  items.forEach(function(it){
-    var el=document.createElement("div");
-    el.className="item";
-    el.innerHTML='<div><div class="nm">'+esc(it.name)+'</div>'+
-      '<div class="pr">'+money(it.price_cents)+(it.unit?' <span class="un">/ '+esc(it.unit)+'</span>':'')+'</div></div>'+
-      '<div class="step"><button type="button" aria-label="Remove one">−</button>'+
-      '<span class="q">0</span>'+
-      '<button type="button" aria-label="Add one">+</button></div>';
-    var minus=el.querySelectorAll("button")[0],plus=el.querySelectorAll("button")[1],qEl=el.querySelector(".q");
-    function sync(){
-      var q=cart[it.id]||0;
-      qEl.textContent=q;
-      minus.disabled=q===0;
-      plus.disabled=q>=999;
-      el.classList.toggle("in-cart",q>0);
-      syncPaybar();
-    }
-    minus.onclick=function(){if(cart[it.id]>1)cart[it.id]--;else delete cart[it.id];saveCart();sync();};
-    plus.onclick=function(){cart[it.id]=Math.min((cart[it.id]||0)+1,999);saveCart();sync();};
-    sync();
-    grid.appendChild(el);
-  });
+  $("shopFilter").classList.toggle("hidden", items.length < FILTER_AT);
+  $("shopFilter").value = "";
+  renderItemRows("");
   syncPaybar();
   show("v-shop");
 }
@@ -1772,6 +1815,7 @@ function doDeclare(rail, railNote){
 }
 /* Fold the catalog away, like the register's. A shopper who has already added
    what they came for wants the keypad and the receipt, not a list. */
+$("shopFilter").addEventListener("input",function(){ renderItemRows(this.value); });
 $("shopCatToggle").onclick=function(){
   var box=$("shopCatalog"),open=!box.classList.contains("closed");
   box.classList.toggle("closed",open);
