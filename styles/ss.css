@@ -102,7 +102,11 @@ input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
    color-scheme:dark the browser inverts it, but only when the input's own
    colour is set — which the baseline above now guarantees. */
 input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer}
-body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+/* Headings balance so a two-line title does not leave one orphaned word;
+   body copy avoids orphans. Both are text-only and cost no layout. */
+h1,h2,h3{text-wrap:balance}
+p,.expmsg,.reg-note{text-wrap:pretty}
 /* Links are wayfinding, not calls to action: getsugarsnapp.com in the footer
    competed with the Charge button for the same attention. Grey with an
    underline keeps the affordance and drops the shout. Anything that ACTS
@@ -161,9 +165,13 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .note-card h2 em{font-style:italic;color:var(--accent)}
 .note-card p{color:var(--muted);font-size:.95rem;max-width:32em;margin:0 auto}
 .hidden{display:none!important}
-.cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer}
+.cta{display:inline-block;padding:13px 30px;border-radius:999px;background:var(--accent);color:#fff;font-size:1rem;text-decoration:none;border:none;cursor:pointer;
+  transition:transform .08s ease-out,opacity .08s ease-out}
+.cta:active:not(:disabled){transform:scale(.96);opacity:.9}
 .cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
-.ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer}
+.ghost{display:inline-block;padding:10px 20px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:.95rem;cursor:pointer;
+  transition:transform .08s ease-out,opacity .08s ease-out}
+.ghost:active:not(:disabled){transform:scale(.96);opacity:.9}
 .linkrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
 .linkrow code{font-family:var(--font-mono);font-size:.88rem;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:8px 11px;word-break:break-all;flex:1;min-width:0}
 .pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 13px;font-size:.85rem;color:var(--muted)}
@@ -266,7 +274,10 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .itm .rm:hover{color:var(--bad)}
 .itm.off .nm input,.itm.off .pr input,.itm.off .un input{opacity:.5}
 .logorow{display:flex;align-items:center;gap:14px;margin-top:4px;flex-wrap:wrap}
-.logorow img{width:66px;height:66px;border-radius:12px;object-fit:cover;border:1px solid var(--line);background:var(--canvas)}
+.logorow img{width:66px;height:66px;border-radius:12px;object-fit:cover;background:var(--canvas);
+  outline:1px solid rgba(0,0,0,.1);outline-offset:-1px}
+:root[data-theme="dark"] .logorow img{outline-color:rgba(255,255,255,.1)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .logorow img{outline-color:rgba(255,255,255,.1)}}
 .logonone{width:66px;height:66px;border-radius:12px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);text-align:center}
 .conn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}

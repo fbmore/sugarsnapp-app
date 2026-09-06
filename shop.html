@@ -80,7 +80,9 @@
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+h1,h2,h3{text-wrap:balance}
+p,.expmsg,.reg-note{text-wrap:pretty}
 /* Links navigate; they do not act. In vermillion, getsugarsnapp.com in the
    footer competed with the Charge button. Grey keeps the affordance via the
    underline and drops the shout; .cta and .lnk opt back into vermillion. */
@@ -102,10 +104,12 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .note-card h2{font-size:1.35rem;margin:8px 0 10px;text-align:center}
 .note-card h2 em{font-style:italic;color:var(--accent)}
 .note-card p{color:var(--muted);font-size:.98rem;max-width:30em;margin:0 auto}
-.cta{display:inline-block;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none;cursor:pointer}
+.cta{display:inline-block;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none;cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out}
+.cta:active:not(:disabled){transform:scale(.96);opacity:.9}
 .cta:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:default}
 .pill{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.85rem;color:var(--muted)}
-.ghost{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:1rem;cursor:pointer}
+.ghost{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:1rem;cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out}
+.ghost:active:not(:disabled){transform:scale(.96);opacity:.9}
 
 /* vendor header */
 .stand{display:flex;align-items:center;gap:16px;margin:6px 0 22px}
@@ -128,7 +132,14 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .item .un{color:var(--muted);font-size:.85rem;font-style:italic}
 .item .pr{font-family:var(--font-mono);font-weight:700;font-size:1.05rem;white-space:nowrap}
 .step{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:999px;background:var(--canvas)}
-.step button{width:36px;height:36px;font-size:1.25rem;line-height:1;color:var(--accent);border-radius:999px}
+/* 44x44: this is the control a shopper uses most, one-handed, standing at a
+   stall. 36px was under the touch floor. Widening it alone cost 16px of the
+   name column and wrapped names to four lines (row 70px -> 113px at 390px
+   wide); stacking name over price in the phone block below pays that back.
+   Measured at iPhone metrics: 70px before, 75px after. */
+.step button{width:44px;height:44px;font-size:1.25rem;line-height:1;color:var(--accent);border-radius:999px;
+  transition:transform .08s ease-out,opacity .08s ease-out}
+.step button:active:not(:disabled){transform:scale(.96);opacity:.8}
 .step button:disabled{color:var(--line);cursor:default}
 .step .q{min-width:26px;text-align:center;font-family:var(--font-mono);font-size:.98rem;font-variant-numeric:tabular-nums}
 .item.in-cart{border-color:var(--state);box-shadow:0 0 0 1px var(--state) inset}
@@ -191,7 +202,7 @@ body.has-paybar.has-declare{padding-bottom:172px}
 .reg-head h1 em{font-style:italic;color:var(--accent)}
 .reg-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .reg-catalog{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:14px}
-.reg-catalog .cathead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);padding:2px}
+.reg-catalog .cathead{display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;cursor:pointer;font:inherit;font-weight:700;color:var(--ink);padding:2px;min-height:44px}
 .reg-catalog .catn{color:var(--muted);font-weight:400;font-family:var(--font-mono);font-size:.85rem}
 .reg-catalog .chev{margin-left:auto;color:var(--muted);transition:transform .15s ease}
 .reg-catalog.closed .chev{transform:rotate(-90deg)}
@@ -278,13 +289,19 @@ body.has-paybar.has-declare{padding-bottom:172px}
      squeezing the stand's name to two words. */
   .standhead{gap:2px}
   .standhead h1{font-size:1.25rem}
+  /* Name and price sat side by side, and a nowrap price like "$4.50 / lb"
+     took 93px of a 320px row — leaving the product name 55px and wrapping it
+     to four lines. Stacked, the name gets the full column and the row holds
+     one or two lines. */
+  .item .itxt{flex-direction:column;align-items:flex-start;gap:1px}
+  .item .pr{font-size:.95rem;color:var(--muted)}
 }
 /* Where the stall is, on the receipt — the same lines the printed one carries. */
 .paper .rcontact{text-align:center;color:#6b6b6b;font-size:.74rem;line-height:1.5;margin:2px 0 8px}
 .paper .brandfoot{display:flex;justify-content:center;align-items:center;gap:5px;margin-top:14px;opacity:.6}
 .paper .brandfoot img{height:11px}
 .paper .brandfoot span{font-family:var(--font-mono);font-size:.66rem;color:#555}
-.paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px}
+.paper .rlogo{display:block;width:56px;height:56px;border-radius:12px;object-fit:cover;margin:0 auto 10px;outline:1px solid rgba(0,0,0,.1);outline-offset:-1px}
 .paper h3{text-align:center;font-family:var(--font-ui);font-size:1.05rem;margin:0 0 4px}
 .paper .sub{text-align:center;color:#6b6b6b;font-size:.72rem;letter-spacing:.12em;margin-bottom:10px}
 .paper .dash{border-top:1px dashed #c7c7cc;margin:10px 0}

@@ -64,7 +64,9 @@
   }
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6}
+body{font-family:var(--font-ui);background:var(--canvas);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+h1,h2,h3{text-wrap:balance}
+p,.expmsg,.reg-note{text-wrap:pretty}
 /* Links navigate; they do not act. In vermillion, getsugarsnapp.com in the
    footer competed with the Charge button. Grey keeps the affordance via the
    underline and drops the shout; .cta and .lnk opt back into vermillion. */
@@ -86,8 +88,10 @@ nav .links a:hover{color:var(--accent)}
 .note-card h2{font-size:1.35rem;margin:8px 0 10px;text-align:center}
 .note-card h2 em{font-style:italic;color:var(--accent)}
 .note-card p{color:var(--muted);font-size:.98rem;max-width:30em;margin:0 auto}
-.cta{display:inline-block;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none;cursor:pointer}
-.ghost{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:1rem;cursor:pointer;text-decoration:none}
+.cta{display:inline-block;padding:14px 34px;border-radius:999px;background:var(--accent);color:#fff;font-size:1.05rem;text-decoration:none;border:none;cursor:pointer;transition:transform .08s ease-out,opacity .08s ease-out}
+.cta:active:not(:disabled){transform:scale(.96);opacity:.9}
+.ghost{display:inline-block;padding:12px 26px;border-radius:999px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:1rem;cursor:pointer;text-decoration:none;transition:transform .08s ease-out,opacity .08s ease-out}
+.ghost:active:not(:disabled){transform:scale(.96);opacity:.9}
 .hidden{display:none!important}
 
 /* canceled banner */
