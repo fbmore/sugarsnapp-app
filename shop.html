@@ -422,6 +422,9 @@ body.has-paybar.has-declare{padding-bottom:172px}
 .modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
   padding:20px;background:rgba(0,0,0,.72);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 .modal.hidden{display:none}
+#bigModal{display:none}
+#bigModal:has(#bigConfirm:not(.hidden)){display:flex}
+#bigModal .lognote{margin:0;padding:0;border:0}
 .modal-card{width:100%;max-width:560px;max-height:calc(100vh - 40px);overflow-y:auto;
   background:var(--surface);border:1px solid var(--line);border-radius:20px;
   padding:20px 22px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
@@ -642,6 +645,15 @@ footer a{margin:0 8px;color:var(--muted)}
       </div>
     </div>
 
+    <!-- Host for the "that's a big one" question on the SHOPPER face. The
+         question itself (#bigConfirm) lives in the register column, which is
+         display:none while a shopper is on the page — so show() moves it in
+         here for v-shop and back for the register. Visible only while the
+         question is actually being asked (CSS :has below). -->
+    <div class="modal" id="bigModal">
+      <div class="modal-card" id="bigModalCard" role="dialog" aria-modal="true" aria-labelledby="bigConfirmAsk" style="max-width:420px"></div>
+    </div>
+
     <!-- Kiosk: the stand's own iPad, logged out, left where anyone can use it.
          The shopper rings up their own order but must NOT pay on this device —
          it is shared, and card details typed here are one Back button from the
@@ -829,7 +841,7 @@ footer a{margin:0 8px;color:var(--muted)}
   </div>
 </footer>
 
-<script src="scripts/register-model.js?v=80477d57cd"></script>
+<script src="scripts/register-model.js?v=456c48c523"></script>
 <script>
 (function(){
 "use strict";
@@ -1158,7 +1170,13 @@ function refreshSession(s){
     method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
     body:JSON.stringify({refresh_token:s.refresh_token})
   }).then(function(r){
-    if(!r.ok){setSession(null);return null;}
+    /* Only a refusal ends the session. A 5xx or rate limit is the auth
+       server having a bad moment, and wiping the tokens over it signed a
+       vendor out mid-market for no reason of theirs. */
+    if(!r.ok){
+      if(r.status>=500||r.status===429)throw new Error("refresh unavailable");
+      setSession(null);return null;
+    }
     return r.json().then(function(j){
       var ns={access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id};
       setSession(ns);return ns;
@@ -1188,6 +1206,15 @@ function show(id){
   var guest=id==="v-shop";
   document.getElementById("paybar").classList.toggle("hidden",!guest);
   document.body.classList.toggle("has-paybar",guest);
+  /* The large-amount question is written into the register column. On the
+     shopper face that column is hidden, so a Pay or "I paid another way" over
+     the threshold asked a question nobody could see and the button looked
+     dead. Move it into the modal host for v-shop; back beside Charge
+     otherwise. A question left over from the other face is dropped. */
+  var bc=document.getElementById("bigConfirm"),anchor=document.getElementById("clearConfirm");
+  bc.classList.add("hidden");
+  if(guest)document.getElementById("bigModalCard").appendChild(bc);
+  else if(bc.nextElementSibling!==anchor)anchor.parentNode.insertBefore(bc,anchor);
   var vendorish=id==="v-register"||id==="v-charge"||id==="v-paid";
   /* Never offer sign-in on an armed kiosk — that is the doorway to the
      register, and the shopper holding it is a stranger. */
@@ -1236,7 +1263,9 @@ var oauthError=null,oauthReturned=false;
     oauthReturned=true;
   }else{
     oauthError=h.get("error_description")||"Sign-in didn't complete. Try again.";
-    oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));
+    /* URLSearchParams has already decoded it once; a literal "%" left in
+       the message made a second decode throw and take the page with it. */
+    try{oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));}catch(e){}
   }
   history.replaceState(null,"",slug?standPath():location.pathname);
 })();
@@ -1774,9 +1803,17 @@ $("declSheet").addEventListener("click",function(ev){
   if(ev.target===this)closeDeclSheet();
 });
 document.addEventListener("keydown",function(ev){
-  if(ev.key==="Escape" && !$("declSheet").classList.contains("hidden"))closeDeclSheet();
+  if(ev.key!=="Escape")return;
+  /* The big-amount question sits on top of the sheet, so it goes first. */
+  var bc=$("bigConfirm");
+  if(bc.parentNode===$("bigModalCard") && !bc.classList.contains("hidden")){ bc.classList.add("hidden"); return; }
+  if(!$("declSheet").classList.contains("hidden"))closeDeclSheet();
 });
 $("declClose").onclick=closeDeclSheet;
+/* The big-amount host backs out the same way: tapping outside is "let me fix it". */
+$("bigModal").addEventListener("click",function(ev){
+  if(ev.target===this)$("bigConfirm").classList.add("hidden");
+});
 $("payOtherBtn").onclick=openDeclSheet;
 
 /* "They paid, somehow" is not a record anyone can reconcile, so Other asks.
@@ -2516,7 +2553,11 @@ function logPayment(rail, note){
 function doLog(body){
   var btn=$("logBtn");btn.disabled=true;btn.textContent="Logging…";
   createSale(body)
-  .then(function(sale){showPaid(sale.total_cents,rail);})
+  /* body.processor, not `rail`: doLog was split out of logPayment and `rail`
+     stayed behind in that scope. The ReferenceError landed in the catch below,
+     so every SUCCESSFUL log said "No signal … safe to retry" with the basket
+     still up — and the retry logged the sale twice. */
+  .then(function(sale){showPaid(sale.total_cents,body.processor);})
   .catch(function(e){
     /* "Safe to retry" is only true when nothing was written. When the cleanup
        could not run, the sales row may still be there, and a retry would log

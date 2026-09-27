@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-EH3ktnxZ0d7Zmr65ZECGYSOIUiIqGAprZlq6lAo61Rg='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-VdE+NaBkKTa4+GNEg9dP9dyjMp30yoy76vioipwNP3k='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -460,7 +460,7 @@
     <p>Made by FRANCESCO BERTOCCI, LLC · <a href="index.html">getsugarsnapp.com</a></p>
   </footer>
 </div>
-<script src="scripts/ss-core.js?v=571f3f381d"></script>
+<script src="scripts/ss-core.js?v=7b0d3df646"></script>
 <script>
 "use strict";
 /* ---------- views ---------- */
@@ -685,6 +685,17 @@ var mtTokensTouched=false;
 var checkoutSlug=null;
 var stripeReady=false;
 
+/* A stored value the menu has no option for (the automatic card floor picks
+   anything from $2.00 to $5.00; the app can set other thresholds) left the
+   select blank — and Save then sent "" = "No minimum", quietly removing the
+   defence. Show the real value as its own option instead. */
+function selectValue(sel,v){
+  sel.value=v;
+  if(sel.value===v)return;
+  var o=document.createElement("option");
+  o.value=v;o.textContent=money(parseInt(v,10));
+  sel.appendChild(o);sel.value=v;
+}
 function loadStand(){
   var s=getSession();if(!s)return;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+
@@ -717,12 +728,12 @@ function loadStand(){
     loadShopperRails(p);
     /* A floor that moved on its own has to explain itself, so the reason is
        shown beside the control rather than only in the email. */
-    $("cardMin").value = (p.card_minimum_cents==null) ? "" : String(p.card_minimum_cents);
+    selectValue($("cardMin"), (p.card_minimum_cents==null) ? "" : String(p.card_minimum_cents));
     $("cardMinAuto").style.display = (p.card_minimum_set_by==="auto") ? "block" : "none";
     /* Null means the platform default, not "off" — those are different, and
        showing 0 for an unset threshold would tell a vendor they had switched
        off a guard that is actually protecting them. */
-    $("bigAmt").value = String(p.large_amount_cents==null ? 10000 : p.large_amount_cents);
+    selectValue($("bigAmt"), String(p.large_amount_cents==null ? 10000 : p.large_amount_cents));
     paintCheckout();
   }).catch(function(){});
 }
@@ -732,28 +743,32 @@ function loadStand(){
    the same rails. Cash is never optional: a picker with nothing in it and a
    customer holding out a note leaves the vendor with no way forward. */
 var railsOrder = null;   /* the vendor's own order, exactly as stored */
+/* Top level, not inside renderRails: loadRails and saveRails read these too,
+   and while they were renderRails' locals both threw ReferenceError — Save
+   silently did nothing once any stored rail was unticked, and the uncurated
+   default never picked up connected Venmo/PayPal. */
+/* Only rails the registers will actually OFFER may be curated here —
+   ticking a box the register ignores saves a lie (U-W A1 secondary).
+   tap_to_pay/ebt are display-only on web; the rest are held until 1.4 is
+   live. DELETE the held members here in the SAME pass that deletes
+   shop.html's RAIL_HELD_UNTIL_1_4_LIVE — two copies, one unlock. */
+/* MIRRORS Processor.isWebhookVerified on iOS and WEBHOOK_VERIFIED in
+   shop.html: rails we normally learn about from Stripe rather than from a
+   person, and so not part of the default hand-log shortlist. */
+var WEBHOOK_VERIFIED_RAIL={stripe:1,tap_to_pay:1};
+
+/* Only the two the web registers never OFFER as a choice: tap_to_pay is a
+   device capability, and EBT is written through its own token flow. The
+   other eight came off this list with the 1.4 hold — the editor shows them
+   now, which is what makes removing an unticked one a deliberate act rather
+   than a silent deletion (see the preservation rule in saveRails). */
+var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1};
 
 function renderRails(){
   var el=$("railsList");
   if(!el)return;
   var chosen = railsOrder || ["cash"];
   var html="";
-  /* Only rails the registers will actually OFFER may be curated here —
-     ticking a box the register ignores saves a lie (U-W A1 secondary).
-     tap_to_pay/ebt are display-only on web; the rest are held until 1.4 is
-     live. DELETE the held members here in the SAME pass that deletes
-     shop.html's RAIL_HELD_UNTIL_1_4_LIVE — two copies, one unlock. */
-  /* MIRRORS Processor.isWebhookVerified on iOS and WEBHOOK_VERIFIED in
-     shop.html: rails we normally learn about from Stripe rather than from a
-     person, and so not part of the default hand-log shortlist. */
-  var WEBHOOK_VERIFIED_RAIL={stripe:1,tap_to_pay:1};
-
-  /* Only the two the web registers never OFFER as a choice: tap_to_pay is a
-     device capability, and EBT is written through its own token flow. The
-     other eight came off this list with the 1.4 hold — the editor shows them
-     now, which is what makes removing an unticked one a deliberate act rather
-     than a silent deletion (see the preservation rule in saveRails). */
-  var RAIL_NOT_CURATABLE={tap_to_pay:1,ebt:1};
   Object.keys(PROC_NAMES).forEach(function(p){
     if(RAIL_NOT_CURATABLE[p])return;
     var on = chosen.indexOf(p) >= 0;
@@ -885,6 +900,13 @@ function loadRails(p){
 /* Saved through the RPC, not a column write: storing it also marks the floor
    as the VENDOR's, after which the automatic defence leaves it alone. That is
    the promise the notice email makes, so it is enforced server-side. */
+/* Was called by the two savers below but never defined on this page (only
+   admin.html has one), so both Save buttons threw ReferenceError, stayed
+   disabled, and nothing was ever written. */
+function rpc(name,body){
+  return authRest("rpc/"+name,{method:"POST",body:JSON.stringify(body||{})})
+    .then(function(r){if(!r.ok)throw new Error("rpc "+name+" failed");return r;});
+}
 function saveCardMinimum(){
   var s=getSession();if(!s){show("v-login");return;}
   var err=$("cardMinErr");err.style.display="none";
@@ -1298,7 +1320,11 @@ function removeLogo(){
 /* Read the DOM back into the model before any operation that repaints, or the
    vendor's uncommitted typing is silently thrown away. */
 
+/* Tapping ‹ twice quickly fires two requests; whichever answered LAST was
+   painted, so a slow first reply drew yesterday's sales under today's date. */
+var vDaySeq=0;
 function loadVendorDay(){
+  var seq=++vDaySeq;
   vDay=clampFuture(vDay);
   $("vDate").value=dstr(vDay);
   $("vNext").disabled=dstr(vDay)===dstr(new Date());
@@ -1314,14 +1340,16 @@ function loadVendorDay(){
     if(!r.ok)throw 0;
     return r.json();
   }).then(function(sales){
+    if(seq!==vDaySeq)return;
     renderVendorDay(sales);
     if(!sales.length)return;
     var ids=sales.map(function(x){return x.id;}).join(",");
     return authRest("sale_items?sale_id=in.("+ids+")&select=sale_id,name_snapshot,quantity,unit_price_cents,line_total_cents")
       .then(function(r){return r.ok?r.json():[];})
-      .then(function(items){renderSaleLines(items);})
+      .then(function(items){if(seq===vDaySeq)renderSaleLines(items);})
       .catch(function(){});
   }).catch(function(){
+    if(seq!==vDaySeq)return;
     $("vErr").textContent="Couldn't load that day — check your connection and try again.";
     $("vErr").style.display="block";
   });
@@ -1756,7 +1784,13 @@ function closeNav(){
   $("navToggle").setAttribute("aria-expanded","false");
 }
 
+/* Once per page. enter("vendor") runs again on every Stand tab tap and every
+   sign-in, and each run stacked another set of listeners — two on the
+   hamburger meant open-then-close on one tap, so the drawer never opened. */
+var navWired=false;
 function wireNav(){
+  if(navWired)return;
+  navWired=true;
   var links=document.querySelectorAll(".acctnav a[data-nav]");
   for(var i=0;i<links.length;i++){
     links[i].addEventListener("click",function(e){
@@ -1771,7 +1805,9 @@ function wireNav(){
   window.addEventListener("hashchange",function(){showSection(secFromHash(),false);});
 }
 
+var entered=false;   /* a signed-in view has rendered in this page's lifetime */
 function enter(view){
+  entered=true;
   localStorage.setItem("ss-account-view",view);
   if(view==="organizer"){show("v-organizer");loadOrganizer();}
   else{
@@ -1952,7 +1988,11 @@ function openPortal(b,flow){
 }
 $("tabVendor").addEventListener("click",function(){enter("vendor");});
 $("tabOrganizer").addEventListener("click",function(){enter("organizer");});
-$("signOut").addEventListener("click",function(){setSession(null);show("v-login");});
+/* Reload rather than just swapping views: every section caches what it fetched
+   (fetched/secLoaded) and the DOM still holds the ledger, stand form and
+   handles. On a shared computer the next person to sign in was shown the
+   previous vendor's day, because the ledger loader never ran again. */
+$("signOut").addEventListener("click",function(){setSession(null);location.reload();});
 $("vPrev").addEventListener("click",function(){vDay.setDate(vDay.getDate()-1);loadVendorDay();});
 $("vNext").addEventListener("click",function(){vDay.setDate(vDay.getDate()+1);loadVendorDay();});
 $("vToday").addEventListener("click",function(){vDay=new Date();loadVendorDay();});
@@ -2111,6 +2151,9 @@ $("loginForm").addEventListener("submit",function(ev){
       if(!r.ok)throw new Error(j.error_description||j.msg||"That email and password didn't match.");
       noteAuthTry("email");
       setSession({access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id});
+      /* Signed out mid-page (an expired refresh lands here without a reload):
+         start clean so nothing from the last account survives into this one. */
+      if(entered){location.reload();return;}
       boot();
     });
   }).catch(function(e){
@@ -2125,11 +2168,16 @@ function boot(){
   $("expFrom").value=today;$("expTo").value=today;
   if(oauthError){
     var msg=oauthError;oauthError=null;
+    clearAuthTry();
     show("v-login");
     var e=$("loginErr");e.textContent=msg;e.style.display="block";
     return;
   }
-  if(!getSession()){show("v-login");return;}
+  if(!getSession()){clearAuthTry();show("v-login");return;}
+  /* A session exists, so whichever door was just tried is the one that worked.
+     Both helpers existed but nothing called them, so the "last time you signed
+     in with…" hint could never appear. */
+  commitAuthTry();
   /* Resolve which sides exist BEFORE choosing a view, so we never land someone
      on an empty tent or flash a toggle that then disappears. */
   detectOrganizerSide().then(function(org){

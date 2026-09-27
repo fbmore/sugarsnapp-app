@@ -178,3 +178,15 @@ test('clearAll still wipes — it is what the confirmation calls', () => {
   m.clearAll();
   assert.equal(m.lines.length, 0);
 });
+
+test('a leading 0 quantity is ignored so the display matches the charge', () => {
+  const m = new RegisterModel();
+  m.tapDigit(5); m.tapDoubleZero(); m.tapAdd();
+  m.tapDigit(9); m.tapDigit(5); m.tapDigit(0); m.tapMultiply();
+  m.tapDigit(0);
+  assert.equal(m.quantity, null, '×0 is refused');
+  const charged = m.linesForCharge().reduce((s, l) => s + l.unitCents * l.quantity, 0);
+  assert.equal(m.grandTotal(), charged);
+  m.tapDigit(1); m.tapDigit(0);
+  assert.equal(m.quantity, 10, '×10 still reachable');
+});

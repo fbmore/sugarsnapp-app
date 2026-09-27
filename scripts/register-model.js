@@ -44,7 +44,9 @@
       this.entryCents = next;
     } else {
       var q = ((this.quantity === null ? 0 : this.quantity) * 10) + d;
-      if (q > 999 || this.entryCents * q > MAX_CENTS) return;
+      // A leading 0 is ignored: "×0" zeroed the line in the displayed total
+      // while linesForCharge still charged it at ×1 (mirrors RegisterModel.swift).
+      if (q <= 0 || q > 999 || this.entryCents * q > MAX_CENTS) return;
       this.quantity = q;
     }
   };

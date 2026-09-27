@@ -29,7 +29,13 @@ function refreshSession(s){
     method:"POST",headers:{apikey:ANON,"Content-Type":"application/json"},
     body:JSON.stringify({refresh_token:s.refresh_token})
   }).then(function(r){
-    if(!r.ok){setSession(null);return null;}
+    /* Only a refusal ends the session. A 5xx or rate limit is the auth
+       server having a bad moment, and wiping the tokens over it signed a
+       vendor out mid-market for no reason of theirs. */
+    if(!r.ok){
+      if(r.status>=500||r.status===429)throw new Error("refresh unavailable");
+      setSession(null);return null;
+    }
     return r.json().then(function(j){
       var ns={access_token:j.access_token,refresh_token:j.refresh_token,user_id:j.user.id};
       setSession(ns);return ns;
@@ -84,7 +90,9 @@ var oauthError=null;
     setSession({access_token:at,refresh_token:rt,user_id:uid});
   }else{
     oauthError=h.get("error_description")||"Sign-in didn't complete. Try again.";
-    oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));
+    /* URLSearchParams has already decoded it once; a literal "%" left in
+       the message made a second decode throw and take the page with it. */
+    try{oauthError=decodeURIComponent(String(oauthError).replace(/\+/g," "));}catch(e){}
   }
   history.replaceState(null,"",location.pathname);
 })();

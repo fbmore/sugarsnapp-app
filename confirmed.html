@@ -81,7 +81,10 @@ p{color:var(--muted);font-size:1rem}
     document.getElementById('card').className = 'card error';
     document.getElementById('tick').textContent = '✕';
     document.getElementById('title').textContent = "That link didn't work";
-    document.getElementById('body').textContent = decodeURIComponent(err).replace(/\+/g,' ') +
+    // Already decoded by URLSearchParams; a stray '%' made a second decode
+    // throw, which left the SUCCESS copy on screen for a failed link.
+    try { err = decodeURIComponent(err); } catch (e) {}
+    document.getElementById('body').textContent = err.replace(/\+/g,' ') +
       ' — request a fresh link from the app and try again.';
     document.getElementById('fine').textContent = '';
     return;
