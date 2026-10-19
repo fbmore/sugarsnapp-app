@@ -149,12 +149,27 @@ nav .links a:hover{color:var(--accent)}
 .email-row .ghost{padding:10px 22px}
 .email-row .msg{font-size:.85rem;color:var(--muted);margin-top:8px;font-style:italic}
 
+/* pickup orders: the number to listen for, and whether it's ready.
+   Above the paper because it is the thing the shopper is waiting on; the
+   receipt below is the thing they show. */
+.pickup{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;text-align:center;margin:6px auto 18px;max-width:360px;transition:background-color .3s ease-out,border-color .3s ease-out,color .3s ease-out}
+.pickup .pk-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.22em;color:var(--muted);transition:color .3s ease-out}
+.pickup .pk-num{font-family:var(--font-mono);font-weight:700;font-size:3rem;line-height:1.1;font-variant-numeric:tabular-nums;margin:2px 0 8px}
+.pickup .pk-state{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:1.05rem}
+.pickup .pk-state .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.pickup .pk-sub{color:var(--muted);font-size:.9rem;margin-top:6px;transition:color .3s ease-out}
+.pickup.is-ready{background:var(--state-fill);border-color:var(--state-fill);color:var(--state-ink)}
+.pickup.is-ready .pk-label,.pickup.is-ready .pk-sub{color:var(--state-ink);opacity:.85}
+.pickup.is-ready .pk-state .dot{background:var(--state-ink);animation:none}
+.pickup.is-done .pk-state .dot{background:var(--muted);animation:none}
+@media(prefers-reduced-motion:reduce){.pickup .pk-state .dot,.awaiting .dotp{animation:none}}
+
 footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 40px;text-align:center;color:var(--muted);font-size:.88rem}
 footer a{margin:0 8px;color:var(--muted)}
 
 @media print{
   body{background:#fff}
-  nav,footer,.after-card,.banner,.awaiting{display:none!important}
+  nav,footer,.after-card,.banner,.awaiting,.pickup{display:none!important}
   .wrap{max-width:none;padding:0}
   .paper-zone{margin:0}
   .paper{box-shadow:none;border:none;margin:0 auto}
@@ -189,6 +204,13 @@ footer a{margin:0 8px;color:var(--muted)}
   <section id="v-receipt" class="hidden">
     <div class="banner hidden" id="canceledBanner">
       Payment wasn&rsquo;t completed — you haven&rsquo;t been charged. You can try again below.
+    </div>
+
+    <div class="pickup hidden" id="pickup" role="status" aria-live="polite">
+      <div class="pk-label">Your order</div>
+      <div class="pk-num" id="pkNum"></div>
+      <div class="pk-state"><span class="dot" aria-hidden="true"></span><span id="pkWord"></span></div>
+      <p class="pk-sub" id="pkSub"></p>
     </div>
 
     <div class="paper-zone">
@@ -255,6 +277,8 @@ var saleId=params.get("sale");
 var canceled=params.get("canceled")==="1";
 var firstAwaitAt=null; // first render of the awaiting state, for retry gating
 var pollTimer=null;
+var pollMode=null;   // "pay" while money is unsettled, "pickup" while an order is cooking
+var wasReady=null;   // last rendered ready state; null until the first render
 var emailSent=false;
 
 function $(id){return document.getElementById(id);}
@@ -280,7 +304,7 @@ function load(){
   fetch(SUPA+"/functions/v1/receipt?sale="+encodeURIComponent(saleId),{
     headers:{apikey:ANON,Authorization:"Bearer "+ANON}
   }).then(function(r){
-    if(r.status===404){show("v-notfound");stopPoll();return null;}
+    if(r.status===404){show("v-notfound");setPoll(null);return null;}
     if(!r.ok)throw 0;
     return r.json();
   }).then(function(j){
@@ -288,7 +312,7 @@ function load(){
   }).catch(function(){
     if($("v-receipt").classList.contains("hidden"))show("v-dead");
     /* if the receipt is already on screen, keep it and let the poll retry */
-  });
+  }).then(arm);
 }
 
 function render(j){
@@ -333,12 +357,10 @@ function render(j){
     $("awaiting").classList.add("hidden");
     $("saveHint").textContent="Show this to the vendor. To save it: screenshot this screen, or use Print → Save as PDF.";
     if(!emailSent)$("emailRow").classList.remove("hidden");
-    stopPoll();
   }else if(sale.status==="canceled"){
     $("stamp").classList.add("hidden");
     $("awaiting").classList.add("hidden");
     $("saveHint").textContent="This sale was canceled by the vendor — nothing was charged.";
-    stopPoll();
   }else if(sale.self_declared){
     /* A claim, not a charge. No PAID stamp: the stamp says a webhook watched
        the money move, and nothing watched this. It becomes a real stamped
@@ -351,7 +373,6 @@ function render(j){
     $("retryPay").classList.add("hidden");
     $("saveHint").textContent=
       "Show this to the vendor. They'll confirm it, and this page will stamp itself PAID.";
-    startPoll();
   }else{
     $("stamp").classList.add("hidden");
     $("awaiting").classList.remove("hidden");
@@ -364,34 +385,75 @@ function render(j){
     if(!firstAwaitAt)firstAwaitAt=Date.now();
     $("retryPay").classList.toggle("hidden",!canceled&&(Date.now()-firstAwaitAt)<15000);
     $("saveHint").textContent="Once paid, a stamped copy appears here — that's what you show the vendor.";
-    startPoll();
   }
   $("canceledBanner").classList.toggle("hidden",!(canceled&&!paid));
+  var cooking=renderPickup(sale);
+  var payOpen=!paid&&sale.status!=="canceled"&&sale.status!=="refunded";
+  setPoll(payOpen?"pay":cooking?"pickup":null);
   show("v-receipt");
 }
 
+/* Pickup orders only (the vendor turned them on, so the sale has a number).
+   Shown once the order is real to the vendor: paid, or claimed paid. A card
+   order still on Stripe is not in their queue yet, so it is not "Preparing".
+   Returns true while there is still something to wait for. */
+function renderPickup(sale){
+  var box=$("pickup");
+  var real=sale.status==="paid"||(sale.self_declared&&sale.status==="pending");
+  if(sale.order_number==null||!real){box.classList.add("hidden");return false;}
+  var ready=!!sale.ready_at,done=!!sale.picked_up_at;
+  $("pkNum").textContent="#"+sale.order_number;
+  box.classList.toggle("is-ready",ready&&!done);
+  box.classList.toggle("is-done",done);
+  if(done){
+    $("pkWord").textContent="Picked up";
+    $("pkSub").textContent="Handed over at "+fmtTime(new Date(sale.picked_up_at))+". Enjoy!";
+  }else if(ready){
+    $("pkWord").textContent="Ready for pickup";
+    $("pkSub").textContent="Head to the stand and show this screen.";
+  }else{
+    $("pkWord").textContent="Preparing";
+    $("pkSub").textContent="This page will say Ready for pickup the moment it is. Keep it open, or come back to this link.";
+  }
+  box.classList.remove("hidden");
+  var nowReady=ready&&!done;
+  document.title=(nowReady?"Ready · Order #":"Order #")+sale.order_number+" · SugarSnapp";
+  /* A buzz only on the change, never on the first paint of an already-ready
+     order: the shopper reopening the link does not need to be startled. */
+  if(wasReady===false&&nowReady&&navigator.vibrate){try{navigator.vibrate([120,80,120]);}catch(e){}}
+  wasReady=nowReady;
+  /* Three hours is longer than any pizza; an abandoned tab stops asking. */
+  var age=Date.now()-new Date(sale.created_at||Date.now()).getTime();
+  return !done&&age<3*3600000;
+}
+
 var pollStartedAt=null;
-function startPoll(){
-  if(pollTimer)return;
-  if(!pollStartedAt)pollStartedAt=Date.now();
-  pollTimer=setInterval(function(){
-    /* Ceiling (P5): an abandoned tab was polling every 3s all afternoon.
-       After 10 minutes awaiting, drop to a slow heartbeat; any visibility
-       change snaps back to live polling for the shopper who returns. */
-    if(Date.now()-pollStartedAt>600000){
-      stopPoll();
-      pollTimer=setInterval(load,60000);
-      return;
-    }
-    load();
-  },3000);
+/* One self-rearming timeout rather than an interval: each fetch finishes
+   before the next is scheduled, and the cadence can change between them.
+   Ceilings (P5): an abandoned tab was polling every 3s all afternoon.
+     pay     3s, then 60s after 10 minutes
+     pickup  5s, then 20s after 30 minutes
+   Any return to the tab snaps back to the fast rate. */
+function pollDelay(){
+  var age=Date.now()-pollStartedAt;
+  if(pollMode==="pay")return age>600000?60000:3000;
+  return age>1800000?20000:5000;
+}
+function setPoll(mode){
+  if(mode!==pollMode)pollStartedAt=Date.now();
+  pollMode=mode;
+  if(!mode)stopPoll();
+}
+function arm(){
+  if(!pollMode||pollTimer)return;
+  pollTimer=setTimeout(function(){pollTimer=null;load();},pollDelay());
 }
 document.addEventListener("visibilitychange",function(){
-  if(document.visibilityState==="visible"&&pollTimer){
-    stopPoll();pollStartedAt=Date.now();startPoll();load();
+  if(document.visibilityState==="visible"&&pollMode){
+    stopPoll();pollStartedAt=Date.now();load();
   }
 });
-function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+function stopPoll(){if(pollTimer){clearTimeout(pollTimer);pollTimer=null;}}
 
 $("retryBtn").onclick=function(){show("v-loading");load();};
 

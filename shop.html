@@ -157,6 +157,17 @@ nav .links a:hover,nav .links button:hover{color:var(--accent)}
 .ca-line .amt{font-family:var(--font-mono);font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .ca-line button{color:#8a3b2e;font-size:1.05rem;line-height:1;padding:0 6px}
 
+/* pickup orders: optional name + number, asked only at stands that cook to
+   order. Plain card in the pay column, never inside the fixed bar, so it
+   never makes the bar taller on a phone. */
+.pickup-in{padding:16px 18px;margin-top:4px}
+.pickup-in .pk-head{font-weight:600;font-size:.98rem}
+.pickup-in .pk-why{color:var(--muted);font-size:.84rem;margin-top:4px;text-wrap:pretty}
+.pickup-in .pk-fields{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pickup-in input{flex:1 1 140px;min-width:0;min-height:44px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:16px;background:var(--canvas);color:var(--ink)}
+.pickup-in input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+@media(min-width:900px){.payside .pickup-in{width:100%;max-width:360px;margin:0 auto}}
+
 /* sticky pay bar */
 .paybar{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:12px 20px calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 -12px 30px rgba(31,42,29,.08)}
 .paybar .tot{font-family:var(--font-mono);font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
@@ -584,6 +595,14 @@ footer a{margin:0 8px;color:var(--muted)}
                bottom of the viewport when a long receipt would push it off,
                so it is never the thing you have to scroll to find. -->
           <aside class="shop-receipt hidden" id="shopReceipt"></aside>
+          <div class="card pickup-in hidden" id="pickupIn">
+            <div class="pk-head">Made to order</div>
+            <p class="pk-why">You&rsquo;ll get an order number, and your receipt will say when it&rsquo;s ready. Leave a number if you&rsquo;d like a text too. It&rsquo;s only used for that, and deleted within 12 hours.</p>
+            <div class="pk-fields">
+              <input id="pkName" type="text" maxlength="30" placeholder="First name (optional)" autocomplete="given-name" aria-label="First name, optional">
+              <input id="pkPhone" type="tel" inputmode="tel" maxlength="20" placeholder="Phone for a text (optional)" autocomplete="tel" aria-label="Phone number for a ready text, optional">
+            </div>
+          </div>
           <div class="paybar hidden" id="paybar">
             <div class="paytot"><span class="lbl">Your total</span><span class="tot" id="payTotal">$0.00</span></div>
             <div class="payact">
@@ -1683,10 +1702,10 @@ function kioskCharge(){
   if(!lines.length)return;
   var btn=$("payBtn"); btn.disabled=true; btn.textContent="One moment…";
   fn("guest-checkout",{method:"POST",body:JSON.stringify({
-      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines})})
+      slug:(vendor&&vendor.checkout_slug)||slug, lines:lines, pickup:pickupDetails()})})
   .then(function(r){ return r.json().catch(function(){return{};}).then(function(j){
     if(!r.ok)throw new Error(j.error||"That didn't go through. See the vendor.");
-    kioskSale={id:j.sale_id,total:j.total_cents,url:j.pay_url};
+    kioskSale={id:j.sale_id,total:j.total_cents,url:j.pay_url,order:j.order_number};
     $("kAmt").textContent=money(j.total_cents);
     drawQR($("kQr"), j.pay_url, "stripe");
     $("kWait").innerHTML='<span class="dotp"></span>Waiting for payment…';
@@ -1721,6 +1740,11 @@ function stopKioskPoll(){ if(kioskPoll){clearInterval(kioskPoll);kioskPoll=null;
 function kioskPaid(){
   stopKioskPoll();
   $("kdAmt").textContent=kioskSale?money(kioskSale.total):"";
+  /* The shopper paid on their own phone, so that is where "ready" shows. The
+     number is said here too, for whoever glances back at the iPad. */
+  $("kdWhat").textContent=kioskSale&&kioskSale.order!=null
+    ?"Your order is #"+kioskSale.order+". Your phone will say when it's ready."
+    :"Thanks!";
   $("kdEmailMsg").classList.add("hidden");
   $("kdEmail").value="";
   $("kdEmailRow").classList.remove("hidden");
@@ -1747,6 +1771,8 @@ function kioskReset(){
   stopKioskPoll(); stopKioskIdle();
   kioskSale=null;
   cart={}; customLines=[];
+  /* A shared iPad: the last shopper's name and number go with their cart. */
+  $("pkName").value=""; $("pkPhone").value="";
   try{ localStorage.removeItem("ss-cart-"+slug); localStorage.removeItem("ss-custom-"+slug); }catch(e){}
   gm.clearAll(); renderGuestEntry();
   renderShop();
@@ -1764,6 +1790,16 @@ function shopperRails(){
   return Object.prototype.toString.call(r)==="[object Array]" ? r : [];
 }
 function trustsShopper(){ return vendor && vendor.self_checkout_trust==="declared"; }
+/* Pickup orders: what the shopper typed, or nothing. guest-checkout drops
+   anything malformed rather than refusing the sale, so no validation here
+   beyond trimming: a typo must never stand between someone and paying. */
+function pickupOn(){ return !!(vendor && vendor.pickup_orders_enabled); }
+function pickupDetails(){
+  if(!pickupOn())return undefined;
+  var name=$("pkName").value.trim(), phone=$("pkPhone").value.trim();
+  if(!name&&!phone)return undefined;
+  return {first_name:name||undefined, phone:phone||undefined};
+}
 
 function renderDeclRails(){
   $("declRails").innerHTML = shopperRails().map(function(p){
@@ -1852,7 +1888,7 @@ function doDeclare(rail, railNote){
   for(var i=0;i<tiles.length;i++)tiles[i].disabled=true;
   fn("guest-checkout",{method:"POST",body:JSON.stringify({
       slug:(vendor&&vendor.checkout_slug)||slug, lines:lines, rail:rail,
-      rail_note:railNote||undefined})})
+      rail_note:railNote||undefined, pickup:pickupDetails()})})
   .then(function(r){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error||"That didn't go through. Try again, or see the vendor.");
@@ -1926,6 +1962,7 @@ function syncPaybar(){
   btn.disabled=total===0;
   btn.textContent=total===0?"Pay":"Pay "+money(total);
   $("payErr").style.display="none";
+  $("pickupIn").classList.toggle("hidden", !pickupOn() || total===0);
   renderShopReceipt();
 }
 $("kShare").onclick=function(){
@@ -1988,7 +2025,7 @@ $("payBtn").onclick=function(){
   if(cartTotal()>500000){errEl.textContent="Totals over $5,000 can't go through self-checkout — see the vendor.";errEl.style.display="block";return;}
   var btn=$("payBtn");
   btn.disabled=true;btn.textContent="One moment…";
-  fn("guest-checkout",{method:"POST",body:JSON.stringify({slug:(vendor&&vendor.checkout_slug)||slug,lines:lines})})
+  fn("guest-checkout",{method:"POST",body:JSON.stringify({slug:(vendor&&vendor.checkout_slug)||slug,lines:lines,pickup:pickupDetails()})})
   .then(function(r){
     return r.json().catch(function(){return{};}).then(function(j){
       if(!r.ok)throw new Error(j.error||"Checkout didn't go through. Try again, or pay at the stand.");

@@ -246,6 +246,27 @@ nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0
 .lines .ln span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .emptyday{color:var(--muted);font-style:italic;text-align:center;padding:8px 0}
 
+/* pickup orders queue */
+.ordhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ordlive{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ordgrp{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:16px 0 4px;display:flex;gap:8px;align-items:baseline}
+.ordgrp .ordn{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--ink)}
+.order{border-top:1px solid var(--line);padding:12px 0}
+.order .otop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.order .onum{font-family:var(--font-mono);font-weight:700;font-size:1.6rem;line-height:1;font-variant-numeric:tabular-nums;min-width:2.6ch}
+.order .oname{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.order .opill{font-size:.78rem;padding:3px 9px;border-radius:999px;background:var(--field);color:var(--muted);white-space:nowrap}
+.order .opill.check{background:none;color:var(--warn);box-shadow:inset 0 0 0 1.5px currentColor;font-weight:600}
+.order .oage{font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.order .oitems{margin-top:4px;font-size:.92rem;text-wrap:pretty}
+.order .oacts{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:.85rem}
+.order .ordbtn{min-height:44px;padding:10px 22px;font-size:.95rem;text-decoration:none}
+.order .lnk{background:none;border:none;padding:12px 2px;min-height:44px;color:var(--accent);cursor:pointer;font:inherit;font-size:.85rem;text-decoration:underline;text-underline-offset:2px}
+.order button:disabled{opacity:.55;cursor:default}
+.order .actmsg{color:var(--muted)}
+.order .actmsg.bad{color:var(--bad)}
+.order.is-ready .onum{color:var(--state)}
+
 /* export */
 .exp{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .exp input[type=date]{padding:8px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:var(--field);color:var(--ink)}

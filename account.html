@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-VdE+NaBkKTa4+GNEg9dP9dyjMp30yoy76vioipwNP3k='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Hc8I6oO/xc7KcHOqfP13/+FHINFTF1uVpL3nt+Wi7IQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -19,7 +19,7 @@
   if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t);}
 }catch(e){}})();
 </script>
-<link rel="stylesheet" href="styles/ss.css?v=140be48aa1">
+<link rel="stylesheet" href="styles/ss.css?v=cc68f794fe">
 </head>
 <body>
 <div class="wrap wide">
@@ -100,6 +100,7 @@
           <nav aria-label="Account sections">
             <p class="navgrp">Ledger</p>
             <a href="#ledger" data-nav="ledger">Today&rsquo;s ledger</a>
+            <a href="#orders" data-nav="orders">Orders</a>
             <a href="#export" data-nav="export">Export CSV</a>
             <p class="navgrp">Get paid</p>
             <a href="#stripe" data-nav="stripe">Stripe</a>
@@ -130,6 +131,27 @@
       <div class="card" id="vSalesCard" data-sec="ledger">
         <div class="kicker" style="margin-bottom:6px">Sales</div>
         <div id="vSales"></div>
+      </div>
+      <!-- Pickup orders: the queue a made-to-order stand cooks through. Oldest
+           first, because that is the order people paid in and the order they
+           are standing there waiting in. Polls while this tab is on screen;
+           an Android vendor has no app to listen for them. -->
+      <div class="card" id="ordersCard" data-sec="orders">
+        <div class="ordhead">
+          <div class="kicker">Orders</div>
+          <span class="ordlive" id="ordLive" aria-live="polite"></span>
+        </div>
+        <div class="expmsg hidden" id="ordOff" style="margin-top:6px">
+          Pickup orders are off. Turn them on in <a href="#checkout">Self-checkout</a> if you make things to order:
+          shoppers get a number, you get this queue, and their receipt says when it&rsquo;s ready.
+        </div>
+        <div id="ordOn" class="hidden">
+          <div class="ordgrp">Preparing <span class="ordn" id="ordPrepN"></span></div>
+          <div id="ordPrep"></div>
+          <div class="ordgrp">Ready for pickup <span class="ordn" id="ordReadyN"></span></div>
+          <div id="ordReady"></div>
+        </div>
+        <div id="ordErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
       </div>
       <div class="card" data-sec="export">
         <div class="kicker">Export CSV</div>
@@ -291,6 +313,15 @@
           </label>
           <button class="ghost" id="scRailsSave" type="button">Save</button>
           <span class="saved" id="scRailsSaved">Saved</span>
+        </div>
+
+        <!-- Pickup orders. Saves on toggle, like the page switch above: it is
+             one decision, not part of a form. -->
+        <div id="scPickupBox" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+          <label class="fld"><span><input type="checkbox" id="scPickup" style="margin-right:7px">Pickup orders: for food or anything made to order</span></label>
+          <div class="expmsg" style="margin-top:4px">Each order gets a number (#1, #2&hellip; from each morning) and lands in <a href="#orders">Orders</a>, oldest first. When you mark it ready, the shopper&rsquo;s receipt says &ldquo;Ready for pickup&rdquo;. Shoppers can leave a first name and a phone number so you can text them from your own phone; we delete both within 12 hours. Leave this off if people walk away with what they bought.</div>
+          <span class="saved" id="scPickupSaved">Saved</span>
+          <div id="scPickupErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:8px"></div>
         </div>
       </div>
 
@@ -461,6 +492,7 @@
   </footer>
 </div>
 <script src="scripts/ss-core.js?v=7b0d3df646"></script>
+<script src="scripts/pickup-orders.js?v=e9745e550e"></script>
 <script>
 "use strict";
 /* ---------- views ---------- */
@@ -704,7 +736,7 @@ function loadStand(){
            "self_checkout_rails,self_checkout_trust,"+
            "large_amount_cents,"+
            "address,website,contact_email,contact_phone,"+
-           "checkout_enabled,checkout_slug")
+           "checkout_enabled,checkout_slug,pickup_orders_enabled")
   .then(function(r){return r.ok?r.json():[];})
   .then(function(rows){
     var p=rows[0]||{};
@@ -724,6 +756,7 @@ function loadStand(){
 
     checkoutSlug=p.checkout_slug||null;
     $("scOn").checked=!!p.checkout_enabled;
+    $("scPickup").checked=p.pickup_orders_enabled===true;
     loadRails(p);
     loadShopperRails(p);
     /* A floor that moved on its own has to explain itself, so the reason is
@@ -1011,6 +1044,7 @@ function paintCheckout(){
   /* None of the honour-system settings mean anything without a storefront
      for a shopper to stand in front of. */
   $("scRailsBox").classList.toggle("hidden",!(on&&stripeReady));
+  $("scPickupBox").classList.toggle("hidden",!(on&&stripeReady));
   var haveLink=on&&!!checkoutSlug;
   link.classList.toggle("hidden",!haveLink);
   if(haveLink){
@@ -1411,6 +1445,159 @@ function renderVendorDay(sales){
   });
   $("vSales").innerHTML=html;
 }
+/* ---------- pickup orders ----------
+   The queue for a stand that cooks to order. The pure parts (what is queued,
+   the order, the pill and the text) live in scripts/pickup-orders.js and are
+   tested there; this is fetch, paint and the four buttons.
+
+   Polled, not subscribed: this page has no realtime client, and one vendor
+   tab asking every 4 seconds while it is on screen is cheaper than adding
+   one. Hidden tab, other section: no requests at all. */
+var PO=window.PickupOrders;
+var ordTimer=null,ordSeq=0,ordBusy={},ordSeen=null,ordBiz="",ordEnabled=null,ordBaseTitle=document.title;
+function ordersWatch(on){
+  if(ordTimer){clearInterval(ordTimer);ordTimer=null;}
+  if(!on){document.title=ordBaseTitle;return;}
+  ordTimer=setInterval(function(){
+    if(document.visibilityState==="visible")loadOrders();
+  },4000);
+}
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible"&&ordTimer)loadOrders();
+});
+function loadOrders(){
+  var s=getSession();if(!s)return;
+  var seq=++ordSeq;
+  var gate=ordEnabled===null
+    ? authRest("profiles?id=eq."+encodeURIComponent(s.user_id)+"&select=business_name,pickup_orders_enabled")
+        .then(function(r){return r.ok?r.json():[];})
+        .then(function(rows){var p=rows[0]||{};ordBiz=p.business_name||"";ordEnabled=p.pickup_orders_enabled===true;})
+    : Promise.resolve();
+  gate.then(function(){
+    $("ordOff").classList.toggle("hidden",ordEnabled);
+    $("ordOn").classList.toggle("hidden",!ordEnabled);
+    if(!ordEnabled)return;
+    /* Since this morning, by the ledger's own day bounds. Order numbers
+       restart each day, so yesterday's leftovers would only muddle them. */
+    var since=dayBounds(new Date())[0];
+    var q="sales?user_id=eq."+encodeURIComponent(s.user_id)
+      +"&order_number=not.is.null&picked_up_at=is.null"
+      +"&status=in.(paid,pending)"
+      +"&created_at=gte."+encodeURIComponent(since)
+      +"&order=created_at.asc"
+      +"&select=id,created_at,processor,status,total_cents,self_declared,order_number,ready_at,picked_up_at,"
+      +"sale_items(name_snapshot,quantity),order_contacts(phone,first_name)";
+    return authRest(q).then(function(r){if(!r.ok)throw 0;return r.json();})
+      .then(function(rows){if(seq===ordSeq)paintOrders(rows);});
+  }).then(function(){
+    $("ordErr").style.display="none";
+  }).catch(function(){
+    if(seq!==ordSeq)return;
+    $("ordErr").textContent="Can't reach the server. The list will catch up when the signal does.";
+    $("ordErr").style.display="block";
+  });
+}
+function orderRow(x,isReady){
+  var c=PO.contactOf(x)||{},pill=PO.paymentPill(x);
+  var mins=PO.minutesSince(x.created_at);
+  var acts="";
+  if(x.status==="pending"&&x.self_declared){
+    acts+='<button class="lnk" type="button" data-oact="confirm">Confirm payment</button>';
+  }
+  if(!isReady){
+    acts='<button class="cta ordbtn" type="button" data-oact="ready">Ready</button>'+acts;
+  }else{
+    if(c.phone){
+      var body=PO.readyMessage(ordBiz,x.order_number,x.id);
+      acts='<a class="cta ordbtn" href="'+esc(PO.smsHref(c.phone,body))+'">Text '+esc(c.first_name||"them")+'</a>'+acts;
+    }
+    acts+='<button class="ghost ordbtn" type="button" data-oact="done">Picked up</button>'
+      +'<button class="lnk" type="button" data-oact="unready">Not ready yet</button>';
+  }
+  return '<div class="order'+(isReady?" is-ready":"")+'" data-sale="'+esc(x.id)+'">'
+    +'<div class="otop"><span class="onum">#'+esc(x.order_number)+'</span>'
+    +'<span class="oname">'+esc(c.first_name||"")+'</span>'
+    +'<span class="opill'+(pill.check?" check":"")+'">'+esc(pill.text)+'</span>'
+    +'<span class="oage">'+(mins<1?"just now":mins+" min")+'</span></div>'
+    +'<div class="oitems">'+esc(PO.itemsSummary(x.sale_items))+' &middot; '+money(x.total_cents)+'</div>'
+    +'<div class="oacts">'+acts+'<span class="actmsg"></span></div></div>';
+}
+function paintOrders(rows){
+  /* Never repaint under a click in flight: the button would vanish mid-tap. */
+  if(Object.keys(ordBusy).length)return;
+  var g=PO.groupOrders(rows);
+  $("ordPrep").innerHTML=g.preparing.length?g.preparing.map(function(x){return orderRow(x,false);}).join("")
+    :'<div class="emptyday">Nothing to make. New orders appear here as they&rsquo;re paid.</div>';
+  $("ordReady").innerHTML=g.ready.length?g.ready.map(function(x){return orderRow(x,true);}).join("")
+    :'<div class="emptyday">Nothing waiting on the counter.</div>';
+  $("ordPrepN").textContent=g.preparing.length||"";
+  $("ordReadyN").textContent=g.ready.length||"";
+  var now=new Date();
+  $("ordLive").textContent="Live · "+now.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  /* A new order arrives while the vendor is at the oven, not at the screen:
+     say so in the tab title and with a short tone. Not on the first paint. */
+  var ids=g.preparing.map(function(x){return x.id;});
+  var fresh=ordSeen?ids.filter(function(id){return ordSeen.indexOf(id)<0;}).length:0;
+  ordSeen=(ordSeen||[]).concat(ids);
+  document.title=g.preparing.length?"("+g.preparing.length+") Orders · SugarSnapp":ordBaseTitle;
+  if(fresh)chime();
+}
+var audioCtx=null;
+function chime(){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    var t=audioCtx.currentTime;
+    [880,1320].forEach(function(f,i){
+      var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.frequency.value=f;o.type="sine";
+      g.gain.setValueAtTime(0.0001,t+i*0.16);
+      g.gain.exponentialRampToValueAtTime(0.2,t+i*0.16+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+i*0.16+0.3);
+      o.connect(g);g.connect(audioCtx.destination);
+      o.start(t+i*0.16);o.stop(t+i*0.16+0.32);
+    });
+  }catch(e){}
+}
+/* Browsers only let a page make sound after a tap; any tap here unlocks it. */
+$("ordersCard").addEventListener("pointerdown",function(){
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();audioCtx.resume();}catch(e){}
+});
+$("ordersCard").addEventListener("click",function(ev){
+  var b=ev.target.closest("[data-oact]");if(!b)return;
+  var row=b.closest(".order");if(!row)return;
+  var id=row.getAttribute("data-sale"),act=b.getAttribute("data-oact");
+  var call=act==="ready"?["set_order_ready",{p_sale_id:id,p_ready:true}]
+    :act==="unready"?["set_order_ready",{p_sale_id:id,p_ready:false}]
+    :act==="done"?["mark_order_picked_up",{p_sale_id:id}]
+    :["confirm_declared_sale",{p_sale_id:id}];
+  var msg=row.querySelector(".actmsg");
+  ordBusy[id]=true;
+  row.querySelectorAll("button").forEach(function(x){x.disabled=true;});
+  msg.textContent="";msg.classList.remove("bad");
+  rpc(call[0],call[1]).then(function(){
+    delete ordBusy[id];loadOrders();
+  }).catch(function(){
+    delete ordBusy[id];
+    row.querySelectorAll("button").forEach(function(x){x.disabled=false;});
+    msg.textContent="Didn't go through. Try again.";msg.classList.add("bad");
+  });
+});
+$("scPickup").addEventListener("change",function(){
+  var s=getSession();if(!s)return;
+  var box=this,on=box.checked,err=$("scPickupErr");
+  err.style.display="none";box.disabled=true;
+  authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{method:"PATCH",
+    body:JSON.stringify({pickup_orders_enabled:on})})
+  .then(function(r){
+    box.disabled=false;
+    if(!r.ok)throw 0;
+    ordEnabled=on;flash("scPickupSaved");
+  }).catch(function(){
+    box.disabled=false;box.checked=!on;
+    err.textContent="Couldn't save that. Try again.";err.style.display="block";
+  });
+});
+
 /* ---------- delete account ---------- */
 /* Two steps and a typed word, no confirm() dialog. The app's alert is one tap
    past a menu; on a page with an address bar a stray click is cheaper, so the
@@ -1730,7 +1917,7 @@ function loadRoster(){
    card was rendered, wired, saving correctly, and PERMANENTLY unreachable
    (U-W A1): secFromHash mapped #rails back to "ledger" and no nav link
    existed. A web-only vendor could never edit their hand-log shortlist. */
-var SECTIONS=["ledger","export","stripe","handles","rails","checkout","stand","receipts","catalog","plan","delete"];
+var SECTIONS=["ledger","orders","export","stripe","handles","rails","checkout","stand","receipts","catalog","plan","delete"];
 /* Some cards share a fetch: paintCheckout() needs stripeReady from loadPay
    AND checkout_slug from loadStand, so both sections ask for both and
    loadOnce keeps it to a single request either way. */
@@ -1738,6 +1925,7 @@ var fetched={};
 function loadOnce(key,fn){if(!fetched[key]){fetched[key]=true;fn();}}
 var SEC_LOADERS={
   ledger:function(){loadVendorDay();},
+  orders:function(){loadOrders();},
   stripe:function(){loadOnce("pay",loadPay);},
   handles:function(){loadOnce("handles",loadHandles);},
   checkout:function(){loadOnce("pay",loadPay);loadOnce("stand",loadStand);},
@@ -1765,6 +1953,7 @@ function showSection(sec,push){
     if(on)$("navHere").textContent=links[j].textContent;
   }
   if(push&&secFromHash()!==sec)history.replaceState(null,"","#"+sec);
+  ordersWatch(sec==="orders");
   closeNav();
   if(!secLoaded[sec]){
     secLoaded[sec]=true;

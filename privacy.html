@@ -39,7 +39,7 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   </nav>
 
   <h1>Privacy Policy</h1>
-  <div class="date">Last updated: August 2, 2026</div>
+  <div class="date">Last updated: October 18, 2026</div>
 
   <p>SugarSnapp is a register and ledger for market vendors, made by FRANCESCO BERTOCCI, LLC. This policy says plainly what the app stores, where it lives, and what never gets collected. No legalese padding, no surprises.</p>
 
@@ -67,9 +67,10 @@ footer{border-top:1px solid var(--line);padding:28px 0;text-align:center;color:v
   <p>If you turn on the self-checkout page for your stall, your <strong>stand name, logo, address, website, and item catalog</strong> become publicly readable — that is what makes the page work. Your <strong>contact email and phone number are not exposed</strong> on the public page. Turning the page off takes it offline; the data returns to being private to your account.</p>
 
   <h2>Your customers (buyers)</h2>
-  <p>Buyers never need an account, and the app never asks them for personal information. When a customer scans a sale QR code, our redirect service logs the scan time and — like every web server — briefly records standard request metadata (IP address, browser user agent) in infrastructure logs. We do not build buyer profiles.</p>
+  <p>Buyers never need an account, and the app never requires personal information from them. When a customer scans a sale QR code, our redirect service logs the scan time and — like every web server — briefly records standard request metadata (IP address, browser user agent) in infrastructure logs. We do not build buyer profiles.</p>
   <p><strong>Self-checkout shoppers:</strong> the cart lives in the shopper's own browser (localStorage) and is never sent to us until they pay. When they pay, the sale record (items, amounts, timestamps) is stored so your ledger and their receipt work. Card details go directly to Stripe and never touch SugarSnapp's servers. The receipt link contains no personal information about the shopper.</p>
-  <p>If you send a customer a payment link or receipt, it goes from <em>your own</em> Messages or Mail app — SugarSnapp stores no customer contact details.</p>
+  <p><strong>Pickup orders (optional, per vendor):</strong> a vendor who makes things to order can turn on pickup orders. Their checkout page then lets the shopper leave a <strong>first name and a phone number</strong>. Both are optional and never needed to pay. They are used for one thing only: so that vendor can text the shopper, from the vendor&rsquo;s own phone, that the order is ready. Only that vendor can see them, they are never used for marketing, and they are <strong>deleted automatically</strong> when the vendor marks the order picked up, or 12 hours after checkout, whichever comes first. The receipt page shows the order number and whether it is ready, never the name or phone number.</p>
+  <p>Apart from that, if you send a customer a payment link or receipt, it goes from <em>your own</em> Messages or Mail app, and SugarSnapp stores no customer contact details.</p>
 
   <h2>Markets and organizers</h2>
   <p>If you check in to a market with its join code, that market's organizer can see your stand name and your check-in time on their roster for that day. That's the whole point of checking in — it's how end-of-day reconciliation knows who was there. Organizers never see your sales, ledger, or payment connections.</p>
