@@ -480,6 +480,11 @@ body.has-paybar.has-declare{padding-bottom:172px}
 .paid-view h2{font-size:1.7rem;text-align:center}
 .paid-view h2 em{font-style:italic;color:var(--accent)}
 .paid-view .meta{color:var(--muted);margin:6px 0 24px}
+/* Pickup orders: the walk-up's number, read out across the counter. */
+.paid-order{margin:-6px 0 24px}
+.paid-order .onum{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:2.6rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.paid-order .meta{margin:4px 0 14px}
+.paid-order .ghost{min-height:44px}
 
 footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 40px;text-align:center;color:var(--muted);font-size:.88rem}
 footer a{margin:0 8px;color:var(--muted)}
@@ -843,6 +848,11 @@ footer a{margin:0 8px;color:var(--muted)}
       <div class="paid-badge">✓</div>
       <h2>Paid · <em id="paidAmt"></em></h2>
       <div class="meta" id="paidMeta"></div>
+      <div class="paid-order hidden" id="paidOrder">
+        <div class="onum" id="paidNum"></div>
+        <div class="meta" id="paidOrderMeta" aria-live="polite"></div>
+        <button type="button" class="ghost" id="handOverBtn">Already handed over</button>
+      </div>
       <button class="cta" id="newSaleBtn">New sale</button>
     </section>
   </main>
@@ -2593,7 +2603,7 @@ function doLog(body){
      stayed behind in that scope. The ReferenceError landed in the catch below,
      so every SUCCESSFUL log said "No signal … safe to retry" with the basket
      still up — and the retry logged the sale twice. */
-  .then(function(sale){showPaid(sale.total_cents,body.processor);})
+  .then(function(sale){showPaid(sale.total_cents,body.processor,sale);})
   .catch(function(e){
     /* "Safe to retry" is only true when nothing was written. When the cleanup
        could not run, the sales row may still be there, and a retry would log
@@ -2652,7 +2662,7 @@ var pollFails=0;
 var POLL_FAIL_LIMIT=4;   /* ~8s at the 2s tick — long enough to ride out a blip */
 
 function pollOnce(saleId){
-  return authRest("sales?id=eq."+saleId+"&select=status,processor,total_cents")
+  return authRest("sales?id=eq."+saleId+"&select=id,status,processor,total_cents,order_number")
   .then(function(r){
     if(!r.ok) throw {http:r.status};
     return r.json();
@@ -2669,7 +2679,7 @@ function pollOnce(saleId){
     if(!s) return false;
     if(s.status==="paid"){
       stopPoll();
-      showPaid(s.total_cents,s.processor);
+      showPaid(s.total_cents,s.processor,s);
       return true;
     }
     if(s.status==="in_progress"){
@@ -2766,15 +2776,48 @@ $("cancelBtn").onclick=function(){
   activeSale=null;
   show("v-register");
 };
-function showPaid(cents,proc){
+function showPaid(cents,proc,sale){
   reg.clearAll();
   syncTape();
   activeSale=null;
   $("paidAmt").textContent=money(cents);
   $("paidMeta").textContent=(PROC_NAMES[proc]||proc||"")+" · "+
     new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+  showPaidOrder(sale);
   show("v-paid");
 }
+/* Pickup orders on: the server numbered this sale the moment it was paid
+   (stamp_order_number), so it is already in Orders. Show the number to read
+   out, and let something handed over on the spot leave the queue again. A
+   sale without a number is a stand with pickup orders off: nothing shows. */
+var paidOrderId=null;
+function showPaidOrder(sale){
+  var n=sale&&sale.order_number;
+  paidOrderId=n?sale.id:null;
+  $("paidOrder").classList.toggle("hidden",!n);
+  if(!n)return;
+  $("paidNum").textContent="Order #"+n;
+  $("paidOrderMeta").textContent="Added to Orders";
+  var b=$("handOverBtn");
+  b.hidden=false;b.disabled=false;b.textContent="Already handed over";
+}
+$("handOverBtn").onclick=function(){
+  if(!paidOrderId)return;
+  var b=this,id=paidOrderId;
+  b.disabled=true;b.textContent="One moment\u2026";
+  authRest("rpc/mark_order_picked_up",{method:"POST",body:JSON.stringify({p_sale_id:id})})
+  .then(function(r){
+    if(!r.ok)throw {http:r.status};
+    if(paidOrderId!==id)return;
+    b.hidden=true;
+    $("paidOrderMeta").textContent="Handed over";
+  })
+  .catch(function(){
+    if(paidOrderId!==id)return;
+    b.disabled=false;b.textContent="Already handed over";
+    $("paidOrderMeta").textContent="Couldn\u2019t take it out of Orders. Mark it picked up there.";
+  });
+};
 $("newSaleBtn").onclick=function(){renderTape();show("v-register");};
 /* In vendor mode the mark is the Register tab: from the QR screen or the paid
    screen it returns to a fresh sale. A sale still waiting on the QR screen is
