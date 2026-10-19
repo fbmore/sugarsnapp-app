@@ -1515,9 +1515,12 @@ function renderShop(){
   $("shopName").textContent=name;
   $("standHead").classList.remove("hidden");
   $("brandLink").classList.add("hidden");
-  $("trustLine").innerHTML="Payments are processed by <strong>Stripe</strong> on "+esc(name)+
-    "&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — "+
-    esc(name)+" pays only Stripe&rsquo;s standard card fee.";
+  $("trustLine").innerHTML=cardOn()
+    ? "Payments are processed by <strong>Stripe</strong> on "+esc(name)+
+      "&rsquo;s own account. SugarSnapp takes no cut, never sees your card, and you&rsquo;re never charged extra — "+
+      esc(name)+" pays only Stripe&rsquo;s standard card fee."
+    : "You pay "+esc(name)+" directly, by cash or whatever they take, then tell this page how. "+
+      "SugarSnapp never handles the money and takes no cut. It just keeps the receipt.";
   loadCart();
   loadCustom();
   $("customCard").classList.toggle("hidden",!customAllowed());
@@ -1804,6 +1807,10 @@ function trustsShopper(){ return vendor && vendor.self_checkout_trust==="declare
    anything malformed rather than refusing the sale, so no validation here
    beyond trimming: a typo must never stand between someone and paying. */
 function pickupOn(){ return !!(vendor && vendor.pickup_orders_enabled); }
+/* A stand without Stripe still has a storefront: shoppers pay at the booth by
+   hand and say how. Only an explicit false hides the card button, so a
+   catalog from before the field existed keeps behaving as it did. */
+function cardOn(){ return !vendor || vendor.card_enabled!==false; }
 function pickupDetails(){
   if(!pickupOn())return undefined;
   var name=$("pkName").value.trim(), phone=$("pkPhone").value.trim();
@@ -1961,17 +1968,29 @@ function syncPaybar(){
   /* Only offered when the stand actually takes something besides cards, and
      only once there is something to pay for. */
   var other=$("payOtherBtn");
-  var offers=shopperRails().length>0;
+  var offers=shopperRails().length>0, card=cardOn();
   other.classList.toggle("hidden", !offers);
+  /* No card: saying how you paid is the only way to pay, so it becomes the
+     primary button and stops sounding like the exception. */
+  other.classList.toggle("cta", !card);
+  other.classList.toggle("ghost", card);
+  other.textContent = card ? "I paid another way" : "I paid at the stand";
   /* The bar is taller with two buttons; the page has to clear the taller one
      or the footer hides under it. */
-  document.body.classList.toggle("has-declare", offers);
+  document.body.classList.toggle("has-declare", offers && card);
   other.disabled = total===0;
   if(total===0)closeDeclSheet();
   var btn=$("payBtn");
+  btn.classList.toggle("hidden", !card);
   btn.disabled=total===0;
   btn.textContent=total===0?"Pay":"Pay "+money(total);
   $("payErr").style.display="none";
+  /* Settings refuse to save this state, but an old profile can still be in
+     it. Say so rather than show a bar with nothing to press. */
+  if(!card && !offers && total>0){
+    $("payErr").textContent="This stand isn\u2019t taking payments on this page right now. Pay at the stand.";
+    $("payErr").style.display="block";
+  }
   $("pickupIn").classList.toggle("hidden", !pickupOn() || total===0);
   renderShopReceipt();
 }
@@ -2009,6 +2028,7 @@ $("kdEmailForm").addEventListener("submit",function(ev){
 });
 
 $("payBtn").onclick=function(){
+  if(!cardOn())return;
   /* A kiosk hands the sale to the shopper's phone instead of charging here. */
   if(KIOSK){ kioskCharge(); return; }
   /* Commit whatever is still on the keypad first, through the SAME validation

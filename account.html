@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-Hc8I6oO/xc7KcHOqfP13/+FHINFTF1uVpL3nt+Wi7IQ='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-UromZtK/dQWPsbeIw9BEInOGg/aMJ6kOja+SlS5BB7g=' 'sha256-yitKy/Wr/FnEjE1ioa7RY71k2XKUbP35zT1UPjXyCqI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://media.getsugarsnapp.com; connect-src https://psiattienhrooetmjvue.supabase.co; base-uri 'none'; form-action 'none'">
 <title>Your account — SugarSnapp</title>
 <meta name="description" content="See your SugarSnapp ledger and market-day records from any browser.">
 <meta name="robots" content="noindex">
@@ -142,7 +142,7 @@
           <span class="ordlive" id="ordLive" aria-live="polite"></span>
         </div>
         <div class="expmsg hidden" id="ordOff" style="margin-top:6px">
-          Pickup orders are off. Turn them on in <a href="#checkout">Self-checkout</a> if you make things to order:
+          Pickup orders are off. Turn them on in <a href="#stand">Your stand</a> if you make things to order:
           every paid sale gets a number, you get this queue, and the receipt says when it&rsquo;s ready.
         </div>
         <div id="ordOn" class="hidden">
@@ -301,7 +301,7 @@
              none of it means anything without a storefront to show it. -->
         <div id="scRailsBox" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
           <div class="fld"><span>Ways a shopper can say they paid</span>
-            <div class="expmsg" style="margin-bottom:8px">Cards go through Stripe and confirm themselves. These are the ways someone can tell you they paid by hand.</div>
+            <div class="expmsg" id="scRailsHelp" style="margin-bottom:8px">Cards go through Stripe and confirm themselves. These are the ways someone can tell you they paid by hand.</div>
             <div id="scRailPicks"></div>
           </div>
           <label class="fld"><span>When a shopper says they paid</span>
@@ -313,16 +313,9 @@
           </label>
           <button class="ghost" id="scRailsSave" type="button">Save</button>
           <span class="saved" id="scRailsSaved">Saved</span>
+          <div id="scRailsErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:8px"></div>
         </div>
 
-        <!-- Pickup orders. Saves on toggle, like the page switch above: it is
-             one decision, not part of a form. -->
-        <div id="scPickupBox" class="hidden" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
-          <label class="fld"><span><input type="checkbox" id="scPickup" style="margin-right:7px">Pickup orders: for food or anything made to order</span></label>
-          <div class="expmsg" style="margin-top:4px">Every paid sale, from your register or this checkout page, gets a number (#1, #2&hellip; from each morning) and lands in <a href="#orders">Orders</a>, oldest first. Anything you hand over on the spot can skip the queue. When you mark it ready, the shopper&rsquo;s receipt says &ldquo;Ready for pickup&rdquo;. Shoppers can leave a first name and a phone number so you can text them from your own phone; we delete both within 12 hours. Leave this off if people walk away with what they bought.</div>
-          <span class="saved" id="scPickupSaved">Saved</span>
-          <div id="scPickupErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:8px"></div>
-        </div>
       </div>
 
       <div class="card" id="standCard" data-sec="stand">
@@ -361,6 +354,16 @@
           <span class="saved" id="sfSaved">Saved</span>
         </div>
         <div class="payerr" id="sfErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:10px"></div>
+        <!-- Pickup orders. A stand-level switch, not a checkout one: it numbers
+             register sales too, so a register-only stand needs it as much as
+             one with a public page. Saves on toggle, apart from the form above:
+             it is one decision, not part of the Save. -->
+        <div id="scPickupBox" style="margin-top:16px;border-top:1px solid var(--line);padding-top:14px">
+          <label class="fld"><span><input type="checkbox" id="scPickup" style="margin-right:7px">Pickup orders: for food or anything made to order</span></label>
+          <div class="expmsg" style="margin-top:4px">Every paid sale, from your register or your checkout page, gets a number (#1, #2&hellip; from each morning) and lands in <a href="#orders">Orders</a>, oldest first. Anything you hand over on the spot can skip the queue. When you mark it ready, the shopper&rsquo;s receipt says &ldquo;Ready for pickup&rdquo;. Shoppers on your checkout page can leave a first name and a phone number so you can text them from your own phone; we delete both within 12 hours. Leave this off if people walk away with what they bought. Saves as soon as you switch it.</div>
+          <span class="saved" id="scPickupSaved">Saved</span>
+          <div id="scPickupErr" style="color:var(--bad);font-size:.9rem;display:none;margin-top:8px"></div>
+        </div>
       </div>
 
       <div class="card" id="receiptCard" data-sec="receipts">
@@ -885,6 +888,13 @@ function saveShopperRails(){
     if(boxes[i].checked && !boxes[i].disabled) picks.push(boxes[i].getAttribute("data-srail"));
   }
   var s=getSession(); if(!s)return;
+  var rerr=$("scRailsErr"); rerr.style.display="none";
+  /* No card and no hand rail is a storefront nobody can pay at. */
+  if(!stripeReady && picks.length===0){
+    rerr.textContent="Pick at least one. Without Stripe, shoppers would have no way to pay.";
+    rerr.style.display="block";
+    return;
+  }
   var btn=$("scRailsSave"); btn.disabled=true;
   authRest("profiles?id=eq."+encodeURIComponent(s.user_id),{method:"PATCH",
     body:JSON.stringify({ self_checkout_rails: picks.join(","),
@@ -1031,11 +1041,17 @@ function saveReceipt(){
 function paintCheckout(){
   var on=$("scOn").checked;
   var note=$("scNote"),link=$("scLinkRow");
-  $("scOn").disabled=!stripeReady;
-  if(!stripeReady){
-    note.textContent="Connect Stripe first \u2014 guest payments run on your own Stripe account.";
-  }else if(on){
+  /* Stripe turns on the CARD button, not the page. A cash or Venmo stand's
+     shoppers pick what they want and say how they paid; guest-checkout has
+     only ever needed Stripe for the card path. The page never sends money
+     anywhere, so there is nothing here for KYC to gate. */
+  $("scOn").disabled=false;
+  if(on&&stripeReady){
     note.textContent="Shoppers scan this at your stand, pay on their own phone, and show a stamped receipt. Paid sales appear in your ledger instantly.";
+  }else if(on){
+    note.textContent="Shoppers scan this at your stand, pick what they want, pay you the way you take (cash, Venmo\u2026), and tell the page how. Connect Stripe to take cards here too.";
+  }else if(!stripeReady){
+    note.textContent="Off by default. Turning this on publishes your item list at a public link. You don\u2019t need Stripe: shoppers can pay you by cash, Venmo or anything else you take, and say so on the page.";
   }else if(checkoutSlug){
     note.textContent="Your page is off. Re-enabling uses the same link.";
   }else{
@@ -1043,8 +1059,10 @@ function paintCheckout(){
   }
   /* None of the honour-system settings mean anything without a storefront
      for a shopper to stand in front of. */
-  $("scRailsBox").classList.toggle("hidden",!(on&&stripeReady));
-  $("scPickupBox").classList.toggle("hidden",!(on&&stripeReady));
+  $("scRailsBox").classList.toggle("hidden",!on);
+  $("scRailsHelp").textContent=stripeReady
+    ? "Cards go through Stripe and confirm themselves. These are the ways someone can tell you they paid by hand."
+    : "Without Stripe, these are the only ways to pay on your page, so pick at least one. Shoppers pay you directly and tell you which.";
   var haveLink=on&&!!checkoutSlug;
   link.classList.toggle("hidden",!haveLink);
   if(haveLink){
